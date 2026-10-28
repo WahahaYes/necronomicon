@@ -1,0 +1,14 @@
+# a param the check doesn't declare
+spec: Checks
+-- necro/t.yaml --
+guide: The t rules.
+rules:
+  clean:
+    summary: "src doesn't say {{word}}"
+    why: Because.
+    help: "drop {{word}}"
+    check: { regex: '(?P<word>\bbad\b)' }
+    explain: Long form.
+    params: { x: 1 }
+-- @config-error --
+necro/t.yaml:9:15: rules.clean.params.x

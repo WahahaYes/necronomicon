@@ -1,0 +1,17 @@
+# experimental hits are reported but never fail the run
+spec: Lifecycle; CLI
+args: --format terse
+-- necro/t.yaml --
+guide: The t rules.
+rules:
+  clean:
+    summary: "src doesn't say {{word}}"
+    why: Because.
+    help: "drop {{word}}"
+    explain: Long form.
+    check: { regex: '(?P<word>\bbad\b)' }
+    severity: experimental
+-- src/a.ts --
+bad
+-- @stdout --
+src/a.ts:1:1: t/clean src doesn't say bad

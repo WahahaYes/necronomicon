@@ -1,0 +1,6 @@
+# an unknown option is a usage error
+spec: CLI
+args: --nope
+exit: 2
+-- @stderr --
+necro: unknown option --nope (see necro --help)

@@ -1,0 +1,13 @@
+# wording may only use the check's values and params
+spec: Scope and parameters (loading validates everything)
+-- necro/t.yaml --
+guide: The t rules.
+rules:
+  clean:
+    summary: "src doesn't say {{word}}"
+    why: "Because {{reason}}."
+    help: "drop {{word}}"
+    check: { regex: '(?P<word>\bbad\b)' }
+    explain: Long form.
+-- @config-error --
+necro/t.yaml:5:10: rules.clean.why

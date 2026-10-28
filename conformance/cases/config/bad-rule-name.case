@@ -1,0 +1,13 @@
+# rule names are lowercase words joined by hyphens
+spec: Groups and rules
+-- necro/t.yaml --
+guide: The t rules.
+rules:
+  Clean_Rule:
+    summary: "src doesn't say {{word}}"
+    why: Because.
+    help: "drop {{word}}"
+    check: { regex: '(?P<word>\bbad\b)' }
+    explain: Long form.
+-- @config-error --
+necro/t.yaml:3:3: rules.Clean_Rule

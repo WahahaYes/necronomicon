@@ -1,0 +1,12 @@
+# outside git, the walk respects .gitignore
+spec: Scope and parameters (files)
+args: --format terse
+exit: 1
+-- .gitignore --
+src/skip.ts
+-- src/a.ts --
+bad
+-- src/skip.ts --
+bad
+-- @stdout --
+src/a.ts:1:1: t/clean src doesn't say bad

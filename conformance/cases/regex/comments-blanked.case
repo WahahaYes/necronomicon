@@ -1,0 +1,14 @@
+# in a known language, comments are blanked before matching and strings are kept
+spec: Checks; Languages
+args: --format terse
+exit: 1
+-- src/a.gd --
+# bad in a comment
+var s = "bad" # bad again
+-- src/b.ts --
+/* bad
+   still bad */ let y = bad;
+// bad
+-- @stdout --
+src/a.gd:2:10: t/clean src doesn't say bad
+src/b.ts:2:25: t/clean src doesn't say bad

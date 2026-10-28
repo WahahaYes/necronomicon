@@ -1,0 +1,13 @@
+# a parameter with no default must be set
+spec: Built-in checks
+-- necro/t.yaml --
+guide: The t rules.
+rules:
+  clean:
+    summary: "src lacks {{pattern}}"
+    why: Because.
+    help: add it
+    check: engine.require
+    explain: Long form.
+-- @config-error --
+necro/t.yaml:3:3: rules.clean.params.patterns

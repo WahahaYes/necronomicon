@@ -1,0 +1,13 @@
+# <group>.<name> needs that group to have a command
+spec: Checks
+-- necro/t.yaml --
+guide: The t rules.
+rules:
+  clean:
+    summary: "src is wrong"
+    why: Because.
+    help: fix it
+    check: t.ban
+    explain: Long form.
+-- @config-error --
+necro/t.yaml:7:12: rules.clean.check

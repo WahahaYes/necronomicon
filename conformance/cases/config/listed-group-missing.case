@@ -1,0 +1,8 @@
+# a listed group needs its file
+spec: Master
+-- necro.yaml --
+version: 0
+files: ["src/**"]
+groups: [necro, t, gone]
+-- @config-error --
+necro.yaml:3:20: groups[2]

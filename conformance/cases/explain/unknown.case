@@ -1,0 +1,6 @@
+# an unknown name exits 2 and lists what exists
+spec: CLI
+args: --explain t/nope
+exit: 2
+-- @stderr --
+necro: no rule or group `t/nope`; rules: necro/allow-reason, necro/unused-allow, t/clean; groups: necro, t

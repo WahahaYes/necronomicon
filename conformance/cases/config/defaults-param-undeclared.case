@@ -1,0 +1,10 @@
+# a master default param must be declared by some rule's check
+spec: Master
+-- necro.yaml --
+version: 0
+files: ["src/**"]
+groups: [necro, t]
+defaults:
+  params: { limit: 3 }
+-- @config-error --
+necro.yaml:5:13: defaults.params.limit

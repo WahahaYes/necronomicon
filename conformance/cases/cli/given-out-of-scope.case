@@ -1,0 +1,5 @@
+# a given file outside the scope is skipped
+spec: CLI
+args: --format terse notes.ts
+-- notes.ts --
+bad

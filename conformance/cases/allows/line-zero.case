@@ -1,0 +1,20 @@
+# a line-0 hit takes an allow on line 1, or line 2 after a shebang
+spec: Allows
+args: --format terse
+-- necro/t.yaml --
+guide: The t rules.
+rules:
+  wire:
+    summary: "never mentions {{pattern}}"
+    why: Because.
+    help: add it
+    check: engine.require
+    params: { patterns: [MatchProtocol] }
+    explain: Long form.
+-- src/a.gd --
+# necro-allow t/wire: pure data, no framing
+var x: int = 1
+-- src/b.py --
+#!/usr/bin/env python3
+# necro-allow t/wire: a script, not a net file
+x = 1

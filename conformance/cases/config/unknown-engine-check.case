@@ -1,0 +1,13 @@
+# engine.<name> must be a built-in check
+spec: Checks
+-- necro/t.yaml --
+guide: The t rules.
+rules:
+  clean:
+    summary: "src is wrong"
+    why: Because.
+    help: fix it
+    check: engine.nope
+    explain: Long form.
+-- @config-error --
+necro/t.yaml:7:12: rules.clean.check

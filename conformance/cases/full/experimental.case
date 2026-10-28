@@ -1,0 +1,44 @@
+# experimental hits follow errors and are counted apart, not failing
+spec: Messages; Lifecycle
+exit: 1
+-- necro/t.yaml --
+guide: The t rules.
+rules:
+  clean:
+    summary: "src doesn't say {{word}}"
+    why: Because.
+    help: "drop {{word}}"
+    check: { regex: '(?P<word>\bbad\b)' }
+    explain: Long form.
+  new:
+    summary: "no {{word}} either"
+    why: Trying it out.
+    help: "drop {{word}}"
+    check: { regex: '(?P<word>\bmeh\b)' }
+    severity: experimental
+    explain: Long form.
+-- src/a.ts --
+meh bad
+-- @stdout --
+error[t/clean]: src doesn't say bad
+ --> src/a.ts:1:5
+  |
+1 | meh bad
+  |     ^^^
+  |
+  = why: Because.
+  = help: drop bad
+  = more: necro --explain t/clean
+
+experimental[t/new]: no meh either
+ --> src/a.ts:1:1
+  |
+1 | meh bad
+  | ^^^
+  |
+  = why: Trying it out.
+  = help: drop meh
+  = more: necro --explain t/new
+
+necro: 1 error (t/clean ×1)
+necro: 1 experimental, not failing (t/new ×1)

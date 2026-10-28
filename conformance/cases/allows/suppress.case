@@ -1,0 +1,8 @@
+# an allow on the hit's line or the line above suppresses it
+spec: Allows
+args: --format terse
+-- src/d.ts --
+// necro-allow t/clean: quoting the banned word
+const d = "bad";
+const e = "bad"; // necro-allow t/clean: same line
+/* necro-allow t/clean: block comment */ const f = "bad";

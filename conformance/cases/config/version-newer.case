@@ -1,0 +1,8 @@
+# a newer spec version than the engine reads
+spec: Versioning
+-- necro.yaml --
+version: 1
+files: ["src/**"]
+groups: [necro, t]
+-- @config-error --
+necro.yaml:1:10: version

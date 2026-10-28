@@ -1,0 +1,25 @@
+# a rule's files narrow the master scope; * stays within one path segment
+spec: Scope and parameters
+args: --format terse
+exit: 1
+-- necro/t.yaml --
+guide: The t rules.
+rules:
+  clean:
+    summary: "src doesn't say {{word}}"
+    why: Because.
+    help: "drop {{word}}"
+    explain: Long form.
+    check: { regex: '(?P<word>\bbad\b)' }
+    files: ["src/*.ts"]
+-- src/a.ts --
+bad
+-- src/b/c.ts --
+bad
+-- src/.d.ts --
+bad
+-- other/e.ts --
+bad
+-- @stdout --
+src/.d.ts:1:1: t/clean src doesn't say bad
+src/a.ts:1:1: t/clean src doesn't say bad

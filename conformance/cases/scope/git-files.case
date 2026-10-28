@@ -1,0 +1,13 @@
+# in git, tracked files count and ignored ones don't
+spec: Scope and parameters (files)
+git: true
+args: --format terse
+exit: 1
+-- .gitignore --
+src/skip.ts
+-- src/a.ts --
+bad
+-- src/skip.ts --
+bad
+-- @stdout --
+src/a.ts:1:1: t/clean src doesn't say bad

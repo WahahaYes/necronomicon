@@ -1,0 +1,27 @@
+# --explain <code>: the explain text, effective params per where entry, and the group
+spec: CLI
+args: --explain t/wire
+-- necro/t.yaml --
+guide: The t rules.
+rules:
+  wire:
+    summary: "never mentions {{pattern}}"
+    why: Because.
+    help: add it
+    check: engine.require
+    params: { patterns: [MatchProtocol] }
+    where:
+      - files: ["src/net/replica.gd"]
+        params: { patterns: [MatchProtocol, rollover] }
+    explain: |
+      ## What the rule says
+      Every net file names the protocol.
+-- @stdout --
+t/wire (error): never mentions {{pattern}}
+
+## What the rule says
+Every net file names the protocol.
+
+params: at: anywhere, in: code, patterns: [MatchProtocol]
+  in src/net/replica.gd: patterns: [MatchProtocol, rollover]
+group: t (necro --explain t)

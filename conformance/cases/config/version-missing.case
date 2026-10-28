@@ -1,0 +1,7 @@
+# version is required
+spec: Master
+-- necro.yaml --
+files: ["src/**"]
+groups: [necro, t]
+-- @config-error --
+necro.yaml:1:1: version

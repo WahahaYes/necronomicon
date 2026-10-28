@@ -1,0 +1,12 @@
+# a comment marker inside a string doesn't start a comment
+spec: Languages
+args: --format terse
+exit: 1
+-- src/a.py --
+s = "# not a comment" ; bad = 1  # bad
+t = """
+# still a string
+""" ; bad
+-- @stdout --
+src/a.py:1:25: t/clean src doesn't say bad
+src/a.py:4:7: t/clean src doesn't say bad

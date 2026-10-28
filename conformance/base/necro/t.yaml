@@ -1,0 +1,8 @@
+guide: The t rules.
+rules:
+  clean:
+    summary: "src doesn't say {{word}}"
+    why: Because.
+    help: "drop {{word}}"
+    check: { regex: '(?P<word>\bbad\b)' }
+    explain: Long form.

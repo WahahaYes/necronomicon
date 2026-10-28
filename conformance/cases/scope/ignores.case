@@ -1,0 +1,27 @@
+# master and rule ignores both apply
+spec: Scope and parameters
+args: --format terse
+exit: 1
+-- necro.yaml --
+version: 0
+files: ["src/**"]
+ignores: ["src/gen/**"]
+groups: [necro, t]
+-- necro/t.yaml --
+guide: The t rules.
+rules:
+  clean:
+    summary: "src doesn't say {{word}}"
+    why: Because.
+    help: "drop {{word}}"
+    explain: Long form.
+    check: { regex: '(?P<word>\bbad\b)' }
+    ignores: ["**/*.md"]
+-- src/a.ts --
+bad
+-- src/gen/b.ts --
+bad
+-- src/c.md --
+bad
+-- @stdout --
+src/a.ts:1:1: t/clean src doesn't say bad

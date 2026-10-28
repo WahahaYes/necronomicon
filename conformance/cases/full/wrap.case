@@ -1,0 +1,31 @@
+# why and help wrap at 88 columns, continuation aligned under the text
+spec: Messages
+exit: 1
+-- necro/t.yaml --
+guide: The t rules.
+rules:
+  clean:
+    summary: "src doesn't say {{word}}"
+    why: "a bad word in source spreads: people copy what they read, agents copy it faster, and soon every file says it"
+    help: |
+      drop {{word}}
+      or say what you mean instead, in a word the rest of the codebase already uses for the same idea
+    check: { regex: '(?P<word>\bbad\b)' }
+    explain: Long form.
+-- src/a.ts --
+bad
+-- @stdout --
+error[t/clean]: src doesn't say bad
+ --> src/a.ts:1:1
+  |
+1 | bad
+  | ^^^
+  |
+  = why: a bad word in source spreads: people copy what they read, agents copy it
+         faster, and soon every file says it
+  = help: drop bad
+          or say what you mean instead, in a word the rest of the codebase already uses
+          for the same idea
+  = more: necro --explain t/clean
+
+necro: 1 error (t/clean ×1)

@@ -1,0 +1,24 @@
+# master defaults sit below group and rule
+spec: Master; Scope and parameters
+args: --format terse
+exit: 1
+-- necro.yaml --
+version: 0
+files: ["src/**"]
+groups: [necro, t]
+defaults:
+  severity: experimental
+-- necro/t.yaml --
+guide: The t rules.
+rules:
+  clean:
+    summary: "src doesn't say {{word}}"
+    why: Because.
+    help: "drop {{word}}"
+    explain: Long form.
+    check: { regex: '(?P<word>\bbad\b)' }
+    severity: error
+-- src/a.ts --
+bad
+-- @stdout --
+src/a.ts:1:1: t/clean src doesn't say bad

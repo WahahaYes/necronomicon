@@ -1,0 +1,3 @@
+version: 0
+files: ["src/**"]
+groups: [necro, t]

@@ -1,0 +1,46 @@
+# full: the first hit teaches; a repeat shows help, and its summary only when it's new
+spec: Messages
+exit: 1
+-- necro/t.yaml --
+guide: The t rules.
+rules:
+  clean:
+    summary: "src doesn't say {{word}}"
+    label: "{{word}} here"
+    why: Because.
+    help: "drop {{word}}"
+    check: { regex: '(?P<word>\b(bad|worse)\b)' }
+    explain: Long form.
+    where:
+      - files: ["src/b/**"]
+        summary: "src/b doesn't say {{word}} either"
+        help: "say better than {{word}}"
+-- src/a.ts --
+const a = "bad";
+-- src/b/x.ts --
+const w = "worse";
+-- src/c.ts --
+let x = "bad"; // second
+-- src/d.ts --
+// necro-allow t/clean: quoting the banned word
+const d = "bad";
+-- @stdout --
+error[t/clean]: src doesn't say bad
+ --> src/a.ts:1:12
+  |
+1 | const a = "bad";
+  |            ^^^ bad here
+  |
+  = why: Because.
+  = help: drop bad
+  = more: necro --explain t/clean
+
+error[t/clean]: src/b doesn't say worse either
+  --> src/b/x.ts:1:12
+   = help: say better than worse
+
+error[t/clean]: also at src/c.ts:1:10
+   = help: drop bad
+
+necro: 3 errors (t/clean ×3)
+necro: allowed t/clean at src/d.ts:2: quoting the banned word

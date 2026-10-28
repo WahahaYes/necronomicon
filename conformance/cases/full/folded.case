@@ -1,0 +1,34 @@
+# past 4 repeats per code, the rest are counted per file
+spec: Messages
+exit: 1
+-- src/a.ts --
+bad bad bad
+-- src/b.ts --
+bad bad bad
+bad
+-- @stdout --
+error[t/clean]: src doesn't say bad
+ --> src/a.ts:1:1
+  |
+1 | bad bad bad
+  | ^^^
+  |
+  = why: Because.
+  = help: drop bad
+  = more: necro --explain t/clean
+
+error[t/clean]: also at src/a.ts:1:5
+   = help: drop bad
+
+error[t/clean]: also at src/a.ts:1:9
+   = help: drop bad
+
+error[t/clean]: also at src/b.ts:1:1
+   = help: drop bad
+
+error[t/clean]: also at src/b.ts:1:5
+   = help: drop bad
+
+error[t/clean]: 2 more in src/b.ts
+
+necro: 7 errors (t/clean ×7)

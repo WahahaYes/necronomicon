@@ -1,0 +1,23 @@
+# at: start with in: line: the first line must begin with the pattern
+spec: Built-in checks
+args: --format terse
+exit: 1
+-- necro/t.yaml --
+guide: The t rules.
+files: ["src/**/*.rs"]
+rules:
+  module:
+    summary: "the file doesn't open with a //! module doc"
+    why: Because.
+    help: start it with //!
+    check: engine.require
+    params: { patterns: ["//!"], at: start, in: line }
+    explain: Long form.
+-- src/a.rs --
+//! A module.
+fn a() {}
+-- src/b.rs --
+fn b() {}
+//! too late
+-- @stdout --
+src/b.rs:0:1: t/module the file doesn't open with a //! module doc

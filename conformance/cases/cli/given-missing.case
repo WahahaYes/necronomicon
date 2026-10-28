@@ -1,0 +1,6 @@
+# a given file that doesn't exist is a usage error
+spec: CLI
+args: src/gone.ts
+exit: 2
+-- @stderr --
+necro: src/gone.ts: no such file

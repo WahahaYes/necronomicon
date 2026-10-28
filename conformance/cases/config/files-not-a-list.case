@@ -1,0 +1,14 @@
+# scope keys are lists of globs
+spec: Scope and parameters
+-- necro/t.yaml --
+guide: The t rules.
+rules:
+  clean:
+    summary: "src doesn't say {{word}}"
+    why: Because.
+    help: "drop {{word}}"
+    check: { regex: '(?P<word>\bbad\b)' }
+    explain: Long form.
+    files: "src/**"
+-- @config-error --
+necro/t.yaml:9:12: rules.clean.files
