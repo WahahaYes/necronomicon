@@ -250,6 +250,8 @@ pub type Describe<'a> = dyn FnMut(&Group) -> Result<BTreeMap<String, CheckDecl>,
 pub struct BrokenGroup {
     pub group: String,
     pub message: String,
+    /// An `error` rule uses one of its checks, so the run fails.
+    pub fatal: bool,
 }
 
 struct Errors {
@@ -761,6 +763,9 @@ pub fn load(root: &Path, describe: &mut Describe) -> Result<Loaded, Vec<ConfigEr
                 Err(message) => broken.push(BrokenGroup {
                     group: spec.group.name.clone(),
                     message,
+                    fatal: specs
+                        .iter()
+                        .any(|s| uses_as_error(s, &spec.group.name, default_severity)),
                 }),
             }
         }
@@ -855,6 +860,38 @@ pub fn load(root: &Path, describe: &mut Describe) -> Result<Loaded, Vec<ConfigEr
             langs,
         },
         broken,
+    })
+}
+
+/// Whether a rule with error severity, here or in a `where`, uses one of `group`'s checks.
+fn uses_as_error(spec: &GroupSpec, group: &str, default: Option<Severity>) -> bool {
+    let is_error = |n: Option<&Node>| n.and_then(Node::as_str) == Some("error");
+    spec.rules.iter().any(|(_, rule)| {
+        let Value::Map(items) = &rule.value else {
+            return false;
+        };
+        let get = |k: &str| items.iter().find(|(key, _)| key.name == k).map(|(_, v)| v);
+        let uses = get("check")
+            .and_then(Node::as_str)
+            .and_then(|c| c.split_once('.'))
+            .is_some_and(|(g, _)| g == group);
+        let own = get("severity").and_then(Node::as_str);
+        let base = match own {
+            Some(s) => s == "error",
+            None => spec.severity.or(default).unwrap_or(Severity::Error) == Severity::Error,
+        };
+        let wheres = match get("where").map(|w| &w.value) {
+            Some(Value::Seq(entries)) => entries.iter().any(|e| match &e.value {
+                Value::Map(kv) => is_error(
+                    kv.iter()
+                        .find(|(k, _)| k.name == "severity")
+                        .map(|(_, v)| v),
+                ),
+                _ => false,
+            }),
+            _ => false,
+        };
+        uses && (base || wheres)
     })
 }
 

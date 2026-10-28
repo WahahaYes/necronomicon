@@ -217,11 +217,20 @@ pub fn run(
     }
 
     for b in broken {
-        let failure = Failure {
-            message: b.message.clone(),
-            stderr: vec![],
-        };
-        push_check_error(&mut report, config, &b.group, failure);
+        let command = config
+            .groups
+            .iter()
+            .find(|g| g.name == b.group)
+            .and_then(|g| g.command.as_ref());
+        report.check_errors.push(CheckError {
+            group: b.group.clone(),
+            command: command.map(|c| c.join(" ")).unwrap_or_default(),
+            failure: Failure {
+                message: b.message.clone(),
+                stderr: vec![],
+            },
+            fatal: b.fatal,
+        });
     }
     let in_scope_set: BTreeSet<&str> = scope.iter().map(|s| s.as_str()).collect();
     for (group, process) in std::mem::take(scripts) {
