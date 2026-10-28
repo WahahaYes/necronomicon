@@ -3,6 +3,7 @@
 mod checks;
 mod config;
 mod files;
+mod fixtures;
 mod lang;
 mod render;
 mod run;
@@ -112,6 +113,16 @@ fn main_with(args: Args) -> Result<u8, String> {
     };
     let cfg = &loaded.config;
 
+    if args.test {
+        drop(scripts);
+        let outcomes = fixtures::test(&root, &loaded, args.update);
+        render::text(&render::test::render(&outcomes));
+        return Ok(if outcomes.iter().all(|o| o.problems.is_empty()) {
+            0
+        } else {
+            1
+        });
+    }
     if let Some(name) = &args.explain {
         render::text(&render::explain::render(cfg, name)?);
         return Ok(0);

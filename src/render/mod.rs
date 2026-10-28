@@ -5,6 +5,7 @@ use std::io::Write;
 
 pub mod explain;
 pub mod full;
+pub mod test;
 
 use crate::config::ConfigError;
 use crate::run::Report;
