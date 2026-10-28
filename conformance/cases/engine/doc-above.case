@@ -1,0 +1,26 @@
+# doc-above: a target line needs a comment of the given markers above, past skipped lines
+spec: Built-in checks
+args: --format terse
+exit: 1
+-- necro/t.yaml --
+guide: The t rules.
+rules:
+  doc:
+    summary: "{{name}} is exported without a ## doc"
+    why: Because.
+    help: "add a ## line above {{name}}"
+    check: engine.doc-above
+    params: { target: '^\s*@export\s+var\s+(?P<name>\w+)', skip: '^\s*@export_group', markers: ["##"] }
+    explain: Long form.
+-- src/a.gd --
+## Speed.
+@export var speed: float = 1.0
+# not a doc comment
+@export var size: int = 2
+@export var bare: int = 3
+## Grouped.
+@export_group("Look")
+@export var colour: Color
+-- @stdout --
+src/a.gd:4:1: t/doc size is exported without a ## doc
+src/a.gd:5:1: t/doc bare is exported without a ## doc

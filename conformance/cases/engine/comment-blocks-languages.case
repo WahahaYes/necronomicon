@@ -1,0 +1,38 @@
+# block comments and Python docstrings are one block each; a shebang may precede the header
+spec: Built-in checks; Languages
+args: --format terse
+exit: 1
+-- necro/t.yaml --
+guide: The t rules.
+rules:
+  length:
+    summary: "a comment block is {{lines}} lines, over {{limit}}"
+    why: Because.
+    help: "cut it to {{limit}}"
+    check: engine.comment-blocks
+    params: { header: 3, block: 2 }
+    explain: Long form.
+-- src/b.ts --
+#!/usr/bin/env node
+/**
+ * one
+ * two
+ */
+// a
+// b
+// c
+const x = 1;
+-- src/c.py --
+"""Module doc
+line two
+line three
+"""
+def f():
+    """one
+    two
+    three"""
+-- @stdout --
+src/b.ts:2:1: t/length a comment block is 4 lines, over 3
+src/b.ts:6:1: t/length a comment block is 3 lines, over 2
+src/c.py:1:1: t/length a comment block is 4 lines, over 3
+src/c.py:6:5: t/length a comment block is 3 lines, over 2
