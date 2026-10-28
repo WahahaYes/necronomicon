@@ -1,0 +1,42 @@
+# --update writes a missing or stale expected.txt
+spec: Fixtures
+args: test --update
+-- necro/fixtures/t/clean/good/src/a.ts --
+const a = "good";
+-- necro/fixtures/t/clean/bad/src/a.ts --
+const a = "bad";
+-- necro/fixtures/necro/good/src/a.ts --
+// necro-allow t/clean: quoted
+const a = "bad";
+-- necro/fixtures/necro/allow-reason/bad/src/a.ts --
+const a = "bad"; // necro-allow t/clean
+-- necro/fixtures/necro/allow-reason/expected.txt --
+error[necro/allow-reason]: the allow for t/clean gives no reason
+ --> src/a.ts:1:21
+  |
+1 | const a = "bad"; // necro-allow t/clean
+  |                     ^^^^^^^^^^^^^^^^^^^
+  |
+  = why: Reasons.
+  = help: add one: necro-allow t/clean: <why>
+  = more: necro --explain necro/allow-reason
+
+necro: 1 error (necro/allow-reason ×1)
+necro: allowed t/clean at src/a.ts:1: (no reason)
+-- necro/fixtures/necro/unused-allow/bad/src/a.ts --
+const ok = 1; // necro-allow t/clean: nothing here
+-- necro/fixtures/necro/unused-allow/expected.txt --
+error[necro/unused-allow]: the allow for t/clean suppresses nothing
+ --> src/a.ts:1:18
+  |
+1 | const ok = 1; // necro-allow t/clean: nothing here
+  |                  ^^^^^^^^^^^^^^^^^^^
+  |
+  = why: Stale.
+  = help: delete it
+  = more: necro --explain necro/unused-allow
+
+necro: 1 error (necro/unused-allow ×1)
+-- @stdout --
+updated t/clean/expected.txt
+necro test: 3 of 3 rules pass

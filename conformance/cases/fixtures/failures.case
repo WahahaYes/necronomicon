@@ -1,0 +1,41 @@
+# a missing fixture, a good tree with hits and a snapshot mismatch all fail, with evidence
+spec: Fixtures
+args: test
+exit: 1
+-- necro/fixtures/t/clean/good/src/a.ts --
+const a = "bad";
+-- necro/fixtures/t/clean/bad/src/a.ts --
+const a = "bad";
+-- necro/fixtures/t/clean/expected.txt --
+error[t/clean]: src doesn't say bad
+ --> src/a.ts:1:12
+  |
+1 | const a = "bad";
+  |            ^^^
+  |
+  = why: Because.
+  = help: drop it
+  = more: necro --explain t/clean
+
+necro: 1 error (t/clean ×1)
+-- @stdout --
+FAIL necro/allow-reason: no good/ fixture
+FAIL necro/allow-reason: no bad/ fixture
+FAIL necro/unused-allow: no good/ fixture
+FAIL necro/unused-allow: no bad/ fixture
+FAIL t/clean: good/ isn't clean:
+  src/a.ts:1:12: t/clean src doesn't say bad
+FAIL t/clean: bad/ output differs from expected.txt (- expected, + actual):
+    error[t/clean]: src doesn't say bad
+     --> src/a.ts:1:12
+      |
+    1 | const a = "bad";
+      |            ^^^
+      |
+      = why: Because.
+  -   = help: drop it
+  +   = help: drop bad
+      = more: necro --explain t/clean
+
+    necro: 1 error (t/clean ×1)
+necro test: 0 of 3 rules pass

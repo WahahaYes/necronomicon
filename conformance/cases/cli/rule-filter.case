@@ -1,0 +1,25 @@
+# --rule runs one rule (and the necro group's); allows for rules that didn't run aren't stale
+spec: CLI
+args: --format terse --rule t/clean
+exit: 1
+-- necro/t.yaml --
+guide: The t rules.
+rules:
+  clean:
+    summary: "src doesn't say {{word}}"
+    why: Because.
+    help: "drop {{word}}"
+    check: { regex: '(?P<word>\bbad\b)' }
+    explain: Long form.
+  other:
+    summary: "no {{word}}"
+    why: Because.
+    help: "drop {{word}}"
+    check: { regex: '(?P<word>\bmeh\b)' }
+    explain: Long form.
+-- src/a.ts --
+bad meh
+// necro-allow t/other: not run, not stale
+meh
+-- @stdout --
+src/a.ts:1:1: t/clean src doesn't say bad
