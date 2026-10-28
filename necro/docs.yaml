@@ -1,0 +1,18 @@
+guide: |
+  How comments and docs stay short. Say what the code can't, briefly; longer
+  reasoning goes in spec/ or the PR.
+files: ["src/**/*.rs"]
+rules:
+  length:
+    summary: "a comment block is {{lines}} lines, over the limit of {{limit}}"
+    why: long comments go stale and hide the code
+    help: "cut it to {{limit}} lines; move the reasoning to spec/ or the PR description"
+    check: engine.comment-blocks
+    params: { header: 10, block: 6 }
+    explain: |
+      ## What the rule says
+      A module's header comment is at most 10 lines; any other block at most 6.
+
+      ## When an exception is fair
+      A doc comment that is the only home of a format the spec doesn't cover.
+      Prefer adding that to the spec.

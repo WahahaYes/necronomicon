@@ -1,0 +1,8 @@
+# necronomicon's own house rules, run by the current build (see .pre-commit-config.yaml
+# once the loader works). Format: spec/v0.md.
+version: 0
+files: ["**/*"]
+ignores: ["necro/fixtures/**", "conformance/**"]
+groups: [necro, layer, docs]
+defaults:
+  severity: experimental # promoted once the engine runs them clean
