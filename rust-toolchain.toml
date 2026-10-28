@@ -1,0 +1,5 @@
+# The one Rust pin: rustup reads it everywhere (dev, CI, wheel builds).
+[toolchain]
+channel = "1.98.1"
+profile = "minimal"
+components = ["clippy", "rustfmt"]

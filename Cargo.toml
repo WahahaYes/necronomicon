@@ -1,0 +1,16 @@
+[package]
+name = "necronomicon"
+version = "0.0.0"
+edition = "2024"
+description = "House rules for a repo, enforced by lint messages that teach the rule and the fix"
+repository = "https://github.com/WahahaYes/necronomicon"
+readme = "README.md"
+
+[[bin]]
+name = "necro"
+path = "src/main.rs"
+
+[dependencies]
+
+[profile.release]
+strip = true

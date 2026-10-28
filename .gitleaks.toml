@@ -1,0 +1,5 @@
+title = "Gitleaks config for necronomicon"
+
+# Keep gitleaks' built-in ruleset; without this a custom config replaces it.
+[extend]
+useDefault = true

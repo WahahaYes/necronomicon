@@ -1,0 +1,19 @@
+# The PyPI package is only a wheel around the `necro` binary (as ruff ships), so
+# pre-commit installs it without a Rust toolchain. The version comes from Cargo.toml.
+[build-system]
+requires = ["maturin>=1.15,<2"]
+build-backend = "maturin"
+
+[project]
+name = "necronomicon"
+dynamic = ["version"]
+description = "House rules for a repo, enforced by lint messages that teach the rule and the fix"
+readme = "README.md"
+requires-python = ">=3.9"
+
+[project.urls]
+Repository = "https://github.com/WahahaYes/necronomicon"
+
+[tool.maturin]
+bindings = "bin"
+strip = true
