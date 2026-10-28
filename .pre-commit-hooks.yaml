@@ -1,0 +1,15 @@
+# Pin from a repo's .pre-commit-config.yaml:
+#   - repo: https://github.com/WahahaYes/necronomicon
+#     rev: <tag or sha>
+#     hooks: [{ id: necro }]
+# Until wheels are on PyPI, installing builds the binary with cargo (needs Rust).
+- id: necro
+  name: necro
+  description: House rules, enforced by messages that teach the rule and the fix.
+  entry: necro
+  language: python
+  # The whole tree by default: project-scope checks need every file, and a
+  # run is fast. Set pass_filenames: true to check only the staged files.
+  pass_filenames: false
+  require_serial: true
+  minimum_pre_commit_version: "3.0.0"
