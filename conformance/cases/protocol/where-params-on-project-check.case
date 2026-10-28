@@ -1,0 +1,17 @@
+# a project check runs once, so where can't set its params
+spec: Scope and parameters
+-- necro/t.yaml --
+guide: The t rules.
+command: python3 necro/t.py
+rules:
+  whole:
+    summary: whole tree
+    why: Because.
+    help: fix it
+    check: t.all
+    explain: Long form.
+    where:
+      - files: ["src/b/**"]
+        params: {}
+-- @config-error --
+necro/t.yaml:12:17: rules.whole.where[0].params

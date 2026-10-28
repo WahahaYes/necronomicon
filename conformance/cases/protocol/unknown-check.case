@@ -1,0 +1,14 @@
+# a <group>.<name> the group's describe doesn't list
+spec: Checks
+-- necro/t.yaml --
+guide: The t rules.
+command: python3 necro/t.py
+rules:
+  clean:
+    summary: src is wrong
+    why: Because.
+    help: fix it
+    check: t.nope
+    explain: Long form.
+-- @config-error --
+necro/t.yaml:8:12: rules.clean.check

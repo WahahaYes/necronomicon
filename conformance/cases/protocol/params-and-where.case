@@ -1,0 +1,24 @@
+# params reach the script; a where entry's params make a second job
+spec: Check protocol; Scope and parameters
+args: --format terse
+exit: 1
+-- necro/t.yaml --
+guide: The t rules.
+command: python3 necro/t.py
+rules:
+  clean:
+    summary: "src doesn't say {{word}}"
+    why: Because.
+    help: "drop {{word}}"
+    check: t.ban
+    explain: Long form.
+    where:
+      - files: ["src/b/**"]
+        params: { word: worse }
+-- src/a.ts --
+bad worse
+-- src/b/c.ts --
+bad worse
+-- @stdout --
+src/a.ts:1:1: t/clean src doesn't say bad
+src/b/c.ts:1:5: t/clean src doesn't say worse

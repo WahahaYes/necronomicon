@@ -1,0 +1,19 @@
+# a script that exits nonzero is a check error with its stderr; the run fails
+spec: Check protocol
+env: T_MODE=exit1
+exit: 2
+-- necro/t.yaml --
+guide: The t rules.
+command: python3 necro/t.py
+rules:
+  clean:
+    summary: "src doesn't say {{word}}"
+    why: Because.
+    help: "drop {{word}}"
+    check: t.ban
+    explain: Long form.
+-- src/a.ts --
+bad
+-- @stderr --
+necro: check error: t (python3 necro/t.py): exited with status 1
+  | t.py: something broke

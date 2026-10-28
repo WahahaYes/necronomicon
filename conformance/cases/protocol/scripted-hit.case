@@ -1,0 +1,18 @@
+# a scripted check's hits render like any other; the command string is split as a shell would
+spec: Check protocol
+args: --format terse
+exit: 1
+-- necro/t.yaml --
+guide: The t rules.
+command: python3 necro/t.py
+rules:
+  clean:
+    summary: "src doesn't say {{word}}"
+    why: Because.
+    help: "drop {{word}}"
+    check: t.ban
+    explain: Long form.
+-- src/a.ts --
+const a = "bad";
+-- @stdout --
+src/a.ts:1:12: t/clean src doesn't say bad

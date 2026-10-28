@@ -1,0 +1,18 @@
+# a hit may only carry declared values
+spec: Check protocol (hits)
+env: T_MODE=badvalue
+exit: 2
+-- necro/t.yaml --
+guide: The t rules.
+command: python3 necro/t.py
+rules:
+  clean:
+    summary: src is wrong
+    why: Because.
+    help: fix it
+    check: t.ban
+    explain: Long form.
+-- src/a.ts --
+bad
+-- @stderr --
+necro: check error: t (python3 necro/t.py): job 1 returned value `other`, which `ban` doesn't declare

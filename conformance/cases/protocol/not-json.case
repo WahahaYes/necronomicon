@@ -1,0 +1,18 @@
+# a stdout line that isn't JSON is a check error
+spec: Check protocol
+env: T_MODE=garbage
+exit: 2
+-- necro/t.yaml --
+guide: The t rules.
+command: python3 necro/t.py
+rules:
+  clean:
+    summary: "src doesn't say {{word}}"
+    why: Because.
+    help: "drop {{word}}"
+    check: t.ban
+    explain: Long form.
+-- src/a.ts --
+bad
+-- @stderr --
+necro: check error: t (python3 necro/t.py): a line on stdout isn't JSON: not json

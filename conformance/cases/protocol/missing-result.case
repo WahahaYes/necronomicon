@@ -1,0 +1,18 @@
+# every job needs a result
+spec: Check protocol (check failure)
+env: T_MODE=noresult
+exit: 2
+-- necro/t.yaml --
+guide: The t rules.
+command: python3 necro/t.py
+rules:
+  clean:
+    summary: "src doesn't say {{word}}"
+    why: Because.
+    help: "drop {{word}}"
+    check: t.ban
+    explain: Long form.
+-- src/a.ts --
+bad
+-- @stderr --
+necro: check error: t (python3 necro/t.py): no result for job 1
