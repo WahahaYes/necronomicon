@@ -3,6 +3,7 @@ name = "necronomicon"
 version = "0.0.0"
 edition = "2024"
 description = "House rules for a repo, enforced by lint messages that teach the rule and the fix"
+license = "Apache-2.0"
 repository = "https://github.com/WahahaYes/necronomicon"
 readme = "README.md"
 

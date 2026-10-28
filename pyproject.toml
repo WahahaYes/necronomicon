@@ -8,6 +8,7 @@ build-backend = "maturin"
 name = "necronomicon"
 dynamic = ["version"]
 description = "House rules for a repo, enforced by lint messages that teach the rule and the fix"
+license = "Apache-2.0"
 readme = "README.md"
 requires-python = ">=3.9"
 
