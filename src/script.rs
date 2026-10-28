@@ -59,6 +59,8 @@ pub struct Response {
 fn param_json(v: &ParamValue) -> Json {
     match v {
         ParamValue::Str(s) => json!(s),
+        // Whole numbers go as integers, so scripts can use them as columns and counts.
+        ParamValue::Number(n) if n.fract() == 0.0 && n.abs() < 1e15 => json!(*n as i64),
         ParamValue::Number(n) => json!(n),
         ParamValue::Bool(b) => json!(b),
         ParamValue::StrList(l) => json!(l),
@@ -322,6 +324,15 @@ fn parse_describe(v: &Json) -> Result<BTreeMap<String, CheckDecl>, String> {
     Ok(out)
 }
 
+/// A whole number, also when a script sends it as a float (`6.0`).
+fn whole(v: &Json) -> Option<u64> {
+    v.as_u64().or_else(|| {
+        v.as_f64()
+            .filter(|f| f.fract() == 0.0 && *f >= 0.0)
+            .map(|f| f as u64)
+    })
+}
+
 fn parse_response(v: &Json) -> Result<Response, String> {
     let mut out = Response::default();
     let results = v
@@ -341,15 +352,15 @@ fn parse_response(v: &Json) -> Result<Response, String> {
                 .ok_or(format!("a hit in `{id}` has no `file`"))?;
             let line = h
                 .get("line")
-                .and_then(Json::as_u64)
+                .and_then(whole)
                 .ok_or(format!("a hit in `{id}` has no `line`"))?;
             let col = h
                 .get("column")
-                .map_or(Some(1), Json::as_u64)
+                .map_or(Some(1), whole)
                 .ok_or(format!("a hit in `{id}` has a bad `column`"))?;
             let length = h
                 .get("length")
-                .map_or(Some(0), Json::as_u64)
+                .map_or(Some(0), whole)
                 .ok_or(format!("a hit in `{id}` has a bad `length`"))?;
             let mut values = BTreeMap::new();
             if let Some(vs) = h.get("values") {
