@@ -55,6 +55,13 @@ pub fn usage(message: &str) {
     let _ = writeln!(std::io::stderr(), "necro: {message}");
 }
 
+pub fn lines(lines: &[String]) {
+    let mut out = std::io::stdout().lock();
+    for l in lines {
+        let _ = writeln!(out, "{l}");
+    }
+}
+
 pub fn line(text: &str) {
     let _ = writeln!(std::io::stdout(), "{text}");
 }
@@ -89,6 +96,7 @@ necro: checks a repo against its house rules (necro.yaml).
 usage: necro [-C <dir>] [--format full|terse] [--rule <name>]
        necro [-C <dir>] --explain <rule>
        necro [-C <dir>] baseline
+       necro grep [--skip-comments <marker>]… <regex> [-- <pathspec>…]
        necro --version
 
 Each rule's command chooses its own files. `necro baseline` writes necro.baseline,

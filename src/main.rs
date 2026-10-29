@@ -5,6 +5,7 @@ mod baseline;
 mod command;
 mod config;
 mod files;
+mod finders;
 mod render;
 mod run;
 mod yaml;
@@ -59,6 +60,9 @@ fn parse(argv: Vec<String>) -> Result<Args, String> {
 
 fn main() -> ExitCode {
     let argv: Vec<String> = std::env::args().skip(1).collect();
+    if let Some(code) = finders::dispatch(&argv) {
+        return ExitCode::from(code);
+    }
     if argv.iter().any(|a| a == "--version") {
         render::line(&format!("necro {}", env!("CARGO_PKG_VERSION")));
         return ExitCode::SUCCESS;

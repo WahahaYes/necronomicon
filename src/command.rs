@@ -112,6 +112,10 @@ pub fn run(command: &str, root: &Path) -> Result<Vec<String>, Failure> {
         return Err(Failure::Check("the command is empty".into(), vec![]));
     };
     let mut cmd = Command::new(program);
+    // necro's own folder first, so `necro grep` runs as this necro.
+    if let Some(path) = path_with_necro() {
+        cmd.env("PATH", path);
+    }
     cmd.args(args)
         .current_dir(root)
         .env("NECRO_ROOT_DIR", root)
@@ -170,6 +174,13 @@ pub fn run(command: &str, root: &Path) -> Result<Vec<String>, Failure> {
         .lines()
         .map(|l| l.trim_end_matches('\r').to_string())
         .collect())
+}
+
+fn path_with_necro() -> Option<std::ffi::OsString> {
+    let exe = std::env::current_exe().ok()?;
+    let dir = exe.parent()?.to_path_buf();
+    let rest = std::env::var_os("PATH").unwrap_or_default();
+    std::env::join_paths(std::iter::once(dir).chain(std::env::split_paths(&rest))).ok()
 }
 
 fn kill(child: &mut std::process::Child) {
