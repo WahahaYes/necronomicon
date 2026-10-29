@@ -1,8 +1,0 @@
-# allows-in is a list of pathspecs
-spec: Allows
--- necro.yaml --
-version: 0
-allows-in: tests
-rules: {}
--- @config-error --
-necro.yaml:2:12: allows-in

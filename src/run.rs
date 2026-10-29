@@ -142,7 +142,7 @@ pub fn run(config: &Config, root: &Path, only: Option<&str>) -> Report {
         }
     }
 
-    let mut found = match allows::find(root, &config.allows_in) {
+    let mut found = match allows::find(root) {
         Ok(a) => a,
         Err(message) => {
             report.problems.push(Problem::Setup(message));
