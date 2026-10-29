@@ -1,11 +1,15 @@
-//! The conformance suite (conformance/README.md) against this build's `necro`.
+//! The conformance suite (tests/conformance/README.md) against this build's `necro`.
 
 use std::process::Command;
 
 #[test]
 fn conformance() {
     let out = Command::new("python3")
-        .args(["conformance/run.py", "--", env!("CARGO_BIN_EXE_necro")])
+        .args([
+            "tests/conformance/run.py",
+            "--",
+            env!("CARGO_BIN_EXE_necro"),
+        ])
         .current_dir(env!("CARGO_MANIFEST_DIR"))
         .output()
         .expect("python3 runs the conformance suite");

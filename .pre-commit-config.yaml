@@ -6,7 +6,7 @@ repos:
     hooks:
       - id: trailing-whitespace
         # Conformance cases pin exact output bytes.
-        exclude: &verbatim ^conformance/
+        exclude: &verbatim ^tests/conformance/
       - id: end-of-file-fixer
         exclude: *verbatim
       - id: check-yaml
