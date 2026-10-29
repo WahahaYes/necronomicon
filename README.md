@@ -1,6 +1,6 @@
 # necronomicon
 
-House rules for a repo, enforced by lint messages that teach the rule and the fix to whoever trips them, often an agent. Each rule is a command that finds violations plus the words to show: what's wrong, why, and what to do instead. The `necro` binary runs them from pre-commit, keeps allows and a baseline, and prints the words.
+House rules for a repo, enforced by lint messages that teach the rule and the fix to whoever trips them, often an agent. Each rule is a command that finds violations plus the words to show: what's wrong, why, and what to do instead. The `necro` binary runs them from pre-commit, applies allows, and prints the words.
 
 ```yaml
 # necro.yaml
@@ -13,7 +13,7 @@ rules:
     fix: Log with logging.getLogger(__name__) at the right level.
 ```
 
-- [docs/writing-rules.md](docs/writing-rules.md): writing rules, allows, the baseline.
+- [docs/writing-rules.md](docs/writing-rules.md): writing rules and allows.
 - [examples/](examples/): small repos, each checked by CI.
 - [spec/v0.md](spec/v0.md): the contract; [tests/conformance/](tests/conformance/) makes it executable.
 

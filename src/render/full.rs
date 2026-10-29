@@ -176,35 +176,6 @@ pub fn summary(report: &Report) -> String {
         let by = counts(errors.iter().map(|d| d.rule.as_str()));
         let _ = writeln!(out, "necro: {n} ({by})");
     }
-    if !report.baselined.is_empty() {
-        let total: usize = report.baselined.values().sum();
-        let by = report
-            .baselined
-            .iter()
-            .map(|(r, n)| format!("{r} ×{n}"))
-            .collect::<Vec<_>>()
-            .join(", ");
-        let _ = writeln!(out, "necro: {total} baselined ({by})");
-    }
-    for o in &report.over {
-        let label = if o.label.is_empty() {
-            String::new()
-        } else {
-            format!(" ({})", o.label)
-        };
-        let _ = writeln!(
-            out,
-            "necro: over the baseline: {} in {}{label}: {}, baseline {}",
-            o.rule, o.file, o.count, o.baseline
-        );
-    }
-    if report.fell > 0 {
-        let n = plural(report.fell, "count fell", "counts fell");
-        let _ = writeln!(
-            out,
-            "necro: {n} below the baseline; run necro baseline to keep the ratchet tight"
-        );
-    }
     for a in &report.allowed {
         let reason = if a.reason.is_empty() {
             "(no reason)"

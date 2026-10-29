@@ -124,12 +124,6 @@ def run_case(path, engine, bin_dir):
                 want = normalise(expect.get(name, ""), root)
                 if got != want:
                     problems.append(diff(name, want, got))
-        for name, want in expect.items():
-            if name.startswith("@file "):
-                path = root / name[len("@file "):]
-                got_file = normalise(path.read_text(encoding="utf-8"), root) if path.exists() else "(missing)"
-                if got_file != normalise(want, root):
-                    problems.append(diff(name, normalise(want, root), got_file))
         if proc.returncode != want_exit:
             problems.append(f"exit {proc.returncode}, want {want_exit}" + (f"\nstderr:\n{err}" if err else ""))
         return problems

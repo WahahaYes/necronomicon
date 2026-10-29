@@ -1,7 +1,6 @@
 //! `necro`: checks a repo against its house rules (spec/v0.md).
 
 mod allows;
-mod baseline;
 mod command;
 mod config;
 mod files;
@@ -19,7 +18,6 @@ struct Args {
     format: Option<String>,
     rule: Option<String>,
     explain: Option<String>,
-    baseline: bool,
 }
 
 fn parse(argv: Vec<String>) -> Result<Args, String> {
@@ -41,7 +39,6 @@ fn parse(argv: Vec<String>) -> Result<Args, String> {
             "--format" => a.format = Some(value("--format", inline.as_deref())?),
             "--rule" => a.rule = Some(value("--rule", inline.as_deref())?),
             "--explain" => a.explain = Some(value("--explain", inline.as_deref())?),
-            "baseline" if !a.baseline => a.baseline = true,
             f if f.starts_with('-') && f.len() > 1 => {
                 return Err(format!("unknown option {f} (see necro --help)"));
             }
@@ -119,27 +116,6 @@ fn main_with(args: Args) -> Result<u8, String> {
     {
         return Err(unknown(name));
     }
-    if args.baseline {
-        let report = run::run(&config, &root, None);
-        if !report.problems.is_empty() {
-            render::problems(&report);
-            return Ok(2);
-        }
-        baseline::write(&root, &report.counts)?;
-        let hits: usize = report.counts.values().sum();
-        let files: std::collections::BTreeSet<&String> =
-            report.counts.keys().map(|(_, path, _)| path).collect();
-        let s = |n: usize| if n == 1 { "" } else { "s" };
-        render::line(&format!(
-            "necro: wrote {} ({hits} hit{} in {} file{})",
-            baseline::FILE,
-            s(hits),
-            files.len(),
-            s(files.len())
-        ));
-        return Ok(0);
-    }
-
     let report = run::run(&config, &root, args.rule.as_deref());
     match args.format.as_deref() {
         Some("terse") => render::terse(&report),

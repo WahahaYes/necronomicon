@@ -91,12 +91,10 @@ necro: checks a repo against its house rules (necro.yaml).
 
 usage: necro [-C <dir>] [--format full|terse] [--rule <name>]
        necro [-C <dir>] --explain <rule>
-       necro [-C <dir>] baseline
        necro grep [--skip-comments <marker>]… <regex> [-- <pathspec>…]
        necro --version
 
-Each rule's command chooses its own files. `necro baseline` writes necro.baseline,
-the hits a repo accepts while it adopts a rule.
+Each rule's command chooses its own files.
 
 Exit 0 clean, 1 on an error hit or a broken allow, 2 on a config, setup, check
 or usage error.";

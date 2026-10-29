@@ -24,7 +24,6 @@ git: false                  # optional: leave it outside git
 -- @stdout --               # expected stdout; absent means empty
 -- @stderr --               # expected stderr; absent means empty
 -- @config-error --         # instead of the two above: one `file:line:col: key.path` per line
--- @file necro.baseline --  # optional: a file's contents after the run
 ```
 
 Comparison drops `\r`, trailing whitespace and trailing blank lines, and writes the temp root as `<root>`; nothing else is normalised. `@config-error` expects exit 2, empty stdout, and stderr lines `necro: config error: <file:line:col: key.path>: <any message>`, in order.

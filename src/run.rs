@@ -1,11 +1,10 @@
-//! One run: every rule's command, then allows and the baseline (spec:
-//! Commands, Allows, The baseline). Returns a report for render/.
+//! One run: every rule's command, then allows (spec: Commands, Allows).
+//! Returns a report for render/.
 
-use std::collections::{BTreeMap, BTreeSet, HashMap};
+use std::collections::{BTreeSet, HashMap};
 use std::path::Path;
 
 use crate::allows::{self, Allow};
-use crate::baseline::{self, Counts};
 use crate::command::{self, Failure};
 use crate::config::{self, Config, Rule};
 
@@ -33,14 +32,6 @@ pub struct Allowed {
     pub reason: String,
 }
 
-pub struct Over {
-    pub rule: String,
-    pub file: String,
-    pub label: String,
-    pub count: usize,
-    pub baseline: usize,
-}
-
 pub enum Problem {
     Setup(String),
     Check {
@@ -54,14 +45,7 @@ pub enum Problem {
 pub struct Report {
     pub diagnostics: Vec<Diagnostic>,
     pub allowed: Vec<Allowed>,
-    /// Hits within the baseline, per rule.
-    pub baselined: BTreeMap<String, usize>,
-    pub over: Vec<Over>,
-    /// How many baseline counts the run came in under.
-    pub fell: usize,
     pub problems: Vec<Problem>,
-    /// Counts of the hits left after allows, for `necro baseline`.
-    pub counts: Counts,
 }
 
 impl Report {
@@ -76,7 +60,7 @@ impl Report {
     }
 }
 
-/// A hit before allows and the baseline.
+/// A hit before allows.
 struct Raw<'a> {
     rule: &'a Rule,
     hit: command::Hit,
@@ -178,45 +162,9 @@ pub fn run(config: &Config, root: &Path, only: Option<&str>) -> Report {
         }
     }
 
-    let base = match baseline::read(root) {
-        Ok(b) => b,
-        Err(message) => {
-            report.problems.push(Problem::Setup(message));
-            Counts::new()
-        }
-    };
-    let key = |r: &Raw| (r.rule.name.clone(), r.hit.path.clone(), r.hit.label.clone());
-    for r in &kept {
-        *report.counts.entry(key(r)).or_default() += 1;
-    }
     for r in kept {
-        let k = key(&r);
-        let count = report.counts[&k];
-        let allowed = base.get(&k).copied().unwrap_or(0);
-        if count <= allowed {
-            *report.baselined.entry(k.0).or_default() += 1;
-            continue;
-        }
         let d = diagnostic(r, &mut sources);
         report.diagnostics.push(d);
-    }
-    for ((rule, file, label), &allowed) in &base {
-        if !ran.contains(rule.as_str()) && known.contains(rule.as_str()) {
-            continue;
-        }
-        let k = (rule.clone(), file.clone(), label.clone());
-        let count = report.counts.get(&k).copied().unwrap_or(0);
-        if count < allowed {
-            report.fell += 1;
-        } else if count > allowed && allowed > 0 {
-            report.over.push(Over {
-                rule: rule.clone(),
-                file: file.clone(),
-                label: label.clone(),
-                count,
-                baseline: allowed,
-            });
-        }
     }
 
     report

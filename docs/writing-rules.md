@@ -10,16 +10,15 @@ necro runs it from the repo root, splits it into words like a shell (quotes) but
 - **More than a pattern:** a script in the repo's language that prints the same lines. For Python, `uv run --script necro/x.py` with the script's needs in a PEP 723 header, so nobody installs anything.
 - **Any other tool** works if its output fits, `git grep -n --column -o` included (its columns count bytes and drift after the first match on a line).
 
-The label is what the hit is about (`missing steal_roll`, `3 lines over`). It shows beside the hit, and it's part of the hit's identity in the baseline, so keep it stable.
+The label is what the hit is about (`missing steal_roll`, `3 lines over`). It shows beside the hit.
 
 ## The words
 
 `message` says what's wrong in one line, `why` why the rule exists, `fix` what to do instead. Write them for someone who has never seen the rule. `details` (inline or `{file: …}`) and `examples` (`bad` and `good` snippets) only show under `necro --explain <rule>`; necro doesn't run the examples.
 
-## Exceptions and adoption
+## Allows
 
-- **Allows:** `necro-allow <rule>: <reason>` in a comment on the hit's line or the one above. A missing reason and an allow that suppresses nothing are errors.
-- **The baseline:** `necro baseline` writes `necro.baseline`, the counts a repo accepts while it adopts a rule. Commit it; new hits still fail, and when counts drop, run it again to tighten the ratchet.
+`necro-allow <rule>: <reason>` in a comment on the hit's line or the one above. A missing reason and an allow that suppresses nothing are errors.
 
 ## Layout
 
