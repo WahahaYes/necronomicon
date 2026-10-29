@@ -1,0 +1,20 @@
+# allows-in limits where necro looks for allows; an allow outside it is data: never seen, never reported
+spec: Allows
+args: --format terse
+exit: 1
+-- necro.yaml --
+version: 0
+allows-in: [':!tests/']
+rules:
+  banned-word:
+    command: necro grep '\bdonkey\b' -- 'src/*' 'tests/*'
+    message: Banned word
+    why: Because.
+    fix: Say good.
+-- tests/data.ts --
+// necro-allow no-such-rule: quoted as data
+const d = "donkey"; // necro-allow banned-word: not seen here either
+-- src/a.ts --
+const a = "donkey"; // necro-allow banned-word: seen
+-- @stdout --
+tests/data.ts:2:12: banned-word Banned word
