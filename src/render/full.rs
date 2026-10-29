@@ -10,13 +10,6 @@ pub const WIDTH: usize = 88;
 const REPEATS: usize = 4;
 const TAB: &str = "    ";
 
-/// Whether `necro` is on PATH, so the explain line can be run as written.
-pub fn necro_on_path() -> bool {
-    let name = if cfg!(windows) { "necro.exe" } else { "necro" };
-    std::env::var_os("PATH")
-        .is_some_and(|p| std::env::split_paths(&p).any(|d| d.join(name).is_file()))
-}
-
 /// Word-wrap `text` after `prefix`, continuation lines aligned under the text.
 pub fn wrap(prefix: &str, text: &str) -> String {
     let indent = " ".repeat(prefix.chars().count());
@@ -74,7 +67,7 @@ fn snippet(source: &str, col: usize, length: usize) -> (String, usize, usize) {
     (source.replace('\t', TAB), start, span.max(1))
 }
 
-pub fn render(report: &Report, on_path: bool) -> String {
+pub fn render(report: &Report) -> String {
     let mut out = String::new();
     let mut shown: BTreeMap<&str, usize> = BTreeMap::new();
     let mut folded: Vec<(&Diagnostic, usize)> = Vec::new();
@@ -84,7 +77,7 @@ pub fn render(report: &Report, on_path: bool) -> String {
         let n = shown.entry(&d.rule).or_default();
         *n += 1;
         if *n == 1 {
-            first(&mut out, &head, d, on_path);
+            first(&mut out, &head, d);
         } else if *n <= REPEATS + 1 {
             let label = if d.label.is_empty() {
                 String::new()
@@ -113,7 +106,7 @@ pub fn render(report: &Report, on_path: bool) -> String {
     out
 }
 
-fn first(out: &mut String, head: &str, d: &Diagnostic, on_path: bool) {
+fn first(out: &mut String, head: &str, d: &Diagnostic) {
     let _ = writeln!(out, "{head}: {}", d.message);
     let w = if d.line == 0 {
         1
@@ -156,16 +149,7 @@ fn first(out: &mut String, head: &str, d: &Diagnostic, on_path: bool) {
     }
     out.push_str(&wrap(&format!("{pad} = why: "), &d.why));
     out.push_str(&wrap(&format!("{pad} = fix: "), &d.fix));
-    let more = format!("necro --explain {}", d.rule);
-    let _ = writeln!(out, "{pad} = more: {more}");
-    if !on_path {
-        let install = format!(
-            "(necro isn't on PATH: uvx --from necronomicon=={} {more})",
-            env!("CARGO_PKG_VERSION")
-        );
-        // One line, so the command copies whole.
-        let _ = writeln!(out, "{pad}         {install}");
-    }
+    let _ = writeln!(out, "{pad} = more: necro --explain {}", d.rule);
     out.push('\n');
 }
 

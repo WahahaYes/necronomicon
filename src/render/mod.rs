@@ -67,11 +67,7 @@ pub fn line(text: &str) {
 }
 
 pub fn full(report: &Report) {
-    let _ = write!(
-        std::io::stdout(),
-        "{}",
-        full::render(report, full::necro_on_path())
-    );
+    let _ = write!(std::io::stdout(), "{}", full::render(report));
 }
 
 pub fn text(text: &str) {
