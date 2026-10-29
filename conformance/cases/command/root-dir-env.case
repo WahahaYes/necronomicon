@@ -6,14 +6,14 @@ exit: 1
 -- inner/necro.yaml --
 version: 0
 rules:
-  inner-bad:
-    command: git grep -n --column -o -E '\bbad\b' -- 'src/*'
-    message: Bad word inside
+  inner-word:
+    command: git grep -n --column -o -E '\bdonkey\b' -- 'src/*'
+    message: Banned word inside
     why: Because.
     fix: Say good.
 -- inner/src/a.ts --
-bad
+donkey
 -- src/a.ts --
-bad
+donkey
 -- @stdout --
-src/a.ts:1:1: inner-bad Bad word inside
+src/a.ts:1:1: inner-word Banned word inside

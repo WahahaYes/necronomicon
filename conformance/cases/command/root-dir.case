@@ -3,6 +3,6 @@ spec: Commands (where it runs)
 args: -C src/b --format terse
 exit: 1
 -- src/b/c.ts --
-bad
+donkey
 -- @stdout --
-src/b/c.ts:1:1: no-bad Bad word
+src/b/c.ts:1:1: banned-word Banned word

@@ -3,9 +3,9 @@ spec: A rule
 -- necro.yaml --
 version: 0
 rules:
-  no-bad:
-    command: git grep -n -e bad -- 'src/*'
-    message: Bad word
+  banned-word:
+    command: git grep -n -e donkey -- 'src/*'
+    message: Banned word
     fix: Say good.
 -- @config-error --
-necro.yaml:3:3: rules.no-bad.why
+necro.yaml:3:3: rules.banned-word.why

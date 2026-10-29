@@ -1,17 +1,17 @@
 # the command is split into shell words, $NAME expanded; no shell runs
 spec: Commands (how it's read)
 args: --format terse
-env: T_WORD=bad
+env: T_WORD=donkey
 exit: 1
 -- necro.yaml --
 version: 0
 rules:
-  no-bad:
+  banned-word:
     command: git grep -n --column -o -e "${T_WORD}" -- 'src/*'
-    message: "Bad word"
+    message: "Banned word"
     why: Because.
     fix: Say good.
 -- src/a.ts --
-a bad; b
+a donkey; b
 -- @stdout --
-src/a.ts:1:3: no-bad Bad word
+src/a.ts:1:3: banned-word Banned word

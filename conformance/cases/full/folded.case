@@ -2,37 +2,37 @@
 spec: Messages
 exit: 1
 -- src/a.ts --
-bad
-bad
-bad
+donkey
+donkey
+donkey
 -- src/b.ts --
-bad
-bad
-bad
-bad
+donkey
+donkey
+donkey
+donkey
 -- @stdout --
-error[no-bad]: Bad word
+error[banned-word]: Banned word
  --> src/a.ts:1:1
   |
-1 | bad
-  | ^^^
+1 | donkey
+  | ^^^^^^
   |
   = why: Because.
   = fix: Say good.
-  = more: necro --explain no-bad
+  = more: necro --explain banned-word
 
-error[no-bad]: also at src/a.ts:2:1 (bad)
+error[banned-word]: also at src/a.ts:2:1 (donkey)
    = fix: Say good.
 
-error[no-bad]: also at src/a.ts:3:1 (bad)
+error[banned-word]: also at src/a.ts:3:1 (donkey)
    = fix: Say good.
 
-error[no-bad]: also at src/b.ts:1:1 (bad)
+error[banned-word]: also at src/b.ts:1:1 (donkey)
    = fix: Say good.
 
-error[no-bad]: also at src/b.ts:2:1 (bad)
+error[banned-word]: also at src/b.ts:2:1 (donkey)
    = fix: Say good.
 
-error[no-bad]: 2 more in src/b.ts
+error[banned-word]: 2 more in src/b.ts
 
-necro: 7 errors (no-bad ×7)
+necro: 7 errors (banned-word ×7)

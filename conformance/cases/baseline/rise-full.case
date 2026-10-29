@@ -3,23 +3,23 @@ spec: The baseline; Messages
 exit: 1
 -- necro.baseline --
 # necro.baseline: hits accepted when adopted; rule, path, label, count. Rewrite with: necro baseline
-no-bad	src/a.ts	bad	1
+banned-word	src/a.ts	donkey	1
 -- src/a.ts --
-bad
-bad
+donkey
+donkey
 -- @stdout --
-error[no-bad]: Bad word
+error[banned-word]: Banned word
  --> src/a.ts:1:1
   |
-1 | bad
-  | ^^^
+1 | donkey
+  | ^^^^^^
   |
   = why: Because.
   = fix: Say good.
-  = more: necro --explain no-bad
+  = more: necro --explain banned-word
 
-error[no-bad]: also at src/a.ts:2:1 (bad)
+error[banned-word]: also at src/a.ts:2:1 (donkey)
    = fix: Say good.
 
-necro: 2 errors (no-bad ×2)
-necro: over the baseline: no-bad in src/a.ts (bad): 2, baseline 1
+necro: 2 errors (banned-word ×2)
+necro: over the baseline: banned-word in src/a.ts (donkey): 2, baseline 1

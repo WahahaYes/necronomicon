@@ -3,4 +3,4 @@ spec: CLI
 args: --rule nope
 exit: 2
 -- @stderr --
-necro: no rule `nope`; rules: no-bad
+necro: no rule `nope`; rules: banned-word

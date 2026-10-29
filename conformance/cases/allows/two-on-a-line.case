@@ -3,7 +3,7 @@ spec: Allows
 args: --format terse
 exit: 1
 -- src/d.ts --
-// necro-allow no-bad: quoted; necro-allow no-worse: typo
-const d = "bad";
+// necro-allow banned-word: quoted; necro-allow no-worse: typo
+const d = "donkey";
 -- @stdout --
-src/d.ts:1:32: necro/unused-allow the allow for no-worse suppresses nothing
+src/d.ts:1:37: necro/unused-allow the allow for no-worse suppresses nothing

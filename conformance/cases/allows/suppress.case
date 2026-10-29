@@ -2,9 +2,9 @@
 spec: Allows
 args: --format terse
 -- src/d.ts --
-// necro-allow no-bad: quoting the banned word
-const d = "bad";
-const e = "bad"; // necro-allow no-bad: same line
-/* necro-allow no-bad: block comment */ const f = "bad";
+// necro-allow banned-word: quoting the banned word
+const d = "donkey";
+const e = "donkey"; // necro-allow banned-word: same line
+/* necro-allow banned-word: block comment */ const f = "donkey";
 -- src/e.gd --
-var g = "bad"  # necro-allow no-bad: a GDScript comment
+var g = "donkey"  # necro-allow banned-word: a GDScript comment

@@ -4,23 +4,23 @@ exit: 0
 -- necro.yaml --
 version: 0
 rules:
-  no-bad:
-    command: git grep -n --column -o -E '\bbad\b' -- 'src/*'
-    message: Bad word
+  banned-word:
+    command: git grep -n --column -o -E '\bdonkey\b' -- 'src/*'
+    message: Banned word
     why: Because.
     fix: Say good.
     trial: true
 -- src/a.ts --
-bad
+donkey
 -- @stdout --
-trial[no-bad]: Bad word
+trial[banned-word]: Banned word
  --> src/a.ts:1:1
   |
-1 | bad
-  | ^^^
+1 | donkey
+  | ^^^^^^
   |
   = why: Because.
   = fix: Say good.
-  = more: necro --explain no-bad
+  = more: necro --explain banned-word
 
-necro: 1 trial hit, not failing (no-bad ×1)
+necro: 1 trial hit, not failing (banned-word ×1)

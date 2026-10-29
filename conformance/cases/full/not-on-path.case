@@ -3,17 +3,17 @@ spec: Messages
 env: PATH=/usr/bin:/bin
 exit: 1
 -- src/a.ts --
-bad
+donkey
 -- @stdout --
-error[no-bad]: Bad word
+error[banned-word]: Banned word
  --> src/a.ts:1:1
   |
-1 | bad
-  | ^^^
+1 | donkey
+  | ^^^^^^
   |
   = why: Because.
   = fix: Say good.
-  = more: necro --explain no-bad
-          (necro isn't on PATH: uvx --from necronomicon==0.0.0 necro --explain no-bad)
+  = more: necro --explain banned-word
+          (necro isn't on PATH: uvx --from necronomicon==0.0.0 necro --explain banned-word)
 
-necro: 1 error (no-bad ×1)
+necro: 1 error (banned-word ×1)

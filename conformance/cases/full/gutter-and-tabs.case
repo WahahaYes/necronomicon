@@ -11,16 +11,16 @@ exit: 1
 7
 8
 9
-	var s = "bad"
+	var s = "donkey"
 -- @stdout --
-error[no-bad]: Bad word
+error[banned-word]: Banned word
   --> src/a.gd:10:11
    |
-10 |     var s = "bad"
-   |              ^^^
+10 |     var s = "donkey"
+   |              ^^^^^^
    |
    = why: Because.
    = fix: Say good.
-   = more: necro --explain no-bad
+   = more: necro --explain banned-word
 
-necro: 1 error (no-bad ×1)
+necro: 1 error (banned-word ×1)

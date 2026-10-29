@@ -2,25 +2,25 @@
 spec: Messages
 exit: 1
 -- src/a.ts --
-const a = "bad";
+const a = "donkey";
 -- src/c.ts --
-let x = "bad"; // second
+let x = "donkey"; // second
 -- src/d.ts --
-// necro-allow no-bad: quoting the banned word
-const d = "bad";
+// necro-allow banned-word: quoting the banned word
+const d = "donkey";
 -- @stdout --
-error[no-bad]: Bad word
+error[banned-word]: Banned word
  --> src/a.ts:1:12
   |
-1 | const a = "bad";
-  |            ^^^
+1 | const a = "donkey";
+  |            ^^^^^^
   |
   = why: Because.
   = fix: Say good.
-  = more: necro --explain no-bad
+  = more: necro --explain banned-word
 
-error[no-bad]: also at src/c.ts:1:10 (bad)
+error[banned-word]: also at src/c.ts:1:10 (donkey)
    = fix: Say good.
 
-necro: 2 errors (no-bad ×2)
-necro: allowed no-bad at src/d.ts:2:12: quoting the banned word
+necro: 2 errors (banned-word ×2)
+necro: allowed banned-word at src/d.ts:2:12: quoting the banned word

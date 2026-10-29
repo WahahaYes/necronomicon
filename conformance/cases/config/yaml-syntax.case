@@ -3,6 +3,6 @@ spec: Messages
 -- necro.yaml --
 version: 0
 rules:
-  no-bad: [
+  banned-word: [
 -- @config-error --
-necro.yaml:3:11
+necro.yaml:3:16

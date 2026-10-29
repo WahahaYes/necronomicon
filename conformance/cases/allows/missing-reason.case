@@ -3,6 +3,6 @@ spec: Allows
 args: --format terse
 exit: 1
 -- src/d.ts --
-const d = "bad"; // necro-allow no-bad
+const d = "donkey"; // necro-allow banned-word
 -- @stdout --
-src/d.ts:1:21: necro/allow-reason the allow for no-bad gives no reason
+src/d.ts:1:24: necro/allow-reason the allow for banned-word gives no reason

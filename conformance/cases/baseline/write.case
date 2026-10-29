@@ -2,14 +2,14 @@
 spec: The baseline
 args: baseline
 -- src/a.ts --
-bad bad
+donkey donkey
 -- src/b.ts --
-bad
-// necro-allow no-bad: quoted
-bad
+donkey
+// necro-allow banned-word: quoted
+donkey
 -- @stdout --
 necro: wrote necro.baseline (3 hits in 2 files)
 -- @file necro.baseline --
 # necro.baseline: hits accepted when adopted; rule, path, label, count. Rewrite with: necro baseline
-no-bad	src/a.ts	bad	2
-no-bad	src/b.ts	bad	1
+banned-word	src/a.ts	donkey	2
+banned-word	src/b.ts	donkey	1

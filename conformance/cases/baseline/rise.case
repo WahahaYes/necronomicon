@@ -4,13 +4,13 @@ args: --format terse
 exit: 1
 -- necro.baseline --
 # necro.baseline: hits accepted when adopted; rule, path, label, count. Rewrite with: necro baseline
-no-bad	src/a.ts	bad	1
+banned-word	src/a.ts	donkey	1
 -- src/a.ts --
-bad
-bad
+donkey
+donkey
 -- src/b.ts --
-bad
+donkey
 -- @stdout --
-src/a.ts:1:1: no-bad Bad word
-src/a.ts:2:1: no-bad Bad word
-src/b.ts:1:1: no-bad Bad word
+src/a.ts:1:1: banned-word Banned word
+src/a.ts:2:1: banned-word Banned word
+src/b.ts:1:1: banned-word Banned word

@@ -3,13 +3,13 @@ spec: Commands; Messages
 args: --format terse
 exit: 1
 -- src/b/c.gd --
-var x = bad
-var y = bad
+var x = donkey
+var y = donkey
 -- src/a.ts --
-const a = "bad";
+const a = "donkey";
 -- other/d.ts --
-bad
+donkey
 -- @stdout --
-src/a.ts:1:12: no-bad Bad word
-src/b/c.gd:1:9: no-bad Bad word
-src/b/c.gd:2:9: no-bad Bad word
+src/a.ts:1:12: banned-word Banned word
+src/b/c.gd:1:9: banned-word Banned word
+src/b/c.gd:2:9: banned-word Banned word

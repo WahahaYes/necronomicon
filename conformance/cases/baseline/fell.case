@@ -2,10 +2,10 @@
 spec: The baseline
 -- necro.baseline --
 # necro.baseline: hits accepted when adopted; rule, path, label, count. Rewrite with: necro baseline
-no-bad	src/a.ts	bad	3
-no-bad	src/gone.ts	bad	1
+banned-word	src/a.ts	donkey	3
+banned-word	src/gone.ts	donkey	1
 -- src/a.ts --
-bad
+donkey
 -- @stdout --
-necro: 1 baselined (no-bad ×1)
+necro: 1 baselined (banned-word ×1)
 necro: 2 counts fell below the baseline; run necro baseline to keep the ratchet tight

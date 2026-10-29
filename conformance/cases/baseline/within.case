@@ -2,9 +2,9 @@
 spec: The baseline
 -- necro.baseline --
 # necro.baseline: hits accepted when adopted; rule, path, label, count. Rewrite with: necro baseline
-no-bad	src/a.ts	bad	2
+banned-word	src/a.ts	donkey	2
 -- src/a.ts --
-bad
-bad
+donkey
+donkey
 -- @stdout --
-necro: 2 baselined (no-bad ×2)
+necro: 2 baselined (banned-word ×2)

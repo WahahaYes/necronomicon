@@ -1,27 +1,27 @@
 # --explain: message, why, fix, details, examples, command, trial
 spec: CLI
-args: --explain no-bad
--- docs/no-bad.md --
+args: --explain banned-word
+-- docs/banned-word.md --
 Words carry tone into reviews and logs.
 -- necro.yaml --
 version: 0
 rules:
-  no-bad:
-    command: git grep -n --column -o -E '\bbad\b' -- 'src/*'
-    message: Bad word
+  banned-word:
+    command: git grep -n --column -o -E '\bdonkey\b' -- 'src/*'
+    message: Banned word
     why: Because.
     fix: Say good.
-    details: { file: docs/no-bad.md }
+    details: { file: docs/banned-word.md }
     examples:
-      bad: const a = "bad";
+      bad: const a = "donkey";
       good:
         - const a = "good";
         - |
-          // a comment that says bad is still a hit; allow it
+          // a comment that says donkey is still a hit; allow it
           const b = "fine";
     trial: true
 -- @stdout --
-no-bad (trial): Bad word
+banned-word (trial): Banned word
 
 Why: Because.
 
@@ -30,12 +30,12 @@ Fix: Say good.
 Words carry tone into reviews and logs.
 
 Bad:
-    const a = "bad";
+    const a = "donkey";
 
 Good:
     const a = "good";
 
-    // a comment that says bad is still a hit; allow it
+    // a comment that says donkey is still a hit; allow it
     const b = "fine";
 
-Command: git grep -n --column -o -E '\bbad\b' -- 'src/*'
+Command: git grep -n --column -o -E '\bdonkey\b' -- 'src/*'
