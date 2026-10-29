@@ -1,0 +1,9 @@
+# pathspecs read as git grep reads them, excludes with a leading wildcard included
+spec: Finders
+args: grep donkey -- 'src/*' ':!*transport*'
+-- src/net/enet_transport.gd --
+donkey
+-- src/net/match.gd --
+donkey
+-- @stdout --
+src/net/match.gd:1:1-6: donkey

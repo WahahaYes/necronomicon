@@ -38,20 +38,18 @@ pub fn split_pathspecs(args: &[String]) -> (&[String], &[String]) {
     }
 }
 
-/// Tracked files matching the pathspecs under the working folder, sorted.
+/// Tracked text files matching the pathspecs under the working folder,
+/// sorted. Listed by `git grep`, not `git ls-files`, which ignores an exclude
+/// pathspec that starts with a wildcard (`:!*x*.gd`).
 pub fn tracked(pathspecs: &[String]) -> Result<Vec<String>, String> {
     let out = Command::new("git")
-        .args(["ls-files", "-z", "--"])
+        .args(["grep", "-l", "-z", "-I", "-e", "", "--"])
         .args(pathspecs)
         .output()
         .map_err(|e| format!("can't run git: {e}"))?;
-    if !out.status.success() {
+    if !matches!(out.status.code(), Some(0 | 1)) {
         let err = String::from_utf8_lossy(&out.stderr);
-        return Err(err
-            .lines()
-            .next()
-            .unwrap_or("git ls-files failed")
-            .to_string());
+        return Err(err.lines().next().unwrap_or("git grep failed").to_string());
     }
     let mut files: Vec<String> = String::from_utf8_lossy(&out.stdout)
         .split('\0')
