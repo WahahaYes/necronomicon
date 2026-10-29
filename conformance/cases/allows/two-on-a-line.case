@@ -6,4 +6,4 @@ exit: 1
 // necro-allow no-bad: quoted; necro-allow no-worse: typo
 const d = "bad";
 -- @stdout --
-src/d.ts:1:33: necro/unused-allow the allow for no-worse suppresses nothing
+src/d.ts:1:32: necro/unused-allow the allow for no-worse suppresses nothing

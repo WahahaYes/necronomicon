@@ -23,8 +23,8 @@ error[no-bad]: Bad word
   = why: a bad word in source spreads: people copy what they read, agents copy it
          faster, and soon every file says it
   = fix: say good
-         or say what you mean instead, in a word the rest of the codebase already uses for
-         the same idea
+         or say what you mean instead, in a word the rest of the codebase already uses
+         for the same idea
   = more: necro --explain no-bad
 
 necro: 1 error (no-bad ×1)

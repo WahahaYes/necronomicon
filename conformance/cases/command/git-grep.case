@@ -3,7 +3,8 @@ spec: Commands; Messages
 args: --format terse
 exit: 1
 -- src/b/c.gd --
-var x = bad + bad
+var x = bad
+var y = bad
 -- src/a.ts --
 const a = "bad";
 -- other/d.ts --
@@ -11,4 +12,4 @@ bad
 -- @stdout --
 src/a.ts:1:12: no-bad Bad word
 src/b/c.gd:1:9: no-bad Bad word
-src/b/c.gd:1:15: no-bad Bad word
+src/b/c.gd:2:9: no-bad Bad word
