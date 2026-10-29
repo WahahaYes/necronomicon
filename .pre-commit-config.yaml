@@ -41,7 +41,7 @@ repos:
         pass_filenames: false
       - id: necro
         name: necro (this repo's house rules, current build)
-        entry: sh -c 'PATH="$HOME/.cargo/bin:$PATH" exec cargo run -q --'
+        entry: sh -c 'PATH="$HOME/.cargo/bin:$PATH" exec cargo run -q -- -C src'
         language: system
         pass_filenames: false
         always_run: true
