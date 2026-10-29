@@ -51,13 +51,6 @@ impl Node {
         }
     }
 
-    pub fn as_bool(&self) -> Option<bool> {
-        match &self.value {
-            Value::Plain(s) if plain_kind(s) == PlainKind::Bool => Some(s == "true"),
-            _ => None,
-        }
-    }
-
     /// What the node is, for "expected …, got …" messages.
     pub fn kind(&self) -> &'static str {
         match &self.value {

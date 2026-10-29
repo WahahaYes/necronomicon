@@ -9,24 +9,8 @@ use crate::baseline::{self, Counts};
 use crate::command::{self, Failure};
 use crate::config::{self, Config, Rule};
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
-pub enum Kind {
-    Error,
-    Trial,
-}
-
-impl Kind {
-    pub fn name(self) -> &'static str {
-        match self {
-            Kind::Error => "error",
-            Kind::Trial => "trial",
-        }
-    }
-}
-
 pub struct Diagnostic {
     pub rule: String,
-    pub kind: Kind,
     pub file: String,
     /// 0 for a whole-file hit.
     pub line: usize,
@@ -84,7 +68,7 @@ impl Report {
     pub fn exit_code(&self) -> u8 {
         if !self.problems.is_empty() {
             2
-        } else if self.diagnostics.iter().any(|d| d.kind == Kind::Error) {
+        } else if !self.diagnostics.is_empty() {
             1
         } else {
             0
@@ -235,9 +219,9 @@ pub fn run(config: &Config, root: &Path, only: Option<&str>) -> Report {
         }
     }
 
-    report.diagnostics.sort_by(|a, b| {
-        (a.kind, &a.rule, &a.file, a.line, a.col).cmp(&(b.kind, &b.rule, &b.file, b.line, b.col))
-    });
+    report
+        .diagnostics
+        .sort_by(|a, b| (&a.rule, &a.file, a.line, a.col).cmp(&(&b.rule, &b.file, b.line, b.col)));
     report
         .allowed
         .sort_by(|a, b| (&a.file, a.line, a.col, &a.rule).cmp(&(&b.file, b.line, b.col, &b.rule)));
@@ -319,11 +303,6 @@ fn diagnostic(r: Raw, sources: &mut Sources) -> Diagnostic {
         .map_or(1, |s| underline(s, h.col, h.endcol, &h.label));
     Diagnostic {
         rule: r.rule.name.clone(),
-        kind: if r.rule.trial {
-            Kind::Trial
-        } else {
-            Kind::Error
-        },
         file: h.path,
         line: h.line,
         col: h.col,
@@ -339,7 +318,6 @@ fn diagnostic(r: Raw, sources: &mut Sources) -> Diagnostic {
 fn allow_diagnostic(rule: &Rule, a: &Allow, what: &str, sources: &mut Sources) -> Diagnostic {
     Diagnostic {
         rule: rule.name.clone(),
-        kind: Kind::Error,
         file: a.file.clone(),
         line: a.line,
         col: a.col,

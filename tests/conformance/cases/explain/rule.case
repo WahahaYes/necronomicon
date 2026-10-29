@@ -1,4 +1,4 @@
-# --explain: message, why, fix, details, examples, command, trial
+# --explain: message, why, fix, details, examples, command
 spec: CLI
 args: --explain banned-word
 -- docs/banned-word.md --
@@ -19,9 +19,8 @@ rules:
         - |
           // a comment that says donkey is still a hit; allow it
           const b = "fine";
-    trial: true
 -- @stdout --
-banned-word (trial): Banned word
+banned-word: Banned word
 
 Why: Because.
 

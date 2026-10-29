@@ -33,7 +33,6 @@ pub struct Rule {
     pub why: String,
     pub fix: String,
     pub details: Option<String>,
-    pub trial: bool,
     pub examples: Option<Examples>,
 }
 
@@ -163,9 +162,7 @@ pub fn valid_name(name: &str) -> bool {
 
 const TOP_KEYS: &[&str] = &["version", "include", "rules"];
 const INCLUDE_KEYS: &[&str] = &["rules"];
-const RULE_KEYS: &[&str] = &[
-    "command", "message", "why", "fix", "details", "trial", "examples",
-];
+const RULE_KEYS: &[&str] = &["command", "message", "why", "fix", "details", "examples"];
 const REQUIRED: &[&str] = &["command", "message", "why", "fix"];
 
 fn read_yaml(e: &mut Errors, root: &Path, rel: &str) -> Option<Node> {
@@ -365,18 +362,6 @@ fn load_rule(e: &mut Errors, root: &Path, file: &str, key: &Key, node: &Node) ->
         field("fix"),
         field("details"),
     );
-    let trial = match m.get("trial") {
-        None => false,
-        Some((_, n)) => n.as_bool().unwrap_or_else(|| {
-            e.at(
-                file,
-                n.pos,
-                &at("trial"),
-                format!("expected true or false, got {}", n.kind()),
-            );
-            false
-        }),
-    };
     let examples = m.get("examples").and_then(|(k, n)| {
         let ex = entries(e, file, n, &at("examples"), &["bad", "good"])?;
         let mut side = |name: &str| match ex.get(name) {
@@ -407,7 +392,6 @@ fn load_rule(e: &mut Errors, root: &Path, file: &str, key: &Key, node: &Node) ->
         why: why?,
         fix: fix?,
         details,
-        trial,
         examples,
     })
 }
@@ -421,7 +405,6 @@ pub fn builtins() -> [Rule; 2] {
         why: why.to_string(),
         fix: fix.to_string(),
         details: None,
-        trial: false,
         examples: None,
     };
     [

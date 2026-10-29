@@ -20,8 +20,7 @@ fn snippets(out: &mut String, title: &str, list: &[String]) {
 
 pub fn render(r: &Rule) -> String {
     let mut out = String::new();
-    let trial = if r.trial { " (trial)" } else { "" };
-    let _ = writeln!(out, "{}{trial}: {}\n", r.name, r.message.trim_end());
+    let _ = writeln!(out, "{}: {}\n", r.name, r.message.trim_end());
     let _ = writeln!(out, "Why: {}\n", r.why.trim_end());
     let _ = writeln!(out, "Fix: {}\n", r.fix.trim_end());
     if let Some(d) = &r.details {

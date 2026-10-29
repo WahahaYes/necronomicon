@@ -4,7 +4,7 @@
 use std::collections::BTreeMap;
 use std::fmt::Write as _;
 
-use crate::run::{Diagnostic, Kind, Report};
+use crate::run::{Diagnostic, Report};
 
 pub const WIDTH: usize = 88;
 const REPEATS: usize = 4;
@@ -80,7 +80,7 @@ pub fn render(report: &Report, on_path: bool) -> String {
     let mut folded: Vec<(&Diagnostic, usize)> = Vec::new();
     let diags = &report.diagnostics;
     for (i, d) in diags.iter().enumerate() {
-        let head = format!("{}[{}]", d.kind.name(), d.rule);
+        let head = format!("error[{}]", d.rule);
         let n = shown.entry(&d.rule).or_default();
         *n += 1;
         if *n == 1 {
@@ -104,7 +104,7 @@ pub fn render(report: &Report, on_path: bool) -> String {
         let run_ends = diags.get(i + 1).is_none_or(|n| n.rule != d.rule);
         if run_ends && !folded.is_empty() {
             for (f, n) in folded.drain(..) {
-                let _ = writeln!(out, "{}[{}]: {n} more in {}", f.kind.name(), f.rule, f.file);
+                let _ = writeln!(out, "error[{}]: {n} more in {}", f.rule, f.file);
             }
             out.push('\n');
         }
@@ -186,19 +186,11 @@ fn plural(n: usize, one: &str, many: &str) -> String {
 
 pub fn summary(report: &Report) -> String {
     let mut out = String::new();
-    let (errors, trials): (Vec<&Diagnostic>, Vec<&Diagnostic>) = report
-        .diagnostics
-        .iter()
-        .partition(|d| d.kind == Kind::Error);
+    let errors = &report.diagnostics;
     if !errors.is_empty() {
         let n = plural(errors.len(), "error", "errors");
         let by = counts(errors.iter().map(|d| d.rule.as_str()));
         let _ = writeln!(out, "necro: {n} ({by})");
-    }
-    if !trials.is_empty() {
-        let n = plural(trials.len(), "trial hit", "trial hits");
-        let by = counts(trials.iter().map(|d| d.rule.as_str()));
-        let _ = writeln!(out, "necro: {n}, not failing ({by})");
     }
     if !report.baselined.is_empty() {
         let total: usize = report.baselined.values().sum();

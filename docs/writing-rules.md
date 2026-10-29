@@ -20,7 +20,6 @@ The label is what the hit is about (`missing steal_roll`, `3 lines over`). It sh
 
 - **Allows:** `necro-allow <rule>: <reason>` in a comment on the hit's line or the one above. A missing reason and an allow that suppresses nothing are errors.
 - **The baseline:** `necro baseline` writes `necro.baseline`, the counts a repo accepts while it adopts a rule. Commit it; new hits still fail, and when counts drop, run it again to tighten the ratchet.
-- **Trial rules:** `trial: true` shows hits without failing, for a rule still being tuned.
 
 ## Layout
 
