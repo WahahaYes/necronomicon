@@ -87,6 +87,8 @@ jobs:
           uv venv "$RUNNER_TEMP/venv"
           uv pip install --python "$RUNNER_TEMP/venv" target/wheels/*.whl
           "$RUNNER_TEMP/venv/bin/necro" --version
+      - name: The installed necro on each example
+        run: for d in examples/*/; do "$RUNNER_TEMP/venv/bin/necro" -C "$d" || exit 1; done
 
   # The only required check; a skipped job counts as a pass.
   ci:

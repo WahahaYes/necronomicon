@@ -1,7 +1,7 @@
 # necronomicon's own house rules, run by the current build (the necro hook in
 # .pre-commit-config.yaml). Format: spec/v0.md.
 version: 0
-allows-in: [':!tests/'] # the conformance cases quote allows as data
+allows-in: [':!tests/', ':!examples/'] # the cases and examples hold their own allows
 rules:
   render-only-prints:
     command: >-

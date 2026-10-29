@@ -1,0 +1,21 @@
+# A small Python repo's house rules: one necro grep rule, one script rule.
+version: 0
+rules:
+  no-print:
+    command: necro grep --skip-comments '#' '\bprint\(' -- 'src/*.py'
+    message: print call in library code
+    why: Library code reports through logging, so the caller decides where output goes.
+    fix: Log with logging.getLogger(__name__) at the right level.
+    examples:
+      bad: print("loaded", path)
+      good: log.info("loaded %s", path)
+  module-docstring:
+    command: uv run --script necro/module_docstring.py 'src/*.py'
+    message: module without a docstring
+    why: The docstring is the first thing a reader or an agent sees when it opens the module.
+    fix: Start the module with a one-line docstring saying what it's for.
+    examples:
+      bad: import json
+      good: |
+        """Loading and saving carts."""
+        import json
