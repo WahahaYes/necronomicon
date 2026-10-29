@@ -1,0 +1,26 @@
+# the gutter widens with the line number; tabs show as 4 spaces, the underline moved to match
+spec: Messages
+exit: 1
+-- src/a.gd --
+1
+2
+3
+4
+5
+6
+7
+8
+9
+	var s = "bad"
+-- @stdout --
+error[no-bad]: Bad word
+  --> src/a.gd:10:11
+   |
+10 |     var s = "bad"
+   |              ^^^
+   |
+   = why: Because.
+   = fix: Say good.
+   = more: necro --explain no-bad
+
+necro: 1 error (no-bad ×1)

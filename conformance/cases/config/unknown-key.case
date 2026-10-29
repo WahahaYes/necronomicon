@@ -1,0 +1,15 @@
+# unknown keys are errors, each one reported, in order
+spec: A rule
+-- necro.yaml --
+version: 0
+colour: red
+rules:
+  no-bad:
+    command: git grep -n -e bad -- 'src/*'
+    message: Bad word
+    why: Because.
+    fix: Say good.
+    severity: error
+-- @config-error --
+necro.yaml:2:1: colour
+necro.yaml:9:5: rules.no-bad.severity

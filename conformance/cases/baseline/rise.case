@@ -1,0 +1,16 @@
+# a count above the baseline shows every hit of that group and says by how much
+spec: The baseline
+args: --format terse
+exit: 1
+-- necro.baseline --
+# necro.baseline: hits accepted when adopted; rule, path, label, count. Rewrite with: necro baseline
+no-bad	src/a.ts	bad	1
+-- src/a.ts --
+bad
+bad
+-- src/b.ts --
+bad
+-- @stdout --
+src/a.ts:1:1: no-bad Bad word
+src/a.ts:2:1: no-bad Bad word
+src/b.ts:1:1: no-bad Bad word

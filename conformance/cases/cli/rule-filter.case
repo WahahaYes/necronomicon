@@ -1,0 +1,23 @@
+# --rule runs one rule; allows for rules that didn't run aren't reported as unused
+spec: CLI
+args: --format terse --rule no-bad
+exit: 1
+-- necro.yaml --
+version: 0
+rules:
+  no-bad:
+    command: git grep -n --column -o -E '\bbad\b' -- 'src/*'
+    message: Bad word
+    why: Because.
+    fix: Say good.
+  no-meh:
+    command: git grep -n --column -o -E '\bmeh\b' -- 'src/*'
+    message: Meh word
+    why: Because.
+    fix: Say more.
+-- src/a.ts --
+bad meh
+// necro-allow no-meh: not run, not stale
+meh
+-- @stdout --
+src/a.ts:1:1: no-bad Bad word

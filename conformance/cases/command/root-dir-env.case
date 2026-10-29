@@ -1,0 +1,19 @@
+# NECRO_ROOT_DIR, if set, is the root
+spec: Commands (where it runs)
+args: --format terse
+env: NECRO_ROOT_DIR=<root>/inner
+exit: 1
+-- inner/necro.yaml --
+version: 0
+rules:
+  inner-bad:
+    command: git grep -n --column -o -E '\bbad\b' -- 'src/*'
+    message: Bad word inside
+    why: Because.
+    fix: Say good.
+-- inner/src/a.ts --
+bad
+-- src/a.ts --
+bad
+-- @stdout --
+src/a.ts:1:1: inner-bad Bad word inside

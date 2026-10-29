@@ -1,0 +1,15 @@
+# a path that isn't a file in the working folder is a check error
+spec: Commands (exit codes)
+exit: 2
+-- necro.yaml --
+version: 0
+rules:
+  canned:
+    command: uv run --script "$NECRO_ROOT_DIR/necro/t.py"
+    message: Canned
+    why: Because.
+    fix: Fix it.
+-- canned.txt --
+src/gone.ts:1
+-- @stderr --
+necro: check error: canned: src/gone.ts isn't a file

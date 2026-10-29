@@ -1,0 +1,9 @@
+# one comment may carry allows for two rules; each reason ends at the next allow
+spec: Allows
+args: --format terse
+exit: 1
+-- src/d.ts --
+// necro-allow no-bad: quoted; necro-allow no-worse: typo
+const d = "bad";
+-- @stdout --
+src/d.ts:1:33: necro/unused-allow the allow for no-worse suppresses nothing

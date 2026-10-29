@@ -1,0 +1,7 @@
+version: 0
+rules:
+  no-bad:
+    command: git grep -n --column -o -E '\bbad\b' -- 'src/*'
+    message: Bad word
+    why: Because.
+    fix: Say good.

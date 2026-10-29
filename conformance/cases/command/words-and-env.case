@@ -1,0 +1,17 @@
+# the command is split into shell words, $NAME expanded; no shell runs
+spec: Commands (how it's read)
+args: --format terse
+env: T_WORD=bad
+exit: 1
+-- necro.yaml --
+version: 0
+rules:
+  no-bad:
+    command: git grep -n --column -o -e "${T_WORD}" -- 'src/*'
+    message: "Bad word"
+    why: Because.
+    fix: Say good.
+-- src/a.ts --
+a bad; b
+-- @stdout --
+src/a.ts:1:3: no-bad Bad word

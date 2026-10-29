@@ -1,0 +1,15 @@
+# necro baseline writes counts per rule, path and label, sorted; allowed hits don't count
+spec: The baseline
+args: baseline
+-- src/a.ts --
+bad bad
+-- src/b.ts --
+bad
+// necro-allow no-bad: quoted
+bad
+-- @stdout --
+necro: wrote necro.baseline (3 hits in 2 files)
+-- @file necro.baseline --
+# necro.baseline: hits accepted when adopted; rule, path, label, count. Rewrite with: necro baseline
+no-bad	src/a.ts	bad	2
+no-bad	src/b.ts	bad	1

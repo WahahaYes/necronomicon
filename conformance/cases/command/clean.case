@@ -1,0 +1,4 @@
+# a clean run prints nothing; grep's exit 1 for "no match" is normal
+spec: Commands; Messages
+-- src/a.ts --
+const a = "good";

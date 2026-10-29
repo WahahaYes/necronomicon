@@ -1,0 +1,18 @@
+# a whole-file hit takes an allow on line 1, or line 2 after #!
+spec: Allows
+args: --format terse
+-- necro.yaml --
+version: 0
+rules:
+  needs-header:
+    command: git grep -L -e 'HEADER' -- 'src/*'
+    message: No header
+    why: Because.
+    fix: Add one.
+-- src/a.py --
+# necro-allow needs-header: generated
+x = 1
+-- src/b.py --
+#!/usr/bin/env python3
+# necro-allow needs-header: a script
+x = 1

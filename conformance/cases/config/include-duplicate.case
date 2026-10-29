@@ -1,0 +1,20 @@
+# rule names are unique across necro.yaml and its includes
+spec: A rule
+-- necro/more.yaml --
+rules:
+  no-bad:
+    command: git grep -n -e bad -- 'src/*'
+    message: Again
+    why: Because.
+    fix: Say good.
+-- necro.yaml --
+version: 0
+include: [necro/*.yaml]
+rules:
+  no-bad:
+    command: git grep -n -e bad -- 'src/*'
+    message: Bad word
+    why: Because.
+    fix: Say good.
+-- @config-error --
+necro/more.yaml:2:3: rules.no-bad

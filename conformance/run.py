@@ -92,13 +92,13 @@ def run_case(path, engine, bin_dir):
     header, files, expect = parse(path)
     with tempfile.TemporaryDirectory(prefix="necro-case-") as tmp:
         root = Path(tmp).resolve() / "repo"
-        build_tree(root, files, header.get("git") == "true")
+        build_tree(root, files, header.get("git") != "false")
         env = {k: v for k, v in os.environ.items() if k not in ("CI", "NO_COLOR")}
         env["NO_COLOR"] = "1"
         env["PATH"] = f"{bin_dir}{os.pathsep}{env.get('PATH', '')}"
         for pair in shlex.split(header.get("env", "")):
             key, _, value = pair.partition("=")
-            env[key] = value
+            env[key] = value.replace("<root>", str(root))
         args = shlex.split(header.get("args", ""))
         try:
             proc = subprocess.run(
@@ -122,6 +122,12 @@ def run_case(path, engine, bin_dir):
                 want = normalise(expect.get(name, ""), root)
                 if got != want:
                     problems.append(diff(name, want, got))
+        for name, want in expect.items():
+            if name.startswith("@file "):
+                path = root / name[len("@file "):]
+                got_file = normalise(path.read_text(encoding="utf-8"), root) if path.exists() else "(missing)"
+                if got_file != normalise(want, root):
+                    problems.append(diff(name, normalise(want, root), got_file))
         if proc.returncode != want_exit:
             problems.append(f"exit {proc.returncode}, want {want_exit}" + (f"\nstderr:\n{err}" if err else ""))
         return problems

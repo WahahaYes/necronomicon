@@ -1,0 +1,26 @@
+# the first hit teaches; repeats show the location, label and fix; allows are listed
+spec: Messages
+exit: 1
+-- src/a.ts --
+const a = "bad";
+-- src/c.ts --
+let x = "bad"; // second
+-- src/d.ts --
+// necro-allow no-bad: quoting the banned word
+const d = "bad";
+-- @stdout --
+error[no-bad]: Bad word
+ --> src/a.ts:1:12
+  |
+1 | const a = "bad";
+  |            ^^^
+  |
+  = why: Because.
+  = fix: Say good.
+  = more: necro --explain no-bad
+
+error[no-bad]: also at src/c.ts:1:10 (bad)
+   = fix: Say good.
+
+necro: 2 errors (no-bad ×2)
+necro: allowed no-bad at src/d.ts:2:12: quoting the banned word

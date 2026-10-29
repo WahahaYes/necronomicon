@@ -1,0 +1,11 @@
+# when counts fall below the baseline, the summary says to tighten it
+spec: The baseline
+-- necro.baseline --
+# necro.baseline: hits accepted when adopted; rule, path, label, count. Rewrite with: necro baseline
+no-bad	src/a.ts	bad	3
+no-bad	src/gone.ts	bad	1
+-- src/a.ts --
+bad
+-- @stdout --
+necro: 1 baselined (no-bad ×1)
+necro: 2 counts fell below the baseline; run necro baseline to keep the ratchet tight

@@ -1,0 +1,14 @@
+# examples show at least one bad and one good
+spec: A rule
+-- necro.yaml --
+version: 0
+rules:
+  no-bad:
+    command: git grep -n -e bad -- 'src/*'
+    message: Bad word
+    why: Because.
+    fix: Say good.
+    examples:
+      bad: const a = "bad";
+-- @config-error --
+necro.yaml:8:5: rules.no-bad.examples.good

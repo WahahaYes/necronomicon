@@ -1,0 +1,26 @@
+# a trial rule's hits are shown but never fail
+spec: A rule (trial)
+exit: 0
+-- necro.yaml --
+version: 0
+rules:
+  no-bad:
+    command: git grep -n --column -o -E '\bbad\b' -- 'src/*'
+    message: Bad word
+    why: Because.
+    fix: Say good.
+    trial: true
+-- src/a.ts --
+bad
+-- @stdout --
+trial[no-bad]: Bad word
+ --> src/a.ts:1:1
+  |
+1 | bad
+  | ^^^
+  |
+  = why: Because.
+  = fix: Say good.
+  = more: necro --explain no-bad
+
+necro: 1 trial hit, not failing (no-bad ×1)

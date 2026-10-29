@@ -1,0 +1,29 @@
+# every output form: path, path:line, path:line:col, path:line:col-endcol, each with or without a label
+spec: Commands (what it prints)
+args: --format terse
+exit: 1
+-- necro.yaml --
+version: 0
+rules:
+  canned:
+    command: uv run --script "$NECRO_ROOT_DIR/necro/t.py"
+    message: Canned
+    why: Because.
+    fix: Fix it.
+-- canned.txt --
+src/a.ts
+src/a.ts:2
+src/a.ts:2:3
+src/a.ts:2:3-5
+src/a.ts: whole file note
+src/a.ts:2:3:note: with a colon
+-- src/a.ts --
+one
+two three
+-- @stdout --
+src/a.ts: canned Canned
+src/a.ts: canned Canned
+src/a.ts:2:1: canned Canned
+src/a.ts:2:3: canned Canned
+src/a.ts:2:3: canned Canned
+src/a.ts:2:3: canned Canned

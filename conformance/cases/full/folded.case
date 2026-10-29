@@ -1,0 +1,34 @@
+# past 4 repeats per rule, the rest are counted per file
+spec: Messages
+exit: 1
+-- src/a.ts --
+bad bad bad
+-- src/b.ts --
+bad bad bad
+bad
+-- @stdout --
+error[no-bad]: Bad word
+ --> src/a.ts:1:1
+  |
+1 | bad bad bad
+  | ^^^
+  |
+  = why: Because.
+  = fix: Say good.
+  = more: necro --explain no-bad
+
+error[no-bad]: also at src/a.ts:1:5 (bad)
+   = fix: Say good.
+
+error[no-bad]: also at src/a.ts:1:9 (bad)
+   = fix: Say good.
+
+error[no-bad]: also at src/b.ts:1:1 (bad)
+   = fix: Say good.
+
+error[no-bad]: also at src/b.ts:1:5 (bad)
+   = fix: Say good.
+
+error[no-bad]: 2 more in src/b.ts
+
+necro: 7 errors (no-bad ×7)

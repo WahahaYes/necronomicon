@@ -1,0 +1,8 @@
+# a YAML syntax error names its position, with no key path
+spec: Messages
+-- necro.yaml --
+version: 0
+rules:
+  no-bad: [
+-- @config-error --
+necro.yaml:3:11

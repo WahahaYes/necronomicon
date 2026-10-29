@@ -1,0 +1,10 @@
+# an allow on the hit's line or the line above suppresses it, in any comment style
+spec: Allows
+args: --format terse
+-- src/d.ts --
+// necro-allow no-bad: quoting the banned word
+const d = "bad";
+const e = "bad"; // necro-allow no-bad: same line
+/* necro-allow no-bad: block comment */ const f = "bad";
+-- src/e.gd --
+var g = "bad"  # necro-allow no-bad: a GDScript comment

@@ -1,0 +1,19 @@
+# when necro isn't on PATH, the explain line says how to run the installed version
+spec: Messages
+env: PATH=/usr/bin:/bin
+exit: 1
+-- src/a.ts --
+bad
+-- @stdout --
+error[no-bad]: Bad word
+ --> src/a.ts:1:1
+  |
+1 | bad
+  | ^^^
+  |
+  = why: Because.
+  = fix: Say good.
+  = more: necro --explain no-bad
+          (necro isn't on PATH: uvx --from necronomicon==0.0.0 necro --explain no-bad)
+
+necro: 1 error (no-bad ×1)

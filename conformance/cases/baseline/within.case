@@ -1,0 +1,10 @@
+# hits within the baseline are counted in the summary, not shown, and don't fail
+spec: The baseline
+-- necro.baseline --
+# necro.baseline: hits accepted when adopted; rule, path, label, count. Rewrite with: necro baseline
+no-bad	src/a.ts	bad	2
+-- src/a.ts --
+bad
+bad
+-- @stdout --
+necro: 2 baselined (no-bad ×2)

@@ -1,0 +1,13 @@
+# a program that isn't on PATH is a setup error naming the rule and the program
+spec: Commands (runtime)
+exit: 2
+-- necro.yaml --
+version: 0
+rules:
+  lint-it:
+    command: nonexistent-tool --check src
+    message: Linted
+    why: Because.
+    fix: Fix it.
+-- @stderr --
+necro: setup error: lint-it: nonexistent-tool isn't on PATH

@@ -1,0 +1,37 @@
+# col-endcol sets the underline; a label that isn't the underlined text is shown beside it; else one caret
+spec: Messages (the underline)
+exit: 1
+-- necro.yaml --
+version: 0
+rules:
+  canned:
+    command: uv run --script "$NECRO_ROOT_DIR/necro/t.py"
+    message: Canned
+    why: Because.
+    fix: Fix it.
+-- canned.txt --
+src/a.ts:1:7-9
+src/a.ts:2:1: missing a default
+src/a.ts:3
+-- src/a.ts --
+const bad = 1;
+x.get("k")
+whole line
+-- @stdout --
+error[canned]: Canned
+ --> src/a.ts:1:7
+  |
+1 | const bad = 1;
+  |       ^^^
+  |
+  = why: Because.
+  = fix: Fix it.
+  = more: necro --explain canned
+
+error[canned]: also at src/a.ts:2:1 (missing a default)
+   = fix: Fix it.
+
+error[canned]: also at src/a.ts:3:1
+   = fix: Fix it.
+
+necro: 3 errors (canned ×3)

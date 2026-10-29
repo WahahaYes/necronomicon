@@ -1,0 +1,8 @@
+# -C moves the start; the root is the nearest folder above holding necro.yaml; commands run there
+spec: Commands (where it runs)
+args: -C src/b --format terse
+exit: 1
+-- src/b/c.ts --
+bad
+-- @stdout --
+src/b/c.ts:1:1: no-bad Bad word

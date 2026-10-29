@@ -1,0 +1,27 @@
+# on the first hit, a label that isn't the underlined text sits beside the caret
+spec: Messages (the underline)
+exit: 1
+-- necro.yaml --
+version: 0
+rules:
+  canned:
+    command: uv run --script "$NECRO_ROOT_DIR/necro/t.py"
+    message: Canned
+    why: Because.
+    fix: Fix it.
+-- canned.txt --
+src/a.ts:1:1: missing a default
+-- src/a.ts --
+x.get("k")
+-- @stdout --
+error[canned]: Canned
+ --> src/a.ts:1:1
+  |
+1 | x.get("k")
+  | ^ missing a default
+  |
+  = why: Because.
+  = fix: Fix it.
+  = more: necro --explain canned
+
+necro: 1 error (canned ×1)

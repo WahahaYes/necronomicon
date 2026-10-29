@@ -1,0 +1,8 @@
+# commands choose their own files, so file arguments are a usage error
+spec: CLI
+args: src/a.ts
+exit: 2
+-- src/a.ts --
+a
+-- @stderr --
+necro: unexpected argument src/a.ts (commands choose their own files; see necro --help)

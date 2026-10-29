@@ -1,0 +1,25 @@
+# full: the summary names each group over its baseline
+spec: The baseline; Messages
+exit: 1
+-- necro.baseline --
+# necro.baseline: hits accepted when adopted; rule, path, label, count. Rewrite with: necro baseline
+no-bad	src/a.ts	bad	1
+-- src/a.ts --
+bad
+bad
+-- @stdout --
+error[no-bad]: Bad word
+ --> src/a.ts:1:1
+  |
+1 | bad
+  | ^^^
+  |
+  = why: Because.
+  = fix: Say good.
+  = more: necro --explain no-bad
+
+error[no-bad]: also at src/a.ts:2:1 (bad)
+   = fix: Say good.
+
+necro: 2 errors (no-bad ×2)
+necro: over the baseline: no-bad in src/a.ts (bad): 2, baseline 1

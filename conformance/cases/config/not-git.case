@@ -1,0 +1,6 @@
+# the root must be inside a git work tree
+spec: Commands
+git: false
+exit: 2
+-- @stderr --
+necro: setup error: <root> isn't inside a git work tree

@@ -1,0 +1,8 @@
+# an allow with no reason is a necro/allow-reason error; it still suppresses
+spec: Allows
+args: --format terse
+exit: 1
+-- src/d.ts --
+const d = "bad"; // necro-allow no-bad
+-- @stdout --
+src/d.ts:1:21: necro/allow-reason the allow for no-bad gives no reason
