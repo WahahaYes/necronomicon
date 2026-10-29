@@ -18,7 +18,7 @@ error[banned-word]: Banned word
  --> src/a.ts:1:1
   |
 1 | donkey
-  | ^^^^^^
+  | ^ donkey
   |
   = why: a bad word in source spreads: people copy what they read, agents copy it
          faster, and soon every file says it

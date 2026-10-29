@@ -19,7 +19,7 @@ error[banned-word]: Banned word
  --> src/a.ts:1:1
   |
 1 | donkey
-  | ^^^^^^
+  | ^ donkey
   |
   = why: Bad words spread:
          people copy what they read.

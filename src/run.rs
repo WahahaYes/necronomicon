@@ -231,24 +231,12 @@ impl Sources<'_> {
 
 /// The underline: `col-endcol`; else the label, when the source has it at
 /// `col`; else one caret.
-fn underline(source: &str, col: usize, endcol: Option<usize>, label: &str) -> usize {
-    if let Some(end) = endcol {
-        return (end + 1).saturating_sub(col).max(1);
-    }
-    let at: String = source.chars().skip(col.saturating_sub(1)).collect();
-    if !label.is_empty() && at.starts_with(label) {
-        label.chars().count()
-    } else {
-        1
-    }
-}
-
 fn diagnostic(r: Raw, sources: &mut Sources) -> Diagnostic {
     let h = r.hit;
     let source = (h.line > 0).then(|| sources.line(&h.path, h.line));
-    let length = source
-        .as_deref()
-        .map_or(1, |s| underline(s, h.col, h.endcol, &h.label));
+    let length = h
+        .endcol
+        .map_or(1, |end| (end + 1).saturating_sub(h.col).max(1));
     Diagnostic {
         rule: r.rule.name.clone(),
         file: h.path,
