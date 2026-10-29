@@ -3,7 +3,7 @@
 Executable cases for [spec/v0.md](../../spec/v0.md), run against any engine command:
 
 ```
-python3 tests/conformance/run.py [-k TEXT] [-v] -- <engine argv>
+uv run --script tests/conformance/run.py [-k TEXT] [-v] -- <engine argv>
 ```
 
 `cargo test` runs it against the built `necro`. Each case copies `base/` into a fresh temp dir, lays its own files over it, makes it a git repo with everything added, and runs the engine there with `NO_COLOR=1`, `CI` unset and the engine on `PATH` as `necro`.

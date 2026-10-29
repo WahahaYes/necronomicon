@@ -1,4 +1,6 @@
-#!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.11"
+# ///
 """Run the conformance cases against an engine: run.py [-k TEXT] [-v] -- <engine argv>.
 
 Each case lays its files over base/ in a fresh temp dir and runs the engine
