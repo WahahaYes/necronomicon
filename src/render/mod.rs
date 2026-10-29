@@ -5,10 +5,9 @@ use std::io::Write;
 
 pub mod explain;
 pub mod full;
-pub mod test;
 
 use crate::config::ConfigError;
-use crate::run::Report;
+use crate::run::{Problem, Report};
 
 pub fn config_errors(errors: &[ConfigError]) {
     let mut err = std::io::stderr().lock();
@@ -26,18 +25,30 @@ pub fn config_errors(errors: &[ConfigError]) {
     }
 }
 
-pub fn check_errors(report: &Report) {
+/// Setup and check errors, after the hits.
+pub fn problems(report: &Report) {
     let mut err = std::io::stderr().lock();
-    for c in &report.check_errors {
-        let _ = writeln!(
-            err,
-            "necro: check error: {} ({}): {}",
-            c.group, c.command, c.failure.message
-        );
-        for line in &c.failure.stderr {
-            let _ = writeln!(err, "  | {line}");
+    for p in &report.problems {
+        match p {
+            Problem::Setup(message) => {
+                let _ = writeln!(err, "necro: setup error: {message}");
+            }
+            Problem::Check {
+                rule,
+                message,
+                stderr,
+            } => {
+                let _ = writeln!(err, "necro: check error: {rule}: {message}");
+                for line in stderr {
+                    let _ = writeln!(err, "  | {line}");
+                }
+            }
         }
     }
+}
+
+pub fn setup_error(message: &str) {
+    let _ = writeln!(std::io::stderr(), "necro: setup error: {message}");
 }
 
 pub fn usage(message: &str) {
@@ -63,20 +74,25 @@ pub fn text(text: &str) {
 pub fn terse(report: &Report) {
     let mut out = std::io::stdout().lock();
     for d in &report.diagnostics {
-        let _ = writeln!(
-            out,
-            "{}:{}:{}: {} {}",
-            d.file, d.line, d.col, d.code, d.summary
-        );
+        let at = if d.line == 0 {
+            d.file.clone()
+        } else {
+            format!("{}:{}:{}", d.file, d.line, d.col)
+        };
+        let _ = writeln!(out, "{at}: {} {}", d.rule, d.message);
     }
 }
 
 pub const HELP: &str = "\
 necro: checks a repo against its house rules (necro.yaml).
 
-usage: necro [-C <dir>] [files…] [--format full|terse] [--rule <code>]
-       necro [-C <dir>] --explain <code|group>
-       necro [-C <dir>] test [--update]
+usage: necro [-C <dir>] [--format full|terse] [--rule <name>]
+       necro [-C <dir>] --explain <rule>
+       necro [-C <dir>] baseline
        necro --version
 
-Exit 0 clean, 1 on an error hit, 2 on a config error, check failure or usage error.";
+Each rule's command chooses its own files. `necro baseline` writes necro.baseline,
+the hits a repo accepts while it adopts a rule.
+
+Exit 0 clean, 1 on an error hit or a broken allow, 2 on a config, setup, check
+or usage error.";

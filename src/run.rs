@@ -1,65 +1,90 @@
-//! One run: rules over files, then allows and severity (spec: Scope and
-//! parameters, Check protocol, Allows). Returns a report for render/.
+//! One run: every rule's command, then allows and the baseline (spec:
+//! Commands, Allows, The baseline). Returns a report for render/.
 
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::path::Path;
 
-use crate::checks::{self, Allow, RawHit, Value};
-use crate::config::{
-    BrokenGroup, Check, Config, ConfigError, Engine, ParamValue, Rule, Scope, Severity, Wording,
-    placeholders,
-};
-use crate::lang::{self, Source};
-use crate::script::{Failure, Job, Process};
+use crate::allows::{self, Allow};
+use crate::baseline::{self, Counts};
+use crate::command::{self, Failure};
+use crate::config::{self, Config, Rule};
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub enum Kind {
+    Error,
+    Trial,
+}
+
+impl Kind {
+    pub fn name(self) -> &'static str {
+        match self {
+            Kind::Error => "error",
+            Kind::Trial => "trial",
+        }
+    }
+}
 
 pub struct Diagnostic {
-    pub code: String,
-    pub severity: Severity,
+    pub rule: String,
+    pub kind: Kind,
     pub file: String,
+    /// 0 for a whole-file hit.
     pub line: usize,
     pub col: usize,
+    /// The underline's width in code points.
     pub length: usize,
-    pub summary: String,
+    pub label: String,
+    pub message: String,
     pub why: String,
-    pub help: String,
-    pub label: Option<String>,
+    pub fix: String,
     /// The raw source line, for line > 0.
     pub source: Option<String>,
 }
 
 pub struct Allowed {
-    pub code: String,
+    pub rule: String,
     pub file: String,
     pub line: usize,
+    pub col: usize,
     pub reason: String,
 }
 
-pub struct CheckError {
-    pub group: String,
-    pub command: String,
-    pub failure: Failure,
-    /// An `error` rule uses the check, so the run fails.
-    pub fatal: bool,
+pub struct Over {
+    pub rule: String,
+    pub file: String,
+    pub label: String,
+    pub count: usize,
+    pub baseline: usize,
+}
+
+pub enum Problem {
+    Setup(String),
+    Check {
+        rule: String,
+        message: String,
+        stderr: Vec<String>,
+    },
 }
 
 #[derive(Default)]
 pub struct Report {
     pub diagnostics: Vec<Diagnostic>,
     pub allowed: Vec<Allowed>,
-    pub warnings: Vec<String>,
-    pub check_errors: Vec<CheckError>,
-    pub config_errors: Vec<ConfigError>,
+    /// Hits within the baseline, per rule.
+    pub baselined: BTreeMap<String, usize>,
+    pub over: Vec<Over>,
+    /// How many baseline counts the run came in under.
+    pub fell: usize,
+    pub problems: Vec<Problem>,
+    /// Counts of the hits left after allows, for `necro baseline`.
+    pub counts: Counts,
 }
 
 impl Report {
     pub fn exit_code(&self) -> u8 {
-        if !self.config_errors.is_empty() || self.check_errors.iter().any(|c| c.fatal) {
+        if !self.problems.is_empty() {
             2
-        } else if self
-            .diagnostics
-            .iter()
-            .any(|d| d.severity == Severity::Error)
-        {
+        } else if self.diagnostics.iter().any(|d| d.kind == Kind::Error) {
             1
         } else {
             0
@@ -67,514 +92,262 @@ impl Report {
     }
 }
 
-pub struct Options<'a> {
-    /// Files named on the command line (root-relative), or all in scope.
-    pub given: Option<&'a [String]>,
-    pub rule: Option<&'a str>,
+/// A hit before allows and the baseline.
+struct Raw<'a> {
+    rule: &'a Rule,
+    hit: command::Hit,
+}
+
+pub fn run(config: &Config, root: &Path, only: Option<&str>) -> Report {
+    let mut report = Report::default();
+    let selected: Vec<&Rule> = config
+        .rules
+        .iter()
+        .filter(|r| only.is_none_or(|o| r.name == o))
+        .collect();
+    let outputs: Vec<Result<Vec<String>, Failure>> = std::thread::scope(|s| {
+        let handles: Vec<_> = selected
+            .iter()
+            .map(|r| {
+                let command = r.command.as_deref().unwrap_or_default();
+                s.spawn(move || command::run(command, root))
+            })
+            .collect();
+        handles
+            .into_iter()
+            .map(|h| {
+                h.join()
+                    .unwrap_or_else(|_| Err(Failure::Check("panicked".into(), vec![])))
+            })
+            .collect()
+    });
+
+    let mut raw: Vec<Raw> = Vec::new();
+    let mut ran: BTreeSet<&str> = BTreeSet::new();
+    for (rule, output) in selected.iter().copied().zip(outputs) {
+        match output.and_then(|lines| read_hits(root, &lines)) {
+            Ok(hits) => {
+                ran.insert(&rule.name);
+                raw.extend(hits.into_iter().map(|hit| Raw { rule, hit }));
+            }
+            Err(Failure::Missing(program)) => report.problems.push(Problem::Setup(format!(
+                "{}: {program} isn't on PATH",
+                rule.name
+            ))),
+            Err(Failure::Check(message, stderr)) => report.problems.push(Problem::Check {
+                rule: rule.name.clone(),
+                message,
+                stderr,
+            }),
+        }
+    }
+
+    let mut found = match allows::find(root) {
+        Ok(a) => a,
+        Err(message) => {
+            report.problems.push(Problem::Setup(message));
+            vec![]
+        }
+    };
+    let mut used = vec![false; found.len()];
+    raw.sort_by(|a, b| {
+        (&a.rule.name, &a.hit.path, a.hit.line, a.hit.col).cmp(&(
+            &b.rule.name,
+            &b.hit.path,
+            b.hit.line,
+            b.hit.col,
+        ))
+    });
+    let mut kept: Vec<Raw> = Vec::new();
+    for r in raw {
+        match allow_for(&found, &r) {
+            Some(i) => {
+                if !used[i] {
+                    report.allowed.push(Allowed {
+                        rule: r.rule.name.clone(),
+                        file: r.hit.path.clone(),
+                        line: r.hit.line,
+                        col: r.hit.col,
+                        reason: found[i].reason.clone().unwrap_or_default(),
+                    });
+                }
+                used[i] = true;
+            }
+            None => kept.push(r),
+        }
+    }
+
+    let mut sources = Sources {
+        root,
+        cache: HashMap::new(),
+    };
+    let known: BTreeSet<&str> = config.names().into_iter().collect();
+    let [reason_rule, unused_rule] = config::builtins();
+    for (a, used) in found.iter_mut().zip(&used) {
+        if a.reason.is_none() {
+            let d = allow_diagnostic(&reason_rule, a, "gives no reason", &mut sources);
+            report.diagnostics.push(d);
+        }
+        if !used && (!known.contains(a.rule.as_str()) || ran.contains(a.rule.as_str())) {
+            let d = allow_diagnostic(&unused_rule, a, "suppresses nothing", &mut sources);
+            report.diagnostics.push(d);
+        }
+    }
+
+    let base = match baseline::read(root) {
+        Ok(b) => b,
+        Err(message) => {
+            report.problems.push(Problem::Setup(message));
+            Counts::new()
+        }
+    };
+    let key = |r: &Raw| (r.rule.name.clone(), r.hit.path.clone(), r.hit.label.clone());
+    for r in &kept {
+        *report.counts.entry(key(r)).or_default() += 1;
+    }
+    for r in kept {
+        let k = key(&r);
+        let count = report.counts[&k];
+        let allowed = base.get(&k).copied().unwrap_or(0);
+        if count <= allowed {
+            *report.baselined.entry(k.0).or_default() += 1;
+            continue;
+        }
+        let d = diagnostic(r, &mut sources);
+        report.diagnostics.push(d);
+    }
+    for ((rule, file, label), &allowed) in &base {
+        if !ran.contains(rule.as_str()) && known.contains(rule.as_str()) {
+            continue;
+        }
+        let k = (rule.clone(), file.clone(), label.clone());
+        let count = report.counts.get(&k).copied().unwrap_or(0);
+        if count < allowed {
+            report.fell += 1;
+        } else if count > allowed && allowed > 0 {
+            report.over.push(Over {
+                rule: rule.clone(),
+                file: file.clone(),
+                label: label.clone(),
+                count,
+                baseline: allowed,
+            });
+        }
+    }
+
+    report.diagnostics.sort_by(|a, b| {
+        (a.kind, &a.rule, &a.file, a.line, a.col).cmp(&(b.kind, &b.rule, &b.file, b.line, b.col))
+    });
+    report
+        .allowed
+        .sort_by(|a, b| (&a.file, a.line, a.col, &a.rule).cmp(&(&b.file, b.line, b.col, &b.rule)));
+    report
+}
+
+/// Parse a command's output; every path must be a file under the root.
+fn read_hits(root: &Path, lines: &[String]) -> Result<Vec<command::Hit>, Failure> {
+    let mut hits = Vec::new();
+    for (i, line) in lines.iter().enumerate() {
+        if line.trim().is_empty() {
+            continue;
+        }
+        let Some(hit) = command::parse(line) else {
+            let message = format!("can't read output line {}: {line}", i + 1);
+            return Err(Failure::Check(message, vec![]));
+        };
+        if !Path::new(&hit.path).is_relative() || !root.join(&hit.path).is_file() {
+            let message = format!("{} isn't a file", hit.path);
+            return Err(Failure::Check(message, vec![]));
+        }
+        hits.push(hit);
+    }
+    Ok(hits)
+}
+
+/// The allow for a hit: on its line, else the line above; a whole-file hit's
+/// on line 1, or 2 after `#!`.
+fn allow_for(found: &[Allow], r: &Raw) -> Option<usize> {
+    let at = |line: usize| {
+        found
+            .iter()
+            .position(|a| a.file == r.hit.path && a.line == line && a.rule == r.rule.name)
+    };
+    if r.hit.line == 0 {
+        let shebang = found.iter().any(|a| a.file == r.hit.path && a.shebang);
+        return at(if shebang { 2 } else { 1 });
+    }
+    at(r.hit.line).or_else(|| at(r.hit.line - 1))
 }
 
 struct Sources<'a> {
     root: &'a Path,
-    config: &'a Config,
-    cache: HashMap<String, Source>,
+    cache: HashMap<String, Vec<String>>,
 }
 
 impl Sources<'_> {
-    fn get(&mut self, file: &str) -> &Source {
-        if !self.cache.contains_key(file) {
+    fn line(&mut self, file: &str, line: usize) -> String {
+        let lines = self.cache.entry(file.to_string()).or_insert_with(|| {
             let bytes = std::fs::read(self.root.join(file)).unwrap_or_default();
-            let text = String::from_utf8_lossy(&bytes);
-            let src = lang::scan(&text, self.config.lang(file));
-            self.cache.insert(file.to_string(), src);
-        }
-        &self.cache[file]
-    }
-}
-
-/// The rule's params for one file: the rule's, then any `where` entry matching it.
-pub fn params_for(rule: &Rule, file: &str) -> BTreeMap<String, ParamValue> {
-    let mut params = rule.params.clone();
-    for w in rule.wheres.iter().filter(|w| w.matches(file)) {
-        params.extend(w.params.clone());
-    }
-    params
-}
-
-pub fn in_scope(rule: &Rule, file: &str) -> bool {
-    rule.files.is_match(file) && !rule.ignores.is_match(file)
-}
-
-/// `files` are every file in the run, relative to `data_root` (the root, or a fixture tree).
-pub fn run(
-    config: &Config,
-    broken: &[BrokenGroup],
-    scripts: &mut BTreeMap<String, Process>,
-    data_root: &Path,
-    files: &[String],
-    opts: &Options,
-) -> Report {
-    let mut report = Report::default();
-    let scope: Vec<&String> = files
-        .iter()
-        .filter(|f| config.files.is_match(f.as_str()) && !config.ignores.is_match(f.as_str()))
-        .collect();
-    let targets: Vec<&String> = match opts.given {
-        Some(given) => scope
-            .iter()
-            .copied()
-            .filter(|f| given.contains(f))
-            .collect(),
-        None => scope.clone(),
-    };
-    let selected: Vec<usize> = (0..config.rules.len())
-        .filter(|&i| {
-            opts.rule
-                .is_none_or(|r| config.rules[i].code == r || config.rules[i].group == "necro")
-        })
-        .collect();
-    let mut sources = Sources {
-        root: data_root,
-        config,
-        cache: HashMap::new(),
-    };
-    let mut raw: Vec<(usize, String, RawHit)> = Vec::new();
-
-    // Script jobs: identical (check, params, files) from different rules are sent once.
-    let mut jobs: BTreeMap<String, Vec<(Job, Vec<usize>)>> = BTreeMap::new();
-    for &r in &selected {
-        let rule = &config.rules[r];
-        let pool = if rule.decl.scope == Scope::Project {
-            &scope
-        } else {
-            &targets
-        };
-        let rule_files: Vec<&String> = pool.iter().copied().filter(|f| in_scope(rule, f)).collect();
-        match &rule.check {
-            Check::Regex { re, raw_line } => {
-                for f in rule_files {
-                    for h in checks::regex(sources.get(f), re, *raw_line) {
-                        raw.push((r, f.clone(), h));
-                    }
-                }
-            }
-            Check::Engine(Engine::AllowReason | Engine::UnusedAllow) => {}
-            Check::Engine(engine) => {
-                for f in rule_files {
-                    let params = params_for(rule, f);
-                    let hits = match engine {
-                        Engine::Require => checks::require(sources.get(f), &params),
-                        _ => {
-                            let Some(lang) = config.lang(f) else {
-                                unknown_language(&mut report, rule, f);
-                                continue;
-                            };
-                            let src = sources.get(f);
-                            if *engine == Engine::CommentBlocks {
-                                checks::comment_blocks(src, lang, &params)
-                            } else {
-                                checks::doc_above(src, lang, &params)
-                            }
-                        }
-                    };
-                    raw.extend(hits.into_iter().map(|h| (r, f.clone(), h)));
-                }
-            }
-            Check::Script { group, name } => {
-                if broken.iter().any(|b| &b.group == group) {
-                    continue;
-                }
-                let mut by_params: Vec<(BTreeMap<String, ParamValue>, Vec<String>)> = Vec::new();
-                for f in rule_files {
-                    let p = params_for(rule, f);
-                    match by_params.iter_mut().find(|(q, _)| *q == p) {
-                        Some((_, fs)) => fs.push(f.clone()),
-                        None => by_params.push((p, vec![f.clone()])),
-                    }
-                }
-                let group_jobs = jobs.entry(group.clone()).or_default();
-                for (params, fs) in by_params {
-                    match group_jobs
-                        .iter_mut()
-                        .find(|(j, _)| j.check == *name && j.params == params && j.files == fs)
-                    {
-                        Some((_, rules)) => rules.push(r),
-                        None => {
-                            let id = (group_jobs.len() + 1).to_string();
-                            group_jobs.push((
-                                Job {
-                                    id,
-                                    check: name.clone(),
-                                    files: fs,
-                                    params,
-                                },
-                                vec![r],
-                            ));
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    for b in broken {
-        let command = config
-            .groups
-            .iter()
-            .find(|g| g.name == b.group)
-            .and_then(|g| g.command.as_ref());
-        report.check_errors.push(CheckError {
-            group: b.group.clone(),
-            command: command.map(|c| c.join(" ")).unwrap_or_default(),
-            failure: Failure {
-                message: b.message.clone(),
-                stderr: vec![],
-            },
-            fatal: b.fatal,
+            String::from_utf8_lossy(&bytes)
+                .lines()
+                .map(String::from)
+                .collect()
         });
-    }
-    let in_scope_set: BTreeSet<&str> = scope.iter().map(|s| s.as_str()).collect();
-    for (group, process) in std::mem::take(scripts) {
-        let group_jobs = jobs.remove(&group).unwrap_or_default();
-        let list: Vec<Job> = group_jobs
-            .iter()
-            .map(|(j, _)| Job {
-                id: j.id.clone(),
-                check: j.check.clone(),
-                files: j.files.clone(),
-                params: j.params.clone(),
-            })
-            .collect();
-        let result = process.check(&list).and_then(|resp| {
-            if let Some(e) = resp.errors.first() {
-                return Err(Failure {
-                    message: format!("it reported an error: {e}"),
-                    stderr: vec![],
-                });
-            }
-            let mut out = Vec::new();
-            for (job, rules) in &group_jobs {
-                let hits = resp.results.get(&job.id).ok_or_else(|| Failure {
-                    message: format!("no result for job {}", job.id),
-                    stderr: vec![],
-                })?;
-                for h in hits {
-                    validate_hit(config, rules, job, h, &in_scope_set).map_err(|m| Failure {
-                        message: m,
-                        stderr: vec![],
-                    })?;
-                    for &r in rules {
-                        let hit = RawHit {
-                            line: h.line,
-                            col: h.col,
-                            length: h.length,
-                            values: h.values.clone(),
-                        };
-                        out.push((r, h.file.clone(), hit));
-                    }
-                }
-            }
-            report
-                .warnings
-                .extend(resp.warnings.iter().map(|w| format!("{group}: {w}")));
-            Ok(out)
-        });
-        match result {
-            Ok(hits) => raw.extend(hits),
-            Err(failure) => push_check_error(&mut report, config, &group, failure),
-        }
-    }
-
-    apply_allows(config, &selected, &targets, &mut sources, raw, &mut report);
-    report.diagnostics.sort_by(|a, b| {
-        (a.severity, &a.code, &a.file, a.line, a.col)
-            .cmp(&(b.severity, &b.code, &b.file, b.line, b.col))
-    });
-    report
-        .allowed
-        .sort_by(|a, b| (&a.file, a.line, &a.code).cmp(&(&b.file, b.line, &b.code)));
-    report
-}
-
-fn unknown_language(report: &mut Report, rule: &Rule, file: &str) {
-    let ext = lang::extension(file);
-    let check = match rule.check {
-        Check::Engine(Engine::CommentBlocks) => "engine.comment-blocks",
-        _ => "engine.doc-above",
-    };
-    let name = rule.code.split_once('/').map_or("", |(_, n)| n);
-    let path = format!("rules.{name}.check");
-    if report
-        .config_errors
-        .iter()
-        .any(|e| e.path == path && e.file == rule.file)
-    {
-        return;
-    }
-    report.config_errors.push(ConfigError {
-        file: rule.file.clone(),
-        pos: rule.pos,
-        path,
-        message: format!("{check} doesn't know `{ext}` files (e.g. {file}); narrow the rule's files or add `{ext}` under languages"),
-    });
-}
-
-fn push_check_error(report: &mut Report, config: &Config, group: &str, failure: Failure) {
-    let users = config
-        .rules
-        .iter()
-        .filter(|r| matches!(&r.check, Check::Script { group: g, .. } if g == group));
-    let fatal = users.into_iter().any(|r| {
-        r.severity == Severity::Error
-            || r.wheres.iter().any(|w| w.severity == Some(Severity::Error))
-    });
-    let command = config
-        .groups
-        .iter()
-        .find(|g| g.name == group)
-        .and_then(|g| g.command.as_ref())
-        .map(|c| c.join(" "))
-        .unwrap_or_default();
-    report.check_errors.push(CheckError {
-        group: group.to_string(),
-        command,
-        failure,
-        fatal,
-    });
-}
-
-fn validate_hit(
-    config: &Config,
-    rules: &[usize],
-    job: &Job,
-    h: &crate::script::ScriptHit,
-    scope: &BTreeSet<&str>,
-) -> Result<(), String> {
-    let rule = &config.rules[rules[0]];
-    let inside = job.files.contains(&h.file) || (h.line == 0 && scope.contains(h.file.as_str()));
-    if !inside {
-        return Err(format!(
-            "job {} returned a hit in {}, which it wasn't sent",
-            job.id, h.file
-        ));
-    }
-    for k in h.values.keys() {
-        if !rule.decl.values.contains(k) {
-            return Err(format!(
-                "job {} returned value `{k}`, which `{}` doesn't declare",
-                job.id, job.check
-            ));
-        }
-    }
-    for &r in rules {
-        let rule = &config.rules[r];
-        let (_, w) = effective(rule, &h.file);
-        for t in [&w.summary, &w.why, &w.help, &w.label]
-            .into_iter()
-            .flatten()
-        {
-            for name in placeholders(t) {
-                if rule.decl.values.contains(&name) && !h.values.contains_key(&name) {
-                    return Err(format!(
-                        "job {} returned a hit without value `{name}`, which {}'s wording uses",
-                        job.id, rule.code
-                    ));
-                }
-            }
-        }
-    }
-    Ok(())
-}
-
-/// The severity and wording that apply to a file: the rule's, with `where` overrides.
-fn effective(rule: &Rule, file: &str) -> (Severity, Wording) {
-    let mut severity = rule.severity;
-    let mut w = rule.wording.clone();
-    for entry in rule.wheres.iter().filter(|e| e.matches(file)) {
-        severity = entry.severity.unwrap_or(severity);
-        let o = &entry.wording;
-        w.summary = o.summary.clone().or(w.summary);
-        w.why = o.why.clone().or(w.why);
-        w.help = o.help.clone().or(w.help);
-        w.label = o.label.clone().or(w.label);
-    }
-    (severity, w)
-}
-
-fn apply_allows(
-    config: &Config,
-    selected: &[usize],
-    targets: &[&String],
-    sources: &mut Sources,
-    raw: Vec<(usize, String, RawHit)>,
-    report: &mut Report,
-) {
-    let codes: BTreeSet<&str> = config.rules.iter().map(|r| r.code.as_str()).collect();
-    let ran: BTreeSet<&str> = selected
-        .iter()
-        .map(|&r| config.rules[r].code.as_str())
-        .collect();
-    let find = |engine: Engine| {
-        selected
-            .iter()
-            .copied()
-            .find(|&r| matches!(config.rules[r].check, Check::Engine(e) if e == engine))
-    };
-    let (reason_rule, unused_rule) = (find(Engine::AllowReason), find(Engine::UnusedAllow));
-
-    let mut allows: BTreeMap<String, Vec<(Allow, bool)>> = BTreeMap::new();
-    let mut shebang: BTreeSet<String> = BTreeSet::new();
-    for f in targets {
-        if config.lang(f).is_none() {
-            continue;
-        }
-        let src = sources.get(f);
-        if src.lines.first().is_some_and(|l| l.starts_with("#!")) {
-            shebang.insert(f.to_string());
-        }
-        let found = checks::allows(src);
-        if !found.is_empty() {
-            allows.insert(
-                f.to_string(),
-                found.into_iter().map(|a| (a, false)).collect(),
-            );
-        }
-    }
-
-    let mut kept = Vec::new();
-    for (r, file, hit) in raw {
-        let code = &config.rules[r].code;
-        let lines: Vec<usize> = if hit.line == 0 {
-            vec![if shebang.contains(&file) { 2 } else { 1 }]
-        } else {
-            vec![hit.line, hit.line - 1]
-        };
-        // The hit's own line first, then the line above.
-        let found = allows.get_mut(&file).and_then(|list| {
-            let at = lines.iter().find_map(|l| {
-                list.iter()
-                    .position(|(a, _)| &a.code == code && a.line == *l)
-            })?;
-            list.get_mut(at)
-        });
-        match found {
-            Some((allow, used)) => {
-                if !*used {
-                    report.allowed.push(Allowed {
-                        code: code.clone(),
-                        file: file.clone(),
-                        line: hit.line,
-                        reason: allow.reason.clone().unwrap_or_default(),
-                    });
-                }
-                *used = true;
-            }
-            None => kept.push((r, file, hit)),
-        }
-    }
-    for (file, list) in &allows {
-        for (allow, used) in list {
-            let value = BTreeMap::from([("code".to_string(), Value::Str(allow.code.clone()))]);
-            let hit = || RawHit {
-                line: allow.line,
-                col: allow.col,
-                length: allow.length,
-                values: value.clone(),
-            };
-            if allow.reason.is_none()
-                && let Some(r) = reason_rule
-                && in_scope(&config.rules[r], file)
-            {
-                kept.push((r, file.clone(), hit()));
-            }
-            let known = codes.contains(allow.code.as_str());
-            let stale = !used && (!known || ran.contains(allow.code.as_str()));
-            if stale
-                && let Some(r) = unused_rule
-                && in_scope(&config.rules[r], file)
-            {
-                kept.push((r, file.clone(), hit()));
-            }
-        }
-    }
-    for (r, file, hit) in kept {
-        let d = diagnostic(&config.rules[r], &file, hit, sources);
-        report.diagnostics.push(d);
+        lines.get(line - 1).cloned().unwrap_or_default()
     }
 }
 
-pub fn render_value(v: &Value) -> String {
-    match v {
-        Value::Str(s) => s.clone(),
-        Value::Number(n) => number(*n),
+/// The underline: `col-endcol`; else the label, when the source has it at
+/// `col`; else one caret.
+fn underline(source: &str, col: usize, endcol: Option<usize>, label: &str) -> usize {
+    if let Some(end) = endcol {
+        return (end + 1).saturating_sub(col).max(1);
     }
-}
-
-pub fn number(n: f64) -> String {
-    if n.fract() == 0.0 && n.abs() < 1e15 {
-        format!("{}", n as i64)
+    let at: String = source.chars().skip(col.saturating_sub(1)).collect();
+    if !label.is_empty() && at.starts_with(label) {
+        label.chars().count()
     } else {
-        format!("{n}")
+        1
     }
 }
 
-pub fn render_param(v: &ParamValue) -> String {
-    match v {
-        ParamValue::Str(s) => s.clone(),
-        ParamValue::Number(n) => number(*n),
-        ParamValue::Bool(b) => b.to_string(),
-        ParamValue::StrList(l) => l.join(", "),
-        ParamValue::StrMap(_) => String::new(),
-    }
-}
-
-pub fn fill(
-    template: &str,
-    values: &BTreeMap<String, Value>,
-    params: &BTreeMap<String, ParamValue>,
-) -> String {
-    let mut out = String::new();
-    let mut rest = template;
-    while let Some(start) = rest.find("{{") {
-        let Some(end) = rest[start..].find("}}") else {
-            break;
-        };
-        out.push_str(&rest[..start]);
-        let name = rest[start + 2..start + end].trim();
-        let text = values
-            .get(name)
-            .map(render_value)
-            .or_else(|| params.get(name).map(render_param))
-            .unwrap_or_default();
-        out.push_str(&text);
-        rest = &rest[start + end + 2..];
-    }
-    out.push_str(rest);
-    out
-}
-
-fn diagnostic(rule: &Rule, file: &str, hit: RawHit, sources: &mut Sources) -> Diagnostic {
-    let (severity, w) = effective(rule, file);
-    let params = params_for(rule, file);
-    let f = |t: &Option<String>| fill(t.as_deref().unwrap_or(""), &hit.values, &params);
-    let source = (hit.line > 0).then(|| {
-        sources
-            .get(file)
-            .lines
-            .get(hit.line - 1)
-            .cloned()
-            .unwrap_or_default()
-    });
+fn diagnostic(r: Raw, sources: &mut Sources) -> Diagnostic {
+    let h = r.hit;
+    let source = (h.line > 0).then(|| sources.line(&h.path, h.line));
+    let length = source
+        .as_deref()
+        .map_or(1, |s| underline(s, h.col, h.endcol, &h.label));
     Diagnostic {
-        code: rule.code.clone(),
-        severity,
-        file: file.to_string(),
-        line: hit.line,
-        col: hit.col,
-        length: hit.length,
-        summary: f(&w.summary),
-        why: f(&w.why),
-        help: f(&w.help),
-        label: w.label.as_ref().map(|_| f(&w.label)),
+        rule: r.rule.name.clone(),
+        kind: if r.rule.trial {
+            Kind::Trial
+        } else {
+            Kind::Error
+        },
+        file: h.path,
+        line: h.line,
+        col: h.col,
+        length,
+        label: h.label,
+        message: r.rule.message.clone(),
+        why: r.rule.why.clone(),
+        fix: r.rule.fix.clone(),
         source,
+    }
+}
+
+fn allow_diagnostic(rule: &Rule, a: &Allow, what: &str, sources: &mut Sources) -> Diagnostic {
+    Diagnostic {
+        rule: rule.name.clone(),
+        kind: Kind::Error,
+        file: a.file.clone(),
+        line: a.line,
+        col: a.col,
+        length: "necro-allow".len(),
+        label: a.rule.clone(),
+        message: format!("the allow for {} {what}", a.rule),
+        why: rule.why.clone(),
+        fix: rule.fix.clone(),
+        source: Some(sources.line(&a.file, a.line)),
     }
 }

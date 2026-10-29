@@ -1,10 +1,10 @@
-//! The `full` format (spec: Messages): progressive, so the first hit of a code
+//! The `full` format (spec: Messages): progressive, so the first hit of a rule
 //! teaches and the repeats stay short.
 
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
 use std::fmt::Write as _;
 
-use crate::run::{Diagnostic, Report};
+use crate::run::{Diagnostic, Kind, Report};
 
 pub const WIDTH: usize = 88;
 const REPEATS: usize = 4;
@@ -76,53 +76,35 @@ fn snippet(source: &str, col: usize, length: usize) -> (String, usize, usize) {
 
 pub fn render(report: &Report, on_path: bool) -> String {
     let mut out = String::new();
-    let mut shown: BTreeMap<&str, (usize, BTreeSet<&str>, BTreeSet<&str>)> = BTreeMap::new();
+    let mut shown: BTreeMap<&str, usize> = BTreeMap::new();
     let mut folded: Vec<(&Diagnostic, usize)> = Vec::new();
     let diags = &report.diagnostics;
     for (i, d) in diags.iter().enumerate() {
-        let head = format!("{}[{}]", d.severity.name(), d.code);
-        let entry = shown.entry(&d.code).or_default();
-        entry.0 += 1;
-        if entry.0 == 1 {
-            entry.1.insert(&d.summary);
-            entry.2.insert(&d.why);
+        let head = format!("{}[{}]", d.kind.name(), d.rule);
+        let n = shown.entry(&d.rule).or_default();
+        *n += 1;
+        if *n == 1 {
             first(&mut out, &head, d, on_path);
-        } else if entry.0 <= REPEATS + 1 {
-            if entry.1.insert(&d.summary) {
-                let _ = writeln!(out, "{head}: {}\n  --> {}", d.summary, location(d));
+        } else if *n <= REPEATS + 1 {
+            let label = if d.label.is_empty() {
+                String::new()
             } else {
-                let _ = writeln!(out, "{head}: also at {}", location(d));
-            }
-            if entry.2.insert(&d.why) {
-                out.push_str(&wrap("   = why: ", &d.why));
-            }
-            out.push_str(&wrap("   = help: ", &d.help));
+                format!(" ({})", d.label)
+            };
+            let _ = writeln!(out, "{head}: also at {}{label}", location(d));
+            out.push_str(&wrap("   = fix: ", &d.fix));
             out.push('\n');
         } else {
             match folded.last_mut() {
-                Some((last, n))
-                    if last.code == d.code
-                        && last.file == d.file
-                        && last.severity == d.severity =>
-                {
-                    *n += 1
-                }
+                Some((last, n)) if last.rule == d.rule && last.file == d.file => *n += 1,
                 _ => folded.push((d, 1)),
             }
         }
-        // The folded counts for a code close its run.
-        let run_ends = diags
-            .get(i + 1)
-            .is_none_or(|n| n.code != d.code || n.severity != d.severity);
+        // The folded counts for a rule close its run.
+        let run_ends = diags.get(i + 1).is_none_or(|n| n.rule != d.rule);
         if run_ends && !folded.is_empty() {
             for (f, n) in folded.drain(..) {
-                let _ = writeln!(
-                    out,
-                    "{}[{}]: {n} more in {}",
-                    f.severity.name(),
-                    f.code,
-                    f.file
-                );
+                let _ = writeln!(out, "{}[{}]: {n} more in {}", f.kind.name(), f.rule, f.file);
             }
             out.push('\n');
         }
@@ -132,49 +114,65 @@ pub fn render(report: &Report, on_path: bool) -> String {
 }
 
 fn first(out: &mut String, head: &str, d: &Diagnostic, on_path: bool) {
-    let _ = writeln!(out, "{head}: {}", d.summary);
+    let _ = writeln!(out, "{head}: {}", d.message);
     let w = if d.line == 0 {
         1
     } else {
         d.line.to_string().len()
     };
     let pad = " ".repeat(w);
-    let _ = writeln!(out, "{pad}--> {}", location(d));
-    if let Some(source) = &d.source {
-        let (line, start, span) = snippet(source, d.col, d.length);
-        let label = d
-            .label
-            .as_ref()
-            .map(|l| format!(" {l}"))
-            .unwrap_or_default();
-        let _ = writeln!(out, "{pad} |");
-        let _ = writeln!(out, "{} | {}", d.line, line).map(|_| ());
-        let _ = writeln!(
-            out,
-            "{pad} | {}{}{label}",
-            " ".repeat(start),
-            "^".repeat(span)
-        );
-        let _ = writeln!(out, "{pad} |");
+    match &d.source {
+        None => {
+            let label = if d.label.is_empty() {
+                String::new()
+            } else {
+                format!(" ({})", d.label)
+            };
+            let _ = writeln!(out, "{pad}--> {}{label}", location(d));
+        }
+        Some(source) => {
+            let _ = writeln!(out, "{pad}--> {}", location(d));
+            let (line, start, span) = snippet(source, d.col, d.length);
+            let underlined: String = source
+                .chars()
+                .skip(d.col.saturating_sub(1))
+                .take(d.length)
+                .collect();
+            let label = if d.label.is_empty() || d.label == underlined {
+                String::new()
+            } else {
+                format!(" {}", d.label)
+            };
+            let _ = writeln!(out, "{pad} |");
+            let _ = writeln!(out, "{} | {}", d.line, line);
+            let _ = writeln!(
+                out,
+                "{pad} | {}{}{label}",
+                " ".repeat(start),
+                "^".repeat(span)
+            );
+            let _ = writeln!(out, "{pad} |");
+        }
     }
     out.push_str(&wrap(&format!("{pad} = why: "), &d.why));
-    out.push_str(&wrap(&format!("{pad} = help: "), &d.help));
-    let more = format!("necro --explain {}", d.code);
+    out.push_str(&wrap(&format!("{pad} = fix: "), &d.fix));
+    let more = format!("necro --explain {}", d.rule);
     let _ = writeln!(out, "{pad} = more: {more}");
     if !on_path {
         let install = format!(
             "(necro isn't on PATH: uvx --from necronomicon=={} {more})",
             env!("CARGO_PKG_VERSION")
         );
-        out.push_str(&wrap(&format!("{pad}         "), &install));
+        // One line, so the command copies whole.
+        let _ = writeln!(out, "{pad}         {install}");
     }
     out.push('\n');
 }
 
-fn counts(diags: &[&Diagnostic]) -> String {
+fn counts<'a>(rules: impl Iterator<Item = &'a str>) -> String {
     let mut by: BTreeMap<&str, usize> = BTreeMap::new();
-    for d in diags {
-        *by.entry(&d.code).or_default() += 1;
+    for r in rules {
+        *by.entry(r).or_default() += 1;
     }
     by.iter()
         .map(|(c, n)| format!("{c} ×{n}"))
@@ -182,27 +180,53 @@ fn counts(diags: &[&Diagnostic]) -> String {
         .join(", ")
 }
 
+fn plural(n: usize, one: &str, many: &str) -> String {
+    format!("{n} {}", if n == 1 { one } else { many })
+}
+
 pub fn summary(report: &Report) -> String {
     let mut out = String::new();
-    let (errors, experimental): (Vec<&Diagnostic>, Vec<&Diagnostic>) = report
+    let (errors, trials): (Vec<&Diagnostic>, Vec<&Diagnostic>) = report
         .diagnostics
         .iter()
-        .partition(|d| d.severity == crate::config::Severity::Error);
+        .partition(|d| d.kind == Kind::Error);
     if !errors.is_empty() {
-        let s = if errors.len() == 1 { "" } else { "s" };
+        let n = plural(errors.len(), "error", "errors");
+        let by = counts(errors.iter().map(|d| d.rule.as_str()));
+        let _ = writeln!(out, "necro: {n} ({by})");
+    }
+    if !trials.is_empty() {
+        let n = plural(trials.len(), "trial hit", "trial hits");
+        let by = counts(trials.iter().map(|d| d.rule.as_str()));
+        let _ = writeln!(out, "necro: {n}, not failing ({by})");
+    }
+    if !report.baselined.is_empty() {
+        let total: usize = report.baselined.values().sum();
+        let by = report
+            .baselined
+            .iter()
+            .map(|(r, n)| format!("{r} ×{n}"))
+            .collect::<Vec<_>>()
+            .join(", ");
+        let _ = writeln!(out, "necro: {total} baselined ({by})");
+    }
+    for o in &report.over {
+        let label = if o.label.is_empty() {
+            String::new()
+        } else {
+            format!(" ({})", o.label)
+        };
         let _ = writeln!(
             out,
-            "necro: {} error{s} ({})",
-            errors.len(),
-            counts(&errors)
+            "necro: over the baseline: {} in {}{label}: {}, baseline {}",
+            o.rule, o.file, o.count, o.baseline
         );
     }
-    if !experimental.is_empty() {
+    if report.fell > 0 {
+        let n = plural(report.fell, "count fell", "counts fell");
         let _ = writeln!(
             out,
-            "necro: {} experimental, not failing ({})",
-            experimental.len(),
-            counts(&experimental)
+            "necro: {n} below the baseline; run necro baseline to keep the ratchet tight"
         );
     }
     for a in &report.allowed {
@@ -214,12 +238,9 @@ pub fn summary(report: &Report) -> String {
         let at = if a.line == 0 {
             a.file.clone()
         } else {
-            format!("{}:{}", a.file, a.line)
+            format!("{}:{}:{}", a.file, a.line, a.col)
         };
-        let _ = writeln!(out, "necro: allowed {} at {at}: {reason}", a.code);
-    }
-    for w in &report.warnings {
-        let _ = writeln!(out, "necro: warning: {w}");
+        let _ = writeln!(out, "necro: allowed {} at {at}: {reason}", a.rule);
     }
     out
 }
