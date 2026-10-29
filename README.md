@@ -1,7 +1,20 @@
 # necronomicon
 
-House rules for a repo, enforced by lint messages that teach the rule and the fix to whoever trips them, often an agent. Rules live in the repo as YAML: what's wrong, why, a valid change and a longer explanation. Checks are regexes, built-in checks, or scripts in the repo's own language. The `necro` binary runs them from pre-commit.
+House rules for a repo, enforced by lint messages that teach the rule and the fix to whoever trips them, often an agent. Each rule is a command that finds violations plus the words to show: what's wrong, why, and what to do instead. The `necro` binary runs them from pre-commit, keeps allows and a baseline, and prints the words.
 
-Pre-release: nothing works yet beyond `necro --version`. The spec is [spec/v0.md](spec/v0.md).
+```yaml
+# necro.yaml
+version: 0
+rules:
+  no-print:
+    command: necro grep --skip-comments '#' '\bprint\(' -- 'src/*.py'
+    message: print call in library code
+    why: Library code reports through logging, so the caller decides where output goes.
+    fix: Log with logging.getLogger(__name__) at the right level.
+```
 
-Licensed under [Apache-2.0](LICENSE).
+- [docs/writing-rules.md](docs/writing-rules.md): writing rules, allows, the baseline.
+- [examples/](examples/): small repos, each checked by CI.
+- [spec/v0.md](spec/v0.md): the contract; [tests/conformance/](tests/conformance/) makes it executable.
+
+Pre-release (version 0): any 0.x may break the format, so pin the hook's `rev`. Licensed under [Apache-2.0](LICENSE).
