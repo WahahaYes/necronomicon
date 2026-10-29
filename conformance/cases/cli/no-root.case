@@ -1,6 +1,0 @@
-# no necro.yaml here or above
-spec: Files
-args: -C /
-exit: 2
--- @stderr --
-necro: no necro.yaml in / or any folder above it

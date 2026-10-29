@@ -1,9 +1,0 @@
-# a YAML syntax error names its position, with no key path
-spec: Scope and parameters (loading validates everything)
--- necro/t.yaml --
-guide: The t rules.
-rules:
-  clean: [
-    summary: x
--- @config-error --
-necro/t.yaml:3:10

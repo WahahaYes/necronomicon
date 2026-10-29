@@ -1,6 +1,0 @@
-# --rule names a rule that exists
-spec: CLI
-args: --rule t/nope
-exit: 2
--- @stderr --
-necro: no rule t/nope

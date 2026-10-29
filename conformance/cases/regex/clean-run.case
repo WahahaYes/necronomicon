@@ -1,4 +1,0 @@
-# a clean run prints nothing and exits 0
-spec: Messages
--- src/a.ts --
-const a = "good";

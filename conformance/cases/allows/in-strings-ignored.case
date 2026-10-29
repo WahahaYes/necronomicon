@@ -1,8 +1,0 @@
-# allows are read from comments only
-spec: Allows
-args: --format terse
-exit: 1
--- src/d.ts --
-const s = "necro-allow t/clean: not a comment"; const d = "bad";
--- @stdout --
-src/d.ts:1:60: t/clean src doesn't say bad

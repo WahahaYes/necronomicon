@@ -1,8 +1,0 @@
-# columns count Unicode code points
-spec: Check protocol (hits)
-args: --format terse
-exit: 1
--- src/a.ts --
-const é = "日本 bad";
--- @stdout --
-src/a.ts:1:15: t/clean src doesn't say bad

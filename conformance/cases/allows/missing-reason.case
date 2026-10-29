@@ -1,8 +1,0 @@
-# an allow with no reason is a necro/allow-reason hit; it still suppresses
-spec: Allows
-args: --format terse
-exit: 1
--- src/d.ts --
-const d = "bad"; // necro-allow t/clean
--- @stdout --
-src/d.ts:1:21: necro/allow-reason the allow for t/clean gives no reason

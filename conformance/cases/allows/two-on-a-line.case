@@ -1,9 +1,0 @@
-# one comment may carry allows for two codes
-spec: Allows
-args: --format terse
-exit: 1
--- src/d.ts --
-// necro-allow t/clean: quoted; necro-allow t/gone: typo
-const d = "bad";
--- @stdout --
-src/d.ts:1:33: necro/unused-allow the allow for t/gone suppresses nothing

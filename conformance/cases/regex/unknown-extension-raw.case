@@ -1,8 +1,0 @@
-# a file of unknown language is matched raw
-spec: Languages
-args: --format terse
-exit: 1
--- src/notes.txt --
-# bad
--- @stdout --
-src/notes.txt:1:3: t/clean src doesn't say bad

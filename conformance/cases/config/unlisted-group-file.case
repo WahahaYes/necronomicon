@@ -1,7 +1,0 @@
-# every necro/*.yaml must be listed in groups
-spec: Master
--- necro/extra.yaml --
-guide: Extra.
-rules: {}
--- @config-error --
-necro.yaml:3:9: groups

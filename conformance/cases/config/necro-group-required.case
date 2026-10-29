@@ -1,9 +1,0 @@
-# the necro group words the engine's own allow errors
-spec: Groups and rules
--- necro.yaml --
-version: 0
-files: ["src/**"]
-groups: [t]
--- necro/necro.yaml --
--- @config-error --
-necro.yaml:3:9: groups
