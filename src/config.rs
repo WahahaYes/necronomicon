@@ -346,7 +346,7 @@ fn load_rule(e: &mut Errors, root: &Path, file: &str, key: &Key, node: &Node) ->
     let at = |k: &str| format!("{path}.{k}");
     let command = m.get("command").and_then(|(_, n)| {
         let s = string(e, file, n, &at("command"))?;
-        match command::split(&s, |_| Some(String::new())) {
+        match command::split(&s) {
             Some(words) if !words.is_empty() => Some(s),
             Some(_) => {
                 e.at(file, n.pos, &at("command"), "the command is empty");

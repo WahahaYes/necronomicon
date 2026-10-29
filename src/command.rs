@@ -9,36 +9,13 @@ use std::time::{Duration, Instant};
 const TIMEOUT: Duration = Duration::from_secs(120);
 const STDERR_TAIL: usize = 20;
 
-/// Split `s` into words as a POSIX shell would (quotes, backslashes), with
-/// `$NAME` and `${NAME}` replaced through `var` outside single quotes. `None`
-/// on an unclosed quote. An unquoted expansion to nothing makes no word.
-pub fn split(s: &str, var: impl Fn(&str) -> Option<String>) -> Option<Vec<String>> {
+/// Split `s` into words as a POSIX shell would (quotes, backslashes), with no
+/// expansion. `None` on an unclosed quote.
+pub fn split(s: &str) -> Option<Vec<String>> {
     let mut out = Vec::new();
     let mut cur = String::new();
     let mut in_word = false;
     let mut chars = s.chars().peekable();
-    let expand = |chars: &mut std::iter::Peekable<std::str::Chars>, cur: &mut String| {
-        let name: String = if chars.peek() == Some(&'{') {
-            chars.next();
-            let name: String = chars.by_ref().take_while(|&c| c != '}').collect();
-            name
-        } else {
-            let mut name = String::new();
-            while let Some(&c) = chars.peek() {
-                if !(c.is_ascii_alphanumeric() || c == '_') {
-                    break;
-                }
-                name.push(c);
-                chars.next();
-            }
-            name
-        };
-        if name.is_empty() {
-            cur.push('$');
-        } else {
-            cur.push_str(&var(&name).unwrap_or_default());
-        }
-    };
     while let Some(c) = chars.next() {
         match c {
             '\'' => {
@@ -58,7 +35,6 @@ pub fn split(s: &str, var: impl Fn(&str) -> Option<String>) -> Option<Vec<String
                         '\\' if matches!(chars.peek(), Some('"' | '\\' | '$')) => {
                             cur.push(chars.next()?)
                         }
-                        '$' => expand(&mut chars, &mut cur),
                         c => cur.push(c),
                     }
                 }
@@ -66,11 +42,6 @@ pub fn split(s: &str, var: impl Fn(&str) -> Option<String>) -> Option<Vec<String
             '\\' => {
                 in_word = true;
                 cur.push(chars.next()?);
-            }
-            '$' => {
-                let before = cur.len();
-                expand(&mut chars, &mut cur);
-                in_word |= cur.len() > before;
             }
             c if c.is_whitespace() => {
                 if in_word {
@@ -99,15 +70,7 @@ pub enum Failure {
 
 /// Run `command` in `root` and return its stdout lines.
 pub fn run(command: &str, root: &Path) -> Result<Vec<String>, Failure> {
-    let root_str = root.to_string_lossy().into_owned();
-    let words = split(command, |name| {
-        if name == "NECRO_ROOT_DIR" {
-            Some(root_str.clone())
-        } else {
-            std::env::var(name).ok()
-        }
-    })
-    .unwrap_or_default();
+    let words = split(command).unwrap_or_default();
     let Some((program, args)) = words.split_first() else {
         return Err(Failure::Check("the command is empty".into(), vec![]));
     };
@@ -118,7 +81,6 @@ pub fn run(command: &str, root: &Path) -> Result<Vec<String>, Failure> {
     }
     cmd.args(args)
         .current_dir(root)
-        .env("NECRO_ROOT_DIR", root)
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());

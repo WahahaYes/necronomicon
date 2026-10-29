@@ -6,7 +6,7 @@ exit: 2
 version: 0
 rules:
   canned:
-    command: uv run --script "$NECRO_ROOT_DIR/necro/t.py"
+    command: uv run --script necro/t.py
     message: Canned
     why: Because.
     fix: Fix it.

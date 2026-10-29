@@ -31,4 +31,4 @@ Comparison drops `\r`, trailing whitespace and trailing blank lines, and writes 
 
 ## Base
 
-`necro.yaml` has one rule, `banned-word`: `necro grep` for the word `donkey` under `src/`. `necro/t.py` is a canned command for parsing cases: run as `uv run --script "$NECRO_ROOT_DIR/necro/t.py"`, it prints `canned.txt` and `canned-stderr.txt` from its working folder and exits with `T_EXIT`.
+`necro.yaml` has one rule, `banned-word`: `necro grep` for the word `donkey` under `src/`. `necro/t.py` is a canned command for parsing cases: run as `uv run --script necro/t.py`, it prints `canned.txt` and `canned-stderr.txt` from its working folder and exits with `T_EXIT`.

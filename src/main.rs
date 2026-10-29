@@ -86,22 +86,10 @@ fn main_with(args: Args) -> Result<u8, String> {
         Some(d) => files::absolute(&cwd, d),
         None => cwd.clone(),
     };
-    let root = match std::env::var_os("NECRO_ROOT_DIR").filter(|v| !v.is_empty()) {
-        Some(dir) => {
-            let dir = files::absolute(&cwd, &PathBuf::from(dir));
-            if !dir.join("necro.yaml").is_file() {
-                return Err(format!(
-                    "no necro.yaml in NECRO_ROOT_DIR ({})",
-                    dir.display()
-                ));
-            }
-            dir
-        }
-        None => files::find_root(&start).ok_or(format!(
-            "no necro.yaml in {} or any folder above it",
-            start.display()
-        ))?,
-    };
+    let root = files::find_root(&start).ok_or(format!(
+        "no necro.yaml in {} or any folder above it",
+        start.display()
+    ))?;
     if !files::in_git(&root) {
         render::setup_error(&format!("{} isn't inside a git work tree", root.display()));
         return Ok(2);

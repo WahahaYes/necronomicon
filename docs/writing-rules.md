@@ -4,7 +4,7 @@ A rule is a command that prints where the violations are, plus the words necro s
 
 ## The command
 
-necro runs it from the repo root, splits it into words like a shell (quotes, `$NAME`) but runs no shell, and reads one hit per output line: `path[:line[:col[-endcol]]][:label]`. Exit 0 or 1 is normal. It may use git and the repo's own toolchain, nothing else.
+necro runs it from the repo root, splits it into words like a shell (quotes) but runs no shell, and reads one hit per output line: `path[:line[:col[-endcol]]][:label]`. Exit 0 or 1 is normal. It may use git and the repo's own toolchain, nothing else.
 
 - **A pattern:** `necro grep [--skip-comments <marker>] '<regex>' -- <pathspecs>`. Rust regex, columns right for every match, the match as the label. Exclusions are pathspecs (`':!src/net/protocol.gd'`).
 - **More than a pattern:** a script in the repo's language that prints the same lines. For Python, `uv run --script necro/x.py` with the script's needs in a PEP 723 header, so nobody installs anything.
