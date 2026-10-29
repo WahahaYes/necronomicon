@@ -17,10 +17,11 @@ pub struct Allow {
     pub shebang: bool,
 }
 
-/// Every allow in the tracked files under `root`.
-pub fn find(root: &Path) -> Result<Vec<Allow>, String> {
+/// Every allow in the tracked files under `root` that match `pathspecs` (all when empty).
+pub fn find(root: &Path, pathspecs: &[String]) -> Result<Vec<Allow>, String> {
     let out = Command::new("git")
-        .args(["grep", "-l", "-z", "-I", "-F", "-e", ALLOW])
+        .args(["grep", "-l", "-z", "-I", "-F", "-e", ALLOW, "--"])
+        .args(pathspecs)
         .current_dir(root)
         .output()
         .map_err(|e| format!("can't run git grep: {e}"))?;

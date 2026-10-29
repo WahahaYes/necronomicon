@@ -40,6 +40,8 @@ pub struct Rule {
 pub struct Config {
     /// The repo's rules, sorted by name.
     pub rules: Vec<Rule>,
+    /// Pathspecs where necro looks for allows; empty for every tracked file.
+    pub allows_in: Vec<String>,
 }
 
 impl Config {
@@ -161,7 +163,7 @@ pub fn valid_name(name: &str) -> bool {
     })
 }
 
-const TOP_KEYS: &[&str] = &["version", "include", "rules"];
+const TOP_KEYS: &[&str] = &["version", "include", "allows-in", "rules"];
 const INCLUDE_KEYS: &[&str] = &["rules"];
 const RULE_KEYS: &[&str] = &[
     "command", "message", "why", "fix", "details", "trial", "examples",
@@ -226,6 +228,26 @@ pub fn load(root: &Path, files: &[String]) -> Result<Config, Vec<ConfigError>> {
             ),
         },
     }
+
+    let allows_in = match m.get("allows-in") {
+        None => vec![],
+        Some((_, n)) => match &n.value {
+            Value::Seq(items) => items
+                .iter()
+                .enumerate()
+                .filter_map(|(i, item)| string(&mut e, top_file, item, &format!("allows-in[{i}]")))
+                .collect(),
+            _ => {
+                e.at(
+                    top_file,
+                    n.pos,
+                    "allows-in",
+                    format!("expected a list of pathspecs, got {}", n.kind()),
+                );
+                vec![]
+            }
+        },
+    };
 
     let mut sources: Vec<(String, Node)> = Vec::new();
     if let Some((_, inc)) = m.get("include") {
@@ -294,7 +316,7 @@ pub fn load(root: &Path, files: &[String]) -> Result<Config, Vec<ConfigError>> {
         return Err(list);
     }
     rules.sort_by(|a, b| a.name.cmp(&b.name));
-    Ok(Config { rules })
+    Ok(Config { rules, allows_in })
 }
 
 /// The files the include globs match, sorted, without necro.yaml itself.
