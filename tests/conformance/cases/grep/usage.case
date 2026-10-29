@@ -1,0 +1,6 @@
+# a finder needs its arguments
+spec: Finders
+args: grep
+exit: 2
+-- @stderr --
+necro: grep: give a regex: necro grep [--skip-comments <marker>]… <regex> [-- <pathspec>…]

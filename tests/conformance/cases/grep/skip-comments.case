@@ -1,0 +1,10 @@
+# --skip-comments ignores a line from the marker on, unless the marker is inside a string
+spec: Finders
+args: grep --skip-comments '#' --skip-comments // donkey -- 'src/*'
+-- src/a.gd --
+var a = "# donkey"  # donkey
+# donkey
+var b = donkey  // donkey
+-- @stdout --
+src/a.gd:1:12-17: donkey
+src/a.gd:3:9-14: donkey

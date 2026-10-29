@@ -1,0 +1,6 @@
+# a regex that doesn't parse is a usage error
+spec: Finders
+args: grep '('
+exit: 2
+-- @stderr --
+necro: grep: `(` isn't a valid regex (unclosed group)

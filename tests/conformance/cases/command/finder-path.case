@@ -1,0 +1,9 @@
+# necro puts its own folder on a command's PATH, so a rule can call necro grep when necro isn't installed
+spec: Commands (runtime)
+args: --format terse
+env: PATH=/usr/bin:/bin
+exit: 1
+-- src/a.ts --
+donkey
+-- @stdout --
+src/a.ts:1:1: banned-word Banned word
