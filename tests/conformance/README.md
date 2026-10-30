@@ -3,7 +3,7 @@
 Executable cases for [spec/v0.md](../../spec/v0.md), run against any engine command:
 
 ```
-uv run --script tests/conformance/run.py [-k TEXT] [-v] -- <engine argv>
+uv run --script tests/conformance/run.py [-k TEXT] [-v] [--engine-version V] -- <engine argv>
 ```
 
 `cargo test` runs it against the built `necro`. Each case copies `base/` into a fresh temp dir, lays its own files over it, makes it a git repo with everything added, and runs the engine there with `NO_COLOR=1`, `CI` unset and the engine on `PATH` as `necro`.
@@ -26,7 +26,7 @@ git: false                  # optional: leave it outside git
 -- @config-error --         # instead of the two above: one `file:line:col: key.path` per line
 ```
 
-Comparison drops `\r`, trailing whitespace and trailing blank lines, and writes the temp root as `<root>`; nothing else is normalised. `@config-error` expects exit 2, empty stdout, and stderr lines `necro: config error: <file:line:col: key.path>: <any message>`, in order.
+Comparison drops `\r`, trailing whitespace and trailing blank lines, and writes the temp root as `<root>` and the engine's version (`--engine-version`) as `<version>`; nothing else is normalised. `@config-error` expects exit 2, empty stdout, and stderr lines `necro: config error: <file:line:col: key.path>: <any message>`, in order.
 
 ## Base
 
