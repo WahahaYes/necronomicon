@@ -84,9 +84,6 @@ open_pr() {
     else
         git -C "$ROOT" worktree add --quiet --detach "$WT" origin/main
     fi
-    # The commit hooks build necro (clippy, the self-check); share this
-    # checkout's build cache instead of starting cold.
-    export CARGO_TARGET_DIR="$ROOT/target"
     # This script's own release-meta.py, run against the worktree.
     meta() { RELEASE_ROOT="$WT" python3 "$ROOT/scripts/release-meta.py" "$@"; }
 
