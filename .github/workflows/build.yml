@@ -1,8 +1,8 @@
-# Pre-commit, tests and a Linux wheel. Every job step is one local command
-# (see Makefile): make check, make lint, make test-verbose, make wheel.
-# Runs on pull requests and pushes to main. The release workflow (not yet
-# written) will call this and add the wheel matrix (manylinux, macOS,
-# Windows); it must grant actions: write, which purge_caches asks for.
+# Pre-commit, tests, a Linux wheel and the crate. Every job step is one local
+# command (see Makefile): make check, make lint, make test-verbose, make wheel,
+# make package. Runs on pull requests and pushes to main. release.yml calls
+# this before its wheel matrix; it grants actions: write, which purge_caches
+# asks for.
 name: build
 
 on:
@@ -55,6 +55,9 @@ jobs:
       - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
       - name: Rust toolchain (rustfmt, from rust-toolchain.toml)
         run: rustup toolchain install
+      # A version written into the source or docs goes stale at the next bump.
+      - name: No hardcoded versions
+        run: uv run --no-project scripts/release-meta.py stale
       - name: Pre-commit environments cache
         id: pc-cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -115,7 +118,7 @@ jobs:
       - run: make test-verbose
 
   # Proves the wheel builds and installs a working `necro`, the way pre-commit
-  # will get it.
+  # will get it, and that the crate builds from what crates.io would get.
   wheel:
     needs: [changes, precommit]
     if: needs.changes.outputs.rust == 'true'
@@ -137,6 +140,7 @@ jobs:
           "$RUNNER_TEMP/venv/bin/necro" --version
       - name: The installed necro on each example
         run: for d in examples/*/; do "$RUNNER_TEMP/venv/bin/necro" -C "$d" || exit 1; done
+      - run: make package
 
   # The only required check; a skipped job counts as a pass.
   ci:

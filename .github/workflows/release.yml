@@ -1,0 +1,203 @@
+# Publish a release when a vX.Y.Z tag is pushed. scripts/release.sh pushes it
+# on the merge commit of the release PR (only repository admins may create v*
+# tags). Checks that the tag is on main and that Cargo.toml, Cargo.lock and
+# CHANGELOG are at X.Y.Z, runs build.yml, builds the wheels and sdist, then
+# publishes to PyPI and crates.io (trusted publishing: the pypi and crates-io
+# environments, no tokens) and makes the GitHub release with the CHANGELOG
+# section as its notes. Every publish step skips what is already up, so a
+# failed run can be rerun from the Actions tab.
+name: release
+run-name: release ${{ github.ref_name }}
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref_name }}
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+      - name: Tag, main, manifests and CHANGELOG
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VER="${GITHUB_REF_NAME#v}"
+          case "$VER" in (*[!0-9.]*|""|.*|*.|*..*) echo "::error::bad version tag $GITHUB_REF_NAME"; exit 1;; esac
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "::error::$GITHUB_REF_NAME ($GITHUB_SHA) is not on main"
+            exit 1
+          fi
+          uv run --no-project scripts/release-meta.py check "$VER"
+          uv run --no-project scripts/release-meta.py notes "$VER" >/dev/null
+          if gh release view "$GITHUB_REF_NAME" --json isDraft --jq .isDraft 2>/dev/null | grep -qx false; then
+            echo "::error::release $GITHUB_REF_NAME is already published"
+            exit 1
+          fi
+
+  build:
+    needs: check
+    uses: ./.github/workflows/build.yml
+    # A called workflow gets no more than this. build.yml's purge_caches asks
+    # for actions: write, and GitHub rejects the whole run if it is not
+    # granted here, even though that job only runs on pushes to main.
+    permissions:
+      actions: write
+      contents: read
+
+  # One wheel per platform: the `necro` binary, no Python code, so any
+  # Python 3 takes it. aarch64 Linux builds on an arm runner; Intel macOS
+  # cross-compiles and so is not smoke-tested.
+  wheels:
+    needs: check
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: linux-x86_64, os: ubuntu-24.04, target: x86_64, manylinux: '2_17', smoke: true }
+          - { name: linux-aarch64, os: ubuntu-24.04-arm, target: aarch64, manylinux: '2_17', smoke: true }
+          - { name: macos-arm64, os: macos-15, target: aarch64-apple-darwin, smoke: true }
+          - { name: macos-x86_64, os: macos-15, target: x86_64-apple-darwin, smoke: false }
+          - { name: windows-x64, os: windows-2025, target: x64, smoke: true }
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # Reads the toolchain from rust-toolchain.toml.
+      - uses: PyO3/maturin-action@e83996d129638aa358a18fbd1dfb82f0b0fb5d3b # v1.51.0
+        with:
+          command: build
+          args: --release --out dist
+          target: ${{ matrix.target }}
+          manylinux: ${{ matrix.manylinux || 'off' }}
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        if: matrix.smoke
+      - name: Install and run
+        if: matrix.smoke
+        shell: bash
+        run: uvx --from "$(ls dist/*.whl)" necro --version
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: dist-${{ matrix.name }}
+          path: dist/*.whl
+          if-no-files-found: error
+
+  sdist:
+    needs: check
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: PyO3/maturin-action@e83996d129638aa358a18fbd1dfb82f0b0fb5d3b # v1.51.0
+        with:
+          command: sdist
+          args: --out dist
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: dist-sdist
+          path: dist/*.tar.gz
+          if-no-files-found: error
+
+  pypi:
+    needs: [build, wheels, sdist]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    environment:
+      name: pypi
+      url: https://pypi.org/project/necronomicon/
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          path: dist
+          pattern: dist-*
+          merge-multiple: true
+      - name: Every file is this version
+        run: |
+          VER="${GITHUB_REF_NAME#v}"
+          ls -l dist
+          for f in dist/*; do
+            case "${f##*/}" in
+              (necronomicon-"$VER"-*.whl|necronomicon-"$VER".tar.gz) ;;
+              (*) echo "::error::$f is not a $VER artifact"; exit 1 ;;
+            esac
+          done
+      - uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2
+        with:
+          skip-existing: true
+
+  # Trusted publishing attaches only to a crate that exists, so the first
+  # version is published by hand (the necronomicon-dev registry notes); until
+  # then this job says so and skips. A version already up is skipped too.
+  crates:
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    environment:
+      name: crates-io
+      url: https://crates.io/crates/necronomicon
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Already published?
+        id: up
+        run: |
+          VER="${GITHUB_REF_NAME#v}"
+          api=https://crates.io/api/v1/crates/necronomicon
+          ua="necronomicon-release (github.com/$GITHUB_REPOSITORY)"
+          if ! curl -fsS -A "$ua" -o /dev/null "$api"; then
+            echo "::warning::necronomicon is not on crates.io yet; publish the first version by hand, then rerun this job"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          elif curl -fsS -A "$ua" -o /dev/null "$api/$VER"; then
+            echo "necronomicon $VER is already on crates.io"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Rust toolchain (from rust-toolchain.toml)
+        if: steps.up.outputs.skip != 'true'
+        run: rustup toolchain install
+      - uses: rust-lang/crates-io-auth-action@c6f97d42243bad5fab37ca0427f495c86d5b1a18 # v1.0.5
+        if: steps.up.outputs.skip != 'true'
+        id: auth
+      - name: Publish
+        if: steps.up.outputs.skip != 'true'
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
+        run: cargo publish --locked
+
+  github:
+    needs: pypi
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          path: dist
+          pattern: dist-*
+          merge-multiple: true
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          uv run --no-project scripts/release-meta.py notes "${GITHUB_REF_NAME#v}" > notes.md
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" --clobber dist/*
+            gh release edit "$GITHUB_REF_NAME" --draft=false --title "$GITHUB_REF_NAME" --notes-file notes.md
+          else
+            gh release create "$GITHUB_REF_NAME" --verify-tag --title "$GITHUB_REF_NAME" --notes-file notes.md dist/*
+          fi

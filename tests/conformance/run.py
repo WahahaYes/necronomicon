@@ -1,7 +1,7 @@
 # /// script
 # requires-python = ">=3.11"
 # ///
-"""Run the conformance cases against an engine: run.py [-k TEXT] [-v] -- <engine argv>.
+"""Run the conformance cases against an engine: run.py [-k TEXT] [-v] [--engine-version V] -- <engine argv>.
 
 Each case lays its files over base/ in a fresh temp dir and runs the engine
 there. Format and comparison rules: README.md. Stdlib only.
@@ -54,8 +54,10 @@ def parse(path):
     return header, files, expect
 
 
-def normalise(text, root):
+def normalise(text, root, version=None):
     text = text.replace("\r\n", "\n").replace(str(root), "<root>")
+    if version:
+        text = text.replace(version, "<version>")
     lines = [line.rstrip() for line in text.split("\n")]
     while lines and not lines[-1]:
         lines.pop()
@@ -90,7 +92,7 @@ def check_config_errors(expected, stderr):
     return None
 
 
-def run_case(path, engine, bin_dir):
+def run_case(path, engine, bin_dir, version):
     header, files, expect = parse(path)
     with tempfile.TemporaryDirectory(prefix="necro-case-") as tmp:
         root = Path(tmp).resolve() / "repo"
@@ -109,7 +111,7 @@ def run_case(path, engine, bin_dir):
             )
         except subprocess.TimeoutExpired:
             return ["timed out after 20 s"]
-        out, err = normalise(proc.stdout, root), normalise(proc.stderr, root)
+        out, err = normalise(proc.stdout, root, version), normalise(proc.stderr, root, version)
         problems = []
         if "@config-error" in expect:
             want_exit = 2
@@ -143,6 +145,7 @@ def main(argv):
     opts, engine = argv[:split], argv[split + 1 :]
     pattern = opts[opts.index("-k") + 1] if "-k" in opts else ""
     verbose = "-v" in opts
+    version = opts[opts.index("--engine-version") + 1] if "--engine-version" in opts else None
     # The engine is on PATH as `necro`, as an installed hook would be.
     bin_dir = Path(tempfile.mkdtemp(prefix="necro-bin-"))
     exe = Path(shutil.which(engine[0]) or engine[0]).resolve()
@@ -152,7 +155,7 @@ def main(argv):
     failed = 0
     for case in cases:
         name = case.relative_to(HERE / "cases").with_suffix("").as_posix()
-        problems = run_case(case, engine, bin_dir)
+        problems = run_case(case, engine, bin_dir, version)
         if problems:
             failed += 1
             print(f"FAIL {name}")

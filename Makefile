@@ -13,6 +13,10 @@ build: ## Build the release binary (target/release/necro)
 wheel: ## Build the wheel for this platform into target/wheels/
 	$(MATURIN) build --release
 
+.PHONY: package
+package: ## Build and verify the crate as crates.io gets it (target/package/)
+	cargo package --locked
+
 ##@ Testing
 
 .PHONY: test

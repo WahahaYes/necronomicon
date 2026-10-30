@@ -9,6 +9,8 @@ fn conformance() {
             "run",
             "--script",
             "tests/conformance/run.py",
+            "--engine-version",
+            env!("CARGO_PKG_VERSION"),
             "--",
             env!("CARGO_BIN_EXE_necro"),
         ])
