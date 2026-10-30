@@ -1,5 +1,5 @@
-# For pre-commit's remote-repo form, kept for the PyPI release; v0 runs as a
-# local hook built from a clone (docs/writing-rules.md).
+# pre-commit's remote-repo form. It builds necro from source, so it needs
+# Rust; the README's hook installs the PyPI wheel instead.
 - id: necro
   name: necro
   description: House rules, enforced by messages that teach the rule and the fix.

@@ -78,6 +78,26 @@ Command: necro grep '^\s*(from|import)\s+app\b' -- 'src/core/*.py'
 - **A replacement for the lint script you'd write anyway.** Repos that work with agents tend to grow a `lint_style.py` that greps for house rules and prints one-line errors. necro keeps those rules as config and adds the why, the fix and `--explain`.
 - **Exceptions with reasons.** `necro-allow <rule>: <reason>` in a comment on the line or the one above. An allow without a reason, or one that suppresses nothing, fails the run.
 
+## Install
+
+From PyPI, a wheel around the `necro` binary (no Rust needed): `uv tool install necronomicon` or `pipx install necronomicon`. From crates.io: `cargo install necronomicon`.
+
+As a pre-commit hook, which installs the wheel into pre-commit's own environment:
+
+```yaml
+- repo: local
+  hooks:
+    - id: necro
+      name: necro
+      entry: necro
+      language: python
+      additional_dependencies: ['necronomicon>=0.1,<0.2']
+      pass_filenames: false
+      always_run: true
+```
+
+Pin below the next 0.x: any 0.x may break the format.
+
 ## More
 
 - [docs/writing-rules.md](https://github.com/WahahaYes/necronomicon/blob/main/docs/writing-rules.md): writing rules and allows, and the pre-commit hook.
