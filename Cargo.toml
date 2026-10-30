@@ -1,6 +1,6 @@
 [package]
 name = "necronomicon"
-version = "0.0.0"
+version = "0.1.0"
 edition = "2024"
 description = "Agent mind control for your codebase: house rules that teach. Pre-commit checks tell coding agents what's wrong, why, and what to do instead."
 license = "Apache-2.0"
