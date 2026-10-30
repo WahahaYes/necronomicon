@@ -18,3 +18,13 @@ rules:
     examples:
       bad: 'eprintln!("necro: check error: {rule}");'
       good: 'report.problems.push(Problem::Check { rule, message, stderr });'
+  readme-absolute-links:
+    # The README sits outside this root; the pathspec reaches it.
+    command: >-
+      necro grep '\]\((\./|\.\./)?[A-Za-z0-9_.-]+[/)#]|src="[^h"][^"]*"' -- ../README.md
+    message: a relative link in the README
+    why: PyPI shows the README without the repo around it, so relative links and images break on the package page, and a published version's README can't be changed.
+    fix: link to https://github.com/WahahaYes/necronomicon/blob/main/<path> (tree/ for a folder), and load images from https://raw.githubusercontent.com/WahahaYes/necronomicon/main/<path>.
+    examples:
+      bad: '[spec/v0.md](spec/v0.md)'
+      good: '[spec/v0.md](https://github.com/WahahaYes/necronomicon/blob/main/spec/v0.md)'
