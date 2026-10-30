@@ -1,12 +1,16 @@
 # necronomicon
 
-House rules for a repo, enforced by lint messages that teach the rule and the fix to whoever trips them, often an agent. Each rule is a command that finds violations plus the words to show: what's wrong, why, and what to do instead. The `necro` binary runs them from pre-commit, applies allows, and prints the words.
+A simple way to organize a repo's pre-commit hooks for progressive disclosure, steering coding agents toward the repo's conventions and intended architecture. Each rule pairs a command that finds violations with what to say about them: what's wrong, why the rule exists, and what to do instead. An agent sees a rule only when its commit breaks it, at the line it broke, with the long form one `necro --explain` away.
 
 ![You write a rule; an agent's commit breaks it; pre-commit blocks it and pushes the why; the agent pulls the rest and commits the fix](docs/mind-control.svg)
 
+## Why not AGENTS.md
+
+An instruction file is read every session, whether or not today's work touches it, and followed when the agent remembers to. A rule costs nothing until it's broken, and then it blocks the commit. Keep AGENTS.md for orientation and move its "never do X" lines into rules.
+
 ## Agent mind control
 
-A rule costs an agent nothing until it breaks one. Then necro tells it just enough, at the line it broke, and the rest is one command away. From [examples/layers](examples/layers):
+When an agent trips a rule, necro tells it just enough, and the rest is one command away. From [examples/layers](examples/layers):
 
 ```yaml
 core-isolated:
@@ -68,7 +72,15 @@ Command: necro grep '^\s*(from|import)\s+app\b' -- 'src/core/*.py'
 
 **Re-steered,** it takes `rates: Rates` as an argument, and the commit passes.
 
-- [docs/writing-rules.md](docs/writing-rules.md): writing rules and allows.
+## What necro is, and isn't
+
+- **An organizer, not a parser.** A rule's `command` is anything that prints one `path[:line[:col]]` per violation: `necro grep` for a pattern, a short script for more, or a tool you already run. necro owns the wording, allows and output, so rules work in any language.
+- **A replacement for the lint script you'd write anyway.** Repos that work with agents tend to grow a `lint_style.py` that greps for house rules and prints one-line errors. necro keeps those rules as config and adds the why, the fix and `--explain`.
+- **Exceptions with reasons.** `necro-allow <rule>: <reason>` in a comment on the line or the one above. An allow without a reason, or one that suppresses nothing, fails the run.
+
+## More
+
+- [docs/writing-rules.md](docs/writing-rules.md): writing rules and allows, and the pre-commit hook.
 - [examples/](examples/): small repos, each checked by CI.
 - [spec/v0.md](spec/v0.md): the contract; [tests/conformance/](tests/conformance/) makes it executable.
 
