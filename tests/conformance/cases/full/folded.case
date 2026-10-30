@@ -1,0 +1,38 @@
+# past 4 repeats per rule, the rest are counted per file
+spec: Messages
+exit: 1
+-- src/a.ts --
+donkey
+donkey
+donkey
+-- src/b.ts --
+donkey
+donkey
+donkey
+donkey
+-- @stdout --
+error[banned-word]: Banned word
+ --> src/a.ts:1:1
+  |
+1 | donkey
+  | ^^^^^^
+  |
+  = why: Because.
+  = fix: Say good.
+  = more: necro --explain banned-word
+
+error[banned-word]: also at src/a.ts:2:1 (donkey)
+   = fix: Say good.
+
+error[banned-word]: also at src/a.ts:3:1 (donkey)
+   = fix: Say good.
+
+error[banned-word]: also at src/b.ts:1:1 (donkey)
+   = fix: Say good.
+
+error[banned-word]: also at src/b.ts:2:1 (donkey)
+   = fix: Say good.
+
+error[banned-word]: 2 more in src/b.ts
+
+necro: 7 errors (banned-word ×7)

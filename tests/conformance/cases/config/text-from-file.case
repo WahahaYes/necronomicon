@@ -1,0 +1,29 @@
+# a text field may point at a file, printed as is
+spec: A rule
+exit: 1
+-- docs/why.txt --
+Bad words spread:
+people copy what they read.
+-- necro.yaml --
+version: 0
+rules:
+  banned-word:
+    command: git grep -n --column -o -E '\bdonkey\b' -- 'src/*'
+    message: Banned word
+    why: { file: docs/why.txt }
+    fix: Say good.
+-- src/a.ts --
+donkey
+-- @stdout --
+error[banned-word]: Banned word
+ --> src/a.ts:1:1
+  |
+1 | donkey
+  | ^ donkey
+  |
+  = why: Bad words spread:
+         people copy what they read.
+  = fix: Say good.
+  = more: necro --explain banned-word
+
+necro: 1 error (banned-word ×1)

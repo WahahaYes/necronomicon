@@ -1,0 +1,7 @@
+# another spec version names both versions
+spec: Versioning
+-- necro.yaml --
+version: 1
+rules: {}
+-- @config-error --
+necro.yaml:1:10: version

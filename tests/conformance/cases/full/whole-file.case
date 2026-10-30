@@ -1,0 +1,23 @@
+# a whole-file hit names the file and shows no source
+spec: Messages
+exit: 1
+-- necro.yaml --
+version: 0
+rules:
+  canned:
+    command: uv run --script necro/t.py
+    message: Canned
+    why: Because.
+    fix: Fix it.
+-- canned.txt --
+src/a.gd: missing steal_roll
+-- src/a.gd --
+var x: int = 1
+-- @stdout --
+error[canned]: Canned
+ --> src/a.gd (missing steal_roll)
+  = why: Because.
+  = fix: Fix it.
+  = more: necro --explain canned
+
+necro: 1 error (canned ×1)

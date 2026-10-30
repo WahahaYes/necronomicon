@@ -1,0 +1,17 @@
+# an exit code other than 0 or 1 is a check error, with the end of stderr
+spec: Commands (exit codes)
+env: T_EXIT=3
+exit: 2
+-- necro.yaml --
+version: 0
+rules:
+  canned:
+    command: uv run --script necro/t.py
+    message: Canned
+    why: Because.
+    fix: Fix it.
+-- canned-stderr.txt --
+t.py: something broke
+-- @stderr --
+necro: check error: canned: exited with status 3
+  | t.py: something broke

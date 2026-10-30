@@ -1,0 +1,12 @@
+# a text file that doesn't exist is a config error
+spec: A rule
+-- necro.yaml --
+version: 0
+rules:
+  banned-word:
+    command: git grep -n -e donkey -- 'src/*'
+    message: Banned word
+    why: { file: docs/gone.md }
+    fix: Say good.
+-- @config-error --
+necro.yaml:6:18: rules.banned-word.why.file

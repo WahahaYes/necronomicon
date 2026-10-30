@@ -1,0 +1,40 @@
+# --explain: message, why, fix, details, examples, command
+spec: CLI
+args: --explain banned-word
+-- docs/banned-word.md --
+Words carry tone into reviews and logs.
+-- necro.yaml --
+version: 0
+rules:
+  banned-word:
+    command: git grep -n --column -o -E '\bdonkey\b' -- 'src/*'
+    message: Banned word
+    why: Because.
+    fix: Say good.
+    details: { file: docs/banned-word.md }
+    examples:
+      bad: const a = "donkey";
+      good:
+        - const a = "good";
+        - |
+          // a comment that says donkey is still a hit; allow it
+          const b = "fine";
+-- @stdout --
+banned-word: Banned word
+
+Why: Because.
+
+Fix: Say good.
+
+Words carry tone into reviews and logs.
+
+Bad:
+    const a = "donkey";
+
+Good:
+    const a = "good";
+
+    // a comment that says donkey is still a hit; allow it
+    const b = "fine";
+
+Command: git grep -n --column -o -E '\bdonkey\b' -- 'src/*'

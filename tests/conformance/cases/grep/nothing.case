@@ -1,0 +1,5 @@
+# finding nothing is exit 0 with no output
+spec: Finders
+args: grep zebra -- 'src/*'
+-- src/a.ts --
+donkey

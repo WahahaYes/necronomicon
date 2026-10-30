@@ -1,0 +1,24 @@
+[package]
+name = "necronomicon"
+version = "0.0.0"
+edition = "2024"
+description = "House rules for a repo, enforced by lint messages that teach the rule and the fix"
+license = "Apache-2.0"
+repository = "https://github.com/WahahaYes/necronomicon"
+readme = "README.md"
+
+[[bin]]
+name = "necro"
+path = "src/main.rs"
+
+[dependencies]
+# serde-saphyr's own parser: YAML events with positions for config errors.
+granit-parser = { version = "=2.0.0", default-features = false, features = ["std", "error_messages"] }
+globset = "0.4.16"
+regex = "1.12"
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2.174"
+
+[profile.release]
+strip = true

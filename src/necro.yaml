@@ -1,0 +1,20 @@
+# necronomicon's own house rules, run by the current build (the necro hook in
+# .pre-commit-config.yaml). Rooted in src/ so the allows that tests/ and
+# examples/ quote as data stay outside it. Format: spec/v0.md.
+version: 0
+rules:
+  render-only-prints:
+    command: >-
+      necro grep --skip-comments // '\be?print(ln)?!|std::io::std(out|err)\(\)'
+      -- '*.rs' ':!render/*' ':!main.rs'
+    message: printing outside the render module
+    why: wording printed from anywhere drifts from the formats the spec pins and the conformance suite tests.
+    fix: return the message as data and let render/ print it.
+    details: |
+      Only `render/` (and `main`, for exit paths) prints. Everything else
+      returns hits, errors and finder output as values. The spec pins every
+      format and stream (stdout vs stderr); printing from deep in the engine
+      skips both.
+    examples:
+      bad: 'eprintln!("necro: check error: {rule}");'
+      good: 'report.problems.push(Problem::Check { rule, message, stderr });'

@@ -1,0 +1,23 @@
+# any command works, git grep included: every match a hit; terse lists them sorted by rule, path, line, column
+spec: Commands; Messages
+args: --format terse
+exit: 1
+-- necro.yaml --
+version: 0
+rules:
+  banned-word:
+    command: git grep -n --column -o -E '\bdonkey\b' -- 'src/*'
+    message: Banned word
+    why: Because.
+    fix: Say good.
+-- src/b/c.gd --
+var x = donkey
+var y = donkey
+-- src/a.ts --
+const a = "donkey";
+-- other/d.ts --
+donkey
+-- @stdout --
+src/a.ts:1:12: banned-word Banned word
+src/b/c.gd:1:9: banned-word Banned word
+src/b/c.gd:2:9: banned-word Banned word

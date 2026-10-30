@@ -1,0 +1,104 @@
+# Pre-commit, tests and a Linux wheel. The release workflow (not yet written)
+# will call this and add the wheel matrix (manylinux, macOS, Windows).
+name: build
+
+on:
+  push:
+    branches: [main, v0]
+  pull_request:
+  workflow_call:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  # Every hook on all files, as the first and cheapest gate.
+  precommit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      GITLEAKS_VERSION: 8.30.1
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+      - name: Rust toolchain (from rust-toolchain.toml)
+        run: rustup toolchain install
+      - name: Hooks (all files)
+        # gitleaks scans staged changes, which CI has none of; it runs below
+        # over the pushed commits instead.
+        env:
+          SKIP: gitleaks
+        run: uvx pre-commit@4.6.1 run --all-files --show-diff-on-failure
+      - name: Secrets (gitleaks, pushed commits)
+        env:
+          RANGE: ${{ github.event_name == 'pull_request' && format('{0}..{1}', github.event.pull_request.base.sha, github.event.pull_request.head.sha) || format('{0}..{1}', github.event.before, github.sha) }}
+        run: |
+          cd "$RUNNER_TEMP"
+          base="https://github.com/gitleaks/gitleaks/releases/download/v$GITLEAKS_VERSION"
+          curl -fsSLO "$base/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          curl -fsSLO "$base/gitleaks_${GITLEAKS_VERSION}_checksums.txt"
+          grep " gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz\$" "gitleaks_${GITLEAKS_VERSION}_checksums.txt" | sha256sum -c -
+          tar -xzf "gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" gitleaks
+          cd "$GITHUB_WORKSPACE"
+          case "$RANGE" in
+            0000000*|..*) RANGE="HEAD~1..HEAD" ;;
+          esac
+          "$RUNNER_TEMP/gitleaks" git --config .gitleaks.toml --redact -v --log-opts "$RANGE"
+      - name: Commit messages (no ai attribution)
+        if: github.event_name == 'pull_request'
+        run: |
+          for sha in $(git rev-list --no-merges "${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}"); do
+            git log -1 --format=%B "$sha" > "$RUNNER_TEMP/msg"
+            uvx pre-commit@4.6.1 run no-ai-attribution --hook-stage commit-msg --commit-msg-filename "$RUNNER_TEMP/msg" || { echo "bad message in $sha"; exit 1; }
+          done
+
+  test:
+    needs: precommit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # The conformance suite and its scripted rules run with uv run --script.
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+      - name: Rust toolchain (from rust-toolchain.toml)
+        run: rustup toolchain install
+      - run: make test-verbose
+
+  # Proves the wheel builds and installs a working `necro`, the way pre-commit
+  # will get it.
+  wheel:
+    needs: precommit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+      - name: Rust toolchain (from rust-toolchain.toml)
+        run: rustup toolchain install
+      - run: make wheel
+      - name: Install and run
+        run: |
+          uv venv "$RUNNER_TEMP/venv"
+          uv pip install --python "$RUNNER_TEMP/venv" target/wheels/*.whl
+          "$RUNNER_TEMP/venv/bin/necro" --version
+      - name: The installed necro on each example
+        run: for d in examples/*/; do "$RUNNER_TEMP/venv/bin/necro" -C "$d" || exit 1; done
+
+  # The only required check; a skipped job counts as a pass.
+  ci:
+    runs-on: ubuntu-24.04
+    needs: [precommit, test, wheel]
+    if: always()
+    steps:
+      - name: Gate
+        run: |
+          echo "precommit: ${{ needs.precommit.result }} test: ${{ needs.test.result }} wheel: ${{ needs.wheel.result }}"
+          for r in "${{ needs.precommit.result }}" "${{ needs.test.result }}" "${{ needs.wheel.result }}"; do
+            case "$r" in success|skipped) ;; *) exit 1 ;; esac
+          done

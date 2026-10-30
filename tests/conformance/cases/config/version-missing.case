@@ -1,0 +1,6 @@
+# version is required
+spec: Versioning
+-- necro.yaml --
+rules: {}
+-- @config-error --
+necro.yaml:1:1: version

@@ -1,0 +1,30 @@
+# why and fix wrap at 88 columns, continuation aligned under the text
+spec: Messages
+exit: 1
+-- necro.yaml --
+version: 0
+rules:
+  banned-word:
+    command: git grep -n --column -o -E '\bdonkey\b' -- 'src/*'
+    message: Banned word
+    why: "a bad word in source spreads: people copy what they read, agents copy it faster, and soon every file says it"
+    fix: |
+      say good
+      or say what you mean instead, in a word the rest of the codebase already uses for the same idea
+-- src/a.ts --
+donkey
+-- @stdout --
+error[banned-word]: Banned word
+ --> src/a.ts:1:1
+  |
+1 | donkey
+  | ^ donkey
+  |
+  = why: a bad word in source spreads: people copy what they read, agents copy it
+         faster, and soon every file says it
+  = fix: say good
+         or say what you mean instead, in a word the rest of the codebase already uses
+         for the same idea
+  = more: necro --explain banned-word
+
+necro: 1 error (banned-word ×1)

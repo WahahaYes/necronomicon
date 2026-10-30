@@ -1,0 +1,11 @@
+# a missing required key points at its rule
+spec: A rule
+-- necro.yaml --
+version: 0
+rules:
+  banned-word:
+    command: git grep -n -e donkey -- 'src/*'
+    message: Banned word
+    fix: Say good.
+-- @config-error --
+necro.yaml:3:3: rules.banned-word.why

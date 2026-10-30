@@ -1,0 +1,12 @@
+# rule names are lowercase words joined by hyphens
+spec: A rule
+-- necro.yaml --
+version: 0
+rules:
+  No_Bad:
+    command: git grep -n -e donkey -- 'src/*'
+    message: Banned word
+    why: Because.
+    fix: Say good.
+-- @config-error --
+necro.yaml:3:3: rules.No_Bad

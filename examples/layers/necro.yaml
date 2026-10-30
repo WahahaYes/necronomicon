@@ -1,0 +1,22 @@
+# A small Python repo's architecture: core never imports the app layer.
+version: 0
+rules:
+  core-isolated:
+    command: necro grep '^\s*(from|import)\s+app\b' -- 'src/core/*.py'
+    message: core imports the app layer
+    why: Core runs in tests without a database; importing app/ drags one in.
+    fix: Take a port from core/ports.py as an argument; app/ passes the real one in.
+    details: |
+      Core is the inner layer: app/ may import core, never the reverse.
+      Exceptions: none. Shared types move into core.
+    examples:
+      bad: |
+        from app.db import session
+
+        def price(order):
+            return session.rates(order.region) * order.total
+      good: |
+        from core.ports import Rates
+
+        def price(order, rates: Rates):
+            return rates.for_region(order.region) * order.total

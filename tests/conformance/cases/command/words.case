@@ -1,0 +1,19 @@
+# the command is split into shell words; no shell runs, so $NAME stays as written
+spec: Commands (how it's read)
+args: --format terse
+env: T_WORD=donkey
+exit: 1
+-- necro.yaml --
+version: 0
+rules:
+  banned-word:
+    command: git grep -n --column -o -F -e "don"'key' -e $T_WORD -- 'src/*'
+    message: "Banned word"
+    why: Because.
+    fix: Say good.
+-- src/a.ts --
+a donkey; b
+c $T_WORD
+-- @stdout --
+src/a.ts:1:3: banned-word Banned word
+src/a.ts:2:3: banned-word Banned word

@@ -1,0 +1,6 @@
+# full lists every allow with the hit's location and the reason (closers trimmed)
+spec: Allows; Messages
+-- src/d.ts --
+const d = "donkey"; /* necro-allow banned-word: a quoted example */
+-- @stdout --
+necro: allowed banned-word at src/d.ts:1:12: a quoted example

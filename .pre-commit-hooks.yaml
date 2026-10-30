@@ -1,0 +1,11 @@
+# For pre-commit's remote-repo form, kept for the PyPI release; v0 runs as a
+# local hook built from a clone (docs/writing-rules.md).
+- id: necro
+  name: necro
+  description: House rules, enforced by messages that teach the rule and the fix.
+  entry: necro
+  language: python
+  # Each rule's command chooses its own files, so necro takes none.
+  pass_filenames: false
+  require_serial: true
+  minimum_pre_commit_version: "3.0.0"

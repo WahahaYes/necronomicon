@@ -1,0 +1,17 @@
+# a line that doesn't parse is a check error; other rules still report
+spec: Commands (exit codes)
+exit: 2
+-- necro.yaml --
+version: 0
+rules:
+  canned:
+    command: uv run --script necro/t.py
+    message: Canned
+    why: Because.
+    fix: Fix it.
+-- canned.txt --
+src/a.ts:x:y
+-- src/a.ts --
+a
+-- @stderr --
+necro: check error: canned: can't read output line 1: src/a.ts:x:y

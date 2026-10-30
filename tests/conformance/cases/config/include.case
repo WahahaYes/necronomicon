@@ -1,0 +1,25 @@
+# include globs pull in more files holding rules
+spec: A rule
+args: --format terse
+exit: 1
+-- necro/style.yaml --
+rules:
+  no-worse:
+    command: git grep -n --column -o -E '\bworse\b' -- 'src/*'
+    message: Worse word
+    why: Because.
+    fix: Say better.
+-- necro.yaml --
+version: 0
+include: [necro/*.yaml]
+rules:
+  banned-word:
+    command: git grep -n --column -o -E '\bdonkey\b' -- 'src/*'
+    message: Banned word
+    why: Because.
+    fix: Say good.
+-- src/a.ts --
+donkey worse
+-- @stdout --
+src/a.ts:1:1: banned-word Banned word
+src/a.ts:1:8: no-worse Worse word

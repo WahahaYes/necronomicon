@@ -1,0 +1,11 @@
+# an included file holds only rules
+spec: A rule
+-- necro/more.yaml --
+version: 0
+rules: {}
+-- necro.yaml --
+version: 0
+include: [necro/*.yaml]
+rules: {}
+-- @config-error --
+necro/more.yaml:1:1: version

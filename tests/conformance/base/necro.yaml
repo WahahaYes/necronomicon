@@ -1,0 +1,7 @@
+version: 0
+rules:
+  banned-word:
+    command: necro grep '\bdonkey\b' -- 'src/*'
+    message: Banned word
+    why: Because.
+    fix: Say good.

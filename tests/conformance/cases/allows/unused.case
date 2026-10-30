@@ -1,0 +1,11 @@
+# an allow that suppresses nothing, or names no rule, is a necro/unused-allow error, wherever it is
+spec: Allows
+args: --format terse
+exit: 1
+-- src/d.ts --
+const ok = 1; // necro-allow banned-word: nothing here
+-- docs/notes.md --
+<!-- necro-allow no-such-rule: typo -->
+-- @stdout --
+docs/notes.md:1:6: necro/unused-allow the allow for no-such-rule suppresses nothing
+src/d.ts:1:18: necro/unused-allow the allow for banned-word suppresses nothing
