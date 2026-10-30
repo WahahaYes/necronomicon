@@ -1,0 +1,18 @@
+# commands find the repo from the root, not from GIT_DIR and GIT_WORK_TREE, which git sets for hooks in a worktree
+spec: Commands (where it runs)
+args: -C sub --format terse
+exit: 1
+env: GIT_DIR=<root>/.git
+-- necro.yaml --
+-- sub/necro.yaml --
+version: 0
+rules:
+  banned-word:
+    command: necro grep '\bdonkey\b' -- ../README.md
+    message: Banned word
+    why: Because.
+    fix: Say good.
+-- README.md --
+donkey
+-- @stdout --
+../README.md:1:1: banned-word Banned word

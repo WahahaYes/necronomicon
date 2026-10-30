@@ -79,6 +79,10 @@ pub fn run(command: &str, root: &Path) -> Result<Vec<String>, Failure> {
     if let Some(path) = path_with_necro() {
         cmd.env("PATH", path);
     }
+    // git sets these for hooks in a worktree, and git then takes the root as
+    // the repo's top; without them it finds the repo from the root (spec:
+    // Commands).
+    cmd.env_remove("GIT_DIR").env_remove("GIT_WORK_TREE");
     cmd.args(args)
         .current_dir(root)
         .stdin(Stdio::null())
