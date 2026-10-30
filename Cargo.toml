@@ -2,10 +2,13 @@
 name = "necronomicon"
 version = "0.0.0"
 edition = "2024"
-description = "House rules for a repo, enforced by lint messages that teach the rule and the fix"
+description = "Agent mind control for your codebase: house rules that teach. Pre-commit checks tell coding agents what's wrong, why, and what to do instead."
 license = "Apache-2.0"
 repository = "https://github.com/WahahaYes/necronomicon"
 readme = "README.md"
+# The crate (and the sdist maturin builds from it) is what builds `necro`; the
+# conformance suite, examples and docs stay in the repo.
+include = ["/src/**/*.rs", "/Cargo.toml", "/Cargo.lock", "/pyproject.toml", "/README.md", "/LICENSE", "/CHANGELOG.md"]
 
 [[bin]]
 name = "necro"
