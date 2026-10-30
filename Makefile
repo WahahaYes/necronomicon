@@ -23,9 +23,24 @@ test: ## Run the tests; quiet, failures in full
 test-verbose: ## Run the tests with full output (CI)
 	cargo test
 
+##@ Linting
+
 .PHONY: lint
-lint: ## Run every pre-commit hook over all files
-	$(PRE_COMMIT) run --all-files
+lint: ## Run clippy and this repo's house rules (src/necro.yaml, current build)
+	@out=$$(cargo clippy --all-targets --quiet -- -D warnings 2>&1) || { echo "$$out"; exit 1; }
+	@cargo run -q -- -C src
+
+.PHONY: format
+format: ## Format the Rust sources
+	cargo fmt
+
+.PHONY: format-check
+format-check: ## Check Rust formatting without rewriting (CI)
+	cargo fmt --check
+
+.PHONY: check
+check: ## Every pre-commit hook on every file, as CI's precommit job runs them
+	$(PRE_COMMIT) run --all-files --show-diff-on-failure
 
 ##@ Help
 
