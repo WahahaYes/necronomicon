@@ -1,10 +1,13 @@
-# Pre-commit, tests and a Linux wheel. The release workflow (not yet written)
-# will call this and add the wheel matrix (manylinux, macOS, Windows).
+# Pre-commit, tests and a Linux wheel. Every job step is one local command
+# (see Makefile): make check, make lint, make test-verbose, make wheel.
+# Runs on pull requests and pushes to main. The release workflow (not yet
+# written) will call this and add the wheel matrix (manylinux, macOS,
+# Windows); it must grant actions: write, which purge_caches asks for.
 name: build
 
 on:
   push:
-    branches: [main, v0]
+    branches: [main]
   pull_request:
   workflow_call:
 
@@ -16,7 +19,30 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  # Every hook on all files, as the first and cheapest gate.
+  # Only pull requests are filtered; pushes and release calls run everything.
+  changes:
+    runs-on: ubuntu-24.04
+    outputs:
+      rust: ${{ github.event_name != 'pull_request' && 'true' || steps.filter.outputs.rust }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - id: filter
+        uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
+        with:
+          filters: |
+            rust:
+              - 'src/**'
+              - 'tests/**'
+              - 'examples/**'
+              - 'Cargo.toml'
+              - 'Cargo.lock'
+              - 'pyproject.toml'
+              - 'rust-toolchain.toml'
+              - 'Makefile'
+              - '.github/workflows/**'
+
+  # Every hook on all files except the ones that compile (clippy and the necro
+  # self-check run in the test job), as the first and cheapest gate.
   precommit:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
@@ -27,14 +53,26 @@ jobs:
         with:
           fetch-depth: 0
       - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
-      - name: Rust toolchain (from rust-toolchain.toml)
+      - name: Rust toolchain (rustfmt, from rust-toolchain.toml)
         run: rustup toolchain install
+      - name: Pre-commit environments cache
+        id: pc-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/pre-commit
+          key: pre-commit-${{ runner.os }}-${{ hashFiles('.pre-commit-config.yaml') }}
       - name: Hooks (all files)
         # gitleaks scans staged changes, which CI has none of; it runs below
         # over the pushed commits instead.
         env:
-          SKIP: gitleaks
-        run: uvx pre-commit@4.6.1 run --all-files --show-diff-on-failure
+          SKIP: gitleaks,cargo-clippy,necro
+        run: make check
+      - name: Pre-commit environments cache save
+        if: github.ref == 'refs/heads/main' && steps.pc-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/pre-commit
+          key: pre-commit-${{ runner.os }}-${{ hashFiles('.pre-commit-config.yaml') }}
       - name: Secrets (gitleaks, pushed commits)
         env:
           RANGE: ${{ github.event_name == 'pull_request' && format('{0}..{1}', github.event.pull_request.base.sha, github.event.pull_request.head.sha) || format('{0}..{1}', github.event.before, github.sha) }}
@@ -59,7 +97,8 @@ jobs:
           done
 
   test:
-    needs: precommit
+    needs: [changes, precommit]
+    if: needs.changes.outputs.rust == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -68,12 +107,18 @@ jobs:
       - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
       - name: Rust toolchain (from rust-toolchain.toml)
         run: rustup toolchain install
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          # Main seeds caches every PR reads; PR runs never write their own.
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      - run: make lint
       - run: make test-verbose
 
   # Proves the wheel builds and installs a working `necro`, the way pre-commit
   # will get it.
   wheel:
-    needs: precommit
+    needs: [changes, precommit]
+    if: needs.changes.outputs.rust == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -81,6 +126,9 @@ jobs:
       - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
       - name: Rust toolchain (from rust-toolchain.toml)
         run: rustup toolchain install
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' }}
       - run: make wheel
       - name: Install and run
         run: |
@@ -93,12 +141,33 @@ jobs:
   # The only required check; a skipped job counts as a pass.
   ci:
     runs-on: ubuntu-24.04
-    needs: [precommit, test, wheel]
+    needs: [changes, precommit, test, wheel]
     if: always()
     steps:
       - name: Gate
         run: |
-          echo "precommit: ${{ needs.precommit.result }} test: ${{ needs.test.result }} wheel: ${{ needs.wheel.result }}"
-          for r in "${{ needs.precommit.result }}" "${{ needs.test.result }}" "${{ needs.wheel.result }}"; do
-            case "$r" in success|skipped) ;; *) exit 1 ;; esac
+          fail=0
+          for r in "${{ needs.changes.result }}" "${{ needs.precommit.result }}" "${{ needs.test.result }}" "${{ needs.wheel.result }}"; do
+            echo "result: $r"
+            case "$r" in success|skipped) ;; *) fail=1 ;; esac
+          done
+          # precommit never skips: skipped there means a broken workflow.
+          [ "${{ needs.precommit.result }}" = success ] || fail=1
+          exit $fail
+
+  # Main seeds the caches PRs read; drop everything else once main is built.
+  purge_caches:
+    runs-on: ubuntu-24.04
+    needs: [precommit, test, wheel]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      actions: write
+      contents: read
+    steps:
+      - name: Prune non-main caches
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh cache list --repo "$GITHUB_REPOSITORY" --json id,ref --limit 100 --jq '.[] | select(.ref != "refs/heads/main") | .id' | while read -r id; do
+            [ -n "$id" ] && gh cache delete --repo "$GITHUB_REPOSITORY" "$id" || true
           done
