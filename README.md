@@ -2,7 +2,7 @@
 
 A simple way to organize a repo's pre-commit hooks for progressive disclosure, steering coding agents toward the repo's conventions and intended architecture. Each rule pairs a command that finds violations with what to say about them: what's wrong, why the rule exists, and what to do instead. An agent sees a rule only when its commit breaks it, at the line it broke, with the long form one `necro --explain` away.
 
-![You write a rule; an agent's commit breaks it; pre-commit blocks it and pushes the why; the agent pulls the rest and commits the fix](docs/mind-control.svg)
+![You write a rule; an agent's commit breaks it; pre-commit blocks it and pushes the why; the agent pulls the rest and commits the fix](https://raw.githubusercontent.com/WahahaYes/necronomicon/main/docs/mind-control.svg)
 
 ## Why not AGENTS.md
 
@@ -10,7 +10,7 @@ An instruction file is read every session, whether or not today's work touches i
 
 ## Agent mind control
 
-When an agent trips a rule, necro tells it just enough, and the rest is one command away. From [examples/layers](examples/layers):
+When an agent trips a rule, necro tells it just enough, and the rest is one command away. From [examples/layers](https://github.com/WahahaYes/necronomicon/tree/main/examples/layers):
 
 ```yaml
 core-isolated:
@@ -80,8 +80,8 @@ Command: necro grep '^\s*(from|import)\s+app\b' -- 'src/core/*.py'
 
 ## More
 
-- [docs/writing-rules.md](docs/writing-rules.md): writing rules and allows, and the pre-commit hook.
-- [examples/](examples/): small repos, each checked by CI.
-- [spec/v0.md](spec/v0.md): the contract; [tests/conformance/](tests/conformance/) makes it executable.
+- [docs/writing-rules.md](https://github.com/WahahaYes/necronomicon/blob/main/docs/writing-rules.md): writing rules and allows, and the pre-commit hook.
+- [examples/](https://github.com/WahahaYes/necronomicon/tree/main/examples): small repos, each checked by CI.
+- [spec/v0.md](https://github.com/WahahaYes/necronomicon/blob/main/spec/v0.md): the contract; [tests/conformance/](https://github.com/WahahaYes/necronomicon/tree/main/tests/conformance) makes it executable.
 
-Pre-release (version 0): any 0.x may break the format. Licensed under [Apache-2.0](LICENSE).
+Pre-release (version 0): any 0.x may break the format. Licensed under [Apache-2.0](https://github.com/WahahaYes/necronomicon/blob/main/LICENSE).
