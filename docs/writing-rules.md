@@ -22,10 +22,14 @@ The label is what the hit is about (`missing steal_roll`, `3 lines over`). It sh
 
 ## Layout
 
-`necro.yaml` at the root holds `version: 0` and the rules; `include: [necro/*.yaml]` splits them across files, and scripts live beside them in `necro/`. Run it from pre-commit:
+`necro.yaml` at the root holds `version: 0` and the rules; `include: [necro/*.yaml]` splits them across files, and scripts live beside them in `necro/`. Run it from pre-commit, built from a necronomicon clone (see `.pre-commit-config.yaml` here):
 
 ```yaml
-- repo: https://github.com/WahahaYes/necronomicon
-  rev: <tag or sha>
-  hooks: [{ id: necro }]
+- repo: local
+  hooks:
+    - id: necro
+      name: necro
+      entry: sh -c 'cd <clone> && exec cargo run -q -- -C <repo>'
+      language: system
+      pass_filenames: false
 ```

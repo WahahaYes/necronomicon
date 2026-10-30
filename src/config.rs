@@ -203,7 +203,12 @@ pub fn load(root: &Path, files: &[String]) -> Result<Config, Vec<ConfigError>> {
     };
 
     match m.get("version") {
-        None => e.at(top_file, top.pos, "version", "missing required key `version`"),
+        None => e.at(
+            top_file,
+            top.pos,
+            "version",
+            "missing required key `version`",
+        ),
         Some((_, v)) => match v.as_number() {
             Some(n) if n == SPEC_VERSION as f64 => {}
             Some(n) if n.fract() == 0.0 && n > 0.0 => e.at(
@@ -211,7 +216,7 @@ pub fn load(root: &Path, files: &[String]) -> Result<Config, Vec<ConfigError>> {
                 v.pos,
                 "version",
                 format!(
-                    "this file is version {n}, and necro {} reads version {SPEC_VERSION}; move the hook's rev to a necro that reads version {n}",
+                    "this file is version {n}, and necro {} reads version {SPEC_VERSION}",
                     env!("CARGO_PKG_VERSION")
                 ),
             ),

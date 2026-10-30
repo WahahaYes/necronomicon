@@ -1,4 +1,4 @@
-# another spec version names the rev to move to
+# another spec version names both versions
 spec: Versioning
 -- necro.yaml --
 version: 1

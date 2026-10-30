@@ -1,8 +1,5 @@
-# Pin from a repo's .pre-commit-config.yaml:
-#   - repo: https://github.com/WahahaYes/necronomicon
-#     rev: <tag or sha>
-#     hooks: [{ id: necro }]
-# Until wheels are on PyPI, installing builds the binary with cargo (needs Rust).
+# For pre-commit's remote-repo form, kept for the PyPI release; v0 runs as a
+# local hook built from a clone (docs/writing-rules.md).
 - id: necro
   name: necro
   description: House rules, enforced by messages that teach the rule and the fix.

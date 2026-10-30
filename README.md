@@ -17,4 +17,4 @@ rules:
 - [examples/](examples/): small repos, each checked by CI.
 - [spec/v0.md](spec/v0.md): the contract; [tests/conformance/](tests/conformance/) makes it executable.
 
-Pre-release (version 0): any 0.x may break the format, so pin the hook's `rev`. Licensed under [Apache-2.0](LICENSE).
+Pre-release (version 0): any 0.x may break the format. Licensed under [Apache-2.0](LICENSE).
