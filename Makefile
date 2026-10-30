@@ -42,6 +42,23 @@ format-check: ## Check Rust formatting without rewriting (CI)
 check: ## Every pre-commit hook on every file, as CI's precommit job runs them
 	$(PRE_COMMIT) run --all-files --show-diff-on-failure
 
+##@ Cleanup
+
+# A fresh `make test lint build wheel` leaves target/ at ~240 MB; much more is
+# stale builds (cargo keeps one per toolchain, lockfile and flags).
+.PHONY: clean
+clean: ## Remove built wheels (target/wheels/)
+	@$(call remove,target/wheels)
+
+.PHONY: clean-cache
+clean-cache: ## Also remove cargo's build cache (target/); the next build starts cold
+	@$(call remove,target)
+
+# Removes a path and says how much it held.
+define remove
+if [ -e $(1) ]; then echo "removed $(1) ($$(du -sh $(1) | cut -f1))"; rm -rf $(1); else echo "nothing to remove at $(1)"; fi
+endef
+
 ##@ Help
 
 .PHONY: help
