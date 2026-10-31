@@ -1,0 +1,16 @@
+# a hit the snapshot doesn't cover still fails; only the uncovered hit is shown
+spec: Baseline
+args: --format terse
+exit: 1
+-- src/a.ts --
+const a = "donkey";
+const b = "donkey loudly";
+-- necro.baseline.yaml --
+version: 1
+entries:
+  - rule: "banned-word"
+    path: "src/a.ts"
+    fingerprint: "const a = \"donkey\";"
+    line: 1
+-- @stdout --
+src/a.ts:2:12: banned-word Banned word

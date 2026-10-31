@@ -1,0 +1,13 @@
+# the stored line is only a hint: moving a line doesn't relitigate it
+spec: Baseline
+args: --format terse
+-- src/a.ts --
+const ok = 1;
+const a = "donkey";
+-- necro.baseline.yaml --
+version: 1
+entries:
+  - rule: "banned-word"
+    path: "src/a.ts"
+    fingerprint: "const a = \"donkey\";"
+    line: 1

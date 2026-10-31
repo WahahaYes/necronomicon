@@ -1,0 +1,18 @@
+# identical lines share one bucket: one entry silences one hit, the excess fails
+spec: Baseline
+args: --format terse
+exit: 1
+-- src/a.ts --
+donkey
+donkey
+donkey
+-- necro.baseline.yaml --
+version: 1
+entries:
+  - rule: "banned-word"
+    path: "src/a.ts"
+    fingerprint: "donkey"
+    line: 1
+-- @stdout --
+src/a.ts:2:1: banned-word Banned word
+src/a.ts:3:1: banned-word Banned word

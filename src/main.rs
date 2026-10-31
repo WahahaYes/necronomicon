@@ -1,6 +1,10 @@
 //! `necro`: checks a repo against its house rules (spec/v0.md).
 
 mod allows;
+// Lane 1's snapshot API: entries() serves later lanes (spec + status), so it
+// has no caller yet.
+#[allow(dead_code)]
+mod baseline;
 mod command;
 mod config;
 mod files;
@@ -9,7 +13,7 @@ mod render;
 mod run;
 mod yaml;
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 #[derive(Default)]
@@ -18,6 +22,7 @@ struct Args {
     format: Option<String>,
     rule: Option<String>,
     explain: Option<String>,
+    write_baseline: bool,
 }
 
 fn parse(argv: Vec<String>) -> Result<Args, String> {
@@ -39,6 +44,7 @@ fn parse(argv: Vec<String>) -> Result<Args, String> {
             "--format" => a.format = Some(value("--format", inline.as_deref())?),
             "--rule" => a.rule = Some(value("--rule", inline.as_deref())?),
             "--explain" => a.explain = Some(value("--explain", inline.as_deref())?),
+            "--write-baseline" => a.write_baseline = true,
             f if f.starts_with('-') && f.len() > 1 => {
                 return Err(format!("unknown option {f} (see necro --help)"));
             }
@@ -116,11 +122,41 @@ fn main_with(args: Args) -> Result<u8, String> {
     {
         return Err(unknown(name));
     }
+    if args.write_baseline {
+        return write_baseline(&config, &root, args.rule.as_deref());
+    }
     let report = run::run(&config, &root, args.rule.as_deref());
     match args.format.as_deref() {
         Some("terse") => render::terse(&report),
         _ => render::full(&report),
     }
     render::problems(&report);
+    render::stale_warning(&report);
     Ok(report.exit_code())
+}
+
+/// `--write-baseline`: snapshot the observed post-allow hits, pruning stale
+/// entries and adding new ones, then confirm and exit 0. Problems fail first:
+/// a partial pipeline must not become the snapshot.
+fn write_baseline(config: &config::Config, root: &Path, only: Option<&str>) -> Result<u8, String> {
+    let report = run::run_observed(config, root, only);
+    if !report.problems.is_empty() {
+        render::problems(&report);
+        return Ok(2);
+    }
+    let baseline = baseline::Baseline::from_diagnostics(&report.diagnostics);
+    let path = config.baseline_path(root);
+    if let Err(message) = baseline.save(&path) {
+        render::setup_error(&message);
+        return Ok(2);
+    }
+    let shown = path.strip_prefix(root).unwrap_or(&path);
+    let n = baseline.len();
+    render::line(&format!(
+        "necro: wrote {} ({} {})",
+        shown.display(),
+        n,
+        if n == 1 { "entry" } else { "entries" }
+    ));
+    Ok(0)
 }

@@ -1,0 +1,17 @@
+# an allow that suppresses nothing still errors: the snapshot covers the named rule, not necro/unused-allow
+spec: Baseline
+args: --format terse
+exit: 1
+-- src/a.ts --
+const ok = 1; // necro-allow banned-word: nothing here
+-- necro.baseline.yaml --
+version: 1
+entries:
+  - rule: "banned-word"
+    path: "src/a.ts"
+    fingerprint: "const ok = 1; //"
+    line: 1
+-- @stdout --
+src/a.ts:1:18: necro/unused-allow the allow for banned-word suppresses nothing
+-- @stderr --
+necro: warning: 1 baseline entry no longer matches; refresh with necro --write-baseline
