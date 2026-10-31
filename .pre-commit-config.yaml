@@ -15,7 +15,7 @@ repos:
       - id: check-added-large-files
         args: ['--maxkb=512']
         # Binary media and self-contained html stay out of the size check.
-        exclude: '(?i)\.(png|jpe?g|webp|avif|svg|gif|html|glb|gltf)$'
+        exclude: '(?i)\.(png|jpe?g|webp|avif|svg|gif|mp4|html|glb|gltf)$'
       - id: mixed-line-ending
         args: ['--fix=lf']
         exclude: *verbatim
