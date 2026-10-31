@@ -1,0 +1,16 @@
+# a --rule run matches only its own slice: other rules' leftovers never warn as stale
+spec: Baseline
+args: --format terse --rule banned-word
+-- src/a.ts --
+const a = "donkey";
+-- necro.baseline.yaml --
+version: 1
+entries:
+  - rule: "banned-word"
+    path: "src/a.ts"
+    fingerprint: "const a = \"donkey\";"
+    line: 1
+  - rule: "no-meh"
+    path: "src/b.ts"
+    fingerprint: "meh"
+    line: 3

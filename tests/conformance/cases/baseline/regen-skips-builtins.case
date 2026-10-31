@@ -1,0 +1,7 @@
+# regen never snapshots builtins: only a broken allow means an empty snapshot
+spec: Baseline
+args: --write-baseline
+-- src/a.ts --
+const ok = 1; // necro-allow banned-word: nothing here
+-- @stdout --
+necro: wrote necro.baseline.yaml (0 entries)
