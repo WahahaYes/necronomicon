@@ -80,6 +80,12 @@ pub fn run(config: &Config, root: &Path, only: Option<&str>) -> Report {
         // No snapshot (or an empty one): nothing to silence.
         Ok(baseline) if baseline.is_empty() => {}
         Ok(baseline) => {
+            // A filtered run matches only its own slice: other rules'
+            // leftovers aren't stale, they just didn't run.
+            let baseline = match only {
+                Some(rule) => baseline.scoped(rule),
+                None => baseline,
+            };
             let (kept, stale) = baseline.match_hits(std::mem::take(&mut report.diagnostics));
             report.diagnostics = kept;
             report.stale_baseline = stale;

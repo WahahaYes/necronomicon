@@ -52,6 +52,13 @@ impl std::fmt::Display for LoadError {
 
 impl std::error::Error for LoadError {}
 
+/// necro's own diagnostics (`necro/allow-reason`, `necro/unused-allow`) are
+/// never snapshotted and never matched: a broken allow fails even right
+/// after regen.
+fn is_builtin(rule: &str) -> bool {
+    rule.starts_with("necro/")
+}
+
 impl Baseline {
     pub fn empty() -> Self {
         Self::default()
@@ -148,10 +155,12 @@ impl Baseline {
         Ok(Self { entries })
     }
 
-    /// Snapshot the given post-allow diagnostics.
+    /// Snapshot the given post-allow diagnostics, skipping builtins: a
+    /// broken allow is never baseline material.
     pub fn from_diagnostics(diagnostics: &[Diagnostic]) -> Self {
         let mut entries: Vec<Entry> = diagnostics
             .iter()
+            .filter(|d| !is_builtin(&d.rule))
             .map(|d| Entry {
                 rule: d.rule.clone(),
                 path: d.file.clone(),
@@ -203,16 +212,25 @@ impl Baseline {
     /// Split post-allow diagnostics into the hits the snapshot doesn't
     /// cover (kept, in input order) plus how many snapshot entries no
     /// observed hit consumed (stale). Each observed hit consumes one
-    /// entry from its (rule, path, fingerprint) bucket.
+    /// entry from its (rule, path, fingerprint) bucket. Builtin
+    /// diagnostics are always kept and builtin entries never match:
+    /// neither silences the other.
     pub fn match_hits(&self, diagnostics: Vec<Diagnostic>) -> (Vec<Diagnostic>, usize) {
         let mut counts: BTreeMap<(String, String, String), usize> = BTreeMap::new();
         for e in &self.entries {
+            if is_builtin(&e.rule) {
+                continue;
+            }
             *counts
                 .entry((e.rule.clone(), e.path.clone(), e.fingerprint.clone()))
                 .or_insert(0) += 1;
         }
         let mut kept = Vec::new();
         for d in diagnostics {
+            if is_builtin(&d.rule) {
+                kept.push(d);
+                continue;
+            }
             let key = (d.rule.clone(), d.file.clone(), fingerprint_for(&d));
             match counts.get_mut(&key) {
                 Some(n) if *n > 0 => *n -= 1,
@@ -220,6 +238,33 @@ impl Baseline {
             }
         }
         (kept, counts.values().sum())
+    }
+
+    /// The entries for one rule: a `--rule` run matches only against its
+    /// own slice, so other rules' leftovers never warn as stale.
+    pub fn scoped(&self, rule: &str) -> Baseline {
+        Baseline {
+            entries: self
+                .entries
+                .iter()
+                .filter(|e| e.rule == rule)
+                .cloned()
+                .collect(),
+        }
+    }
+
+    /// Scoped regen: keep every entry except `rule`'s, then add `fresh`
+    /// (already scoped to `rule`). Sorted.
+    pub fn merge(&self, rule: &str, fresh: &Baseline) -> Baseline {
+        let mut entries: Vec<Entry> = self
+            .entries
+            .iter()
+            .filter(|e| e.rule != rule)
+            .cloned()
+            .chain(fresh.entries.iter().cloned())
+            .collect();
+        sort_entries(&mut entries);
+        Baseline { entries }
     }
 }
 
@@ -447,6 +492,67 @@ mod tests {
             baseline.match_hits(vec![hit("foo", "a.rs", 99, Some("  let x = 1;  "))]);
         assert!(kept.is_empty());
         assert_eq!(stale, 0);
+    }
+
+    #[test]
+    fn builtins_are_never_baselined_or_matched() {
+        // Regen skips builtins: only the real hit is snapshotted.
+        let baseline = Baseline::from_diagnostics(&[
+            hit("necro/unused-allow", "a.rs", 1, Some("const ok = 1; //")),
+            hit("foo", "a.rs", 2, Some("donkey")),
+        ]);
+        assert_eq!(baseline.len(), 1);
+        assert_eq!(baseline.entries()[0].rule, "foo");
+
+        // A legacy snapshot entry for a builtin silences nothing and
+        // warns about nothing.
+        let legacy = Baseline {
+            entries: vec![Entry {
+                rule: "necro/unused-allow".into(),
+                path: "a.rs".into(),
+                fingerprint: "const ok = 1; //".into(),
+                line: 1,
+            }],
+        };
+        let (kept, stale) = legacy.match_hits(vec![hit(
+            "necro/unused-allow",
+            "a.rs",
+            1,
+            Some("const ok = 1; //"),
+        )]);
+        assert_eq!(kept.len(), 1);
+        assert_eq!(kept[0].rule, "necro/unused-allow");
+        assert_eq!(stale, 0);
+    }
+
+    #[test]
+    fn scoped_keeps_one_rule_and_merge_replaces_it() {
+        let entry = |rule: &str, path: &str, fp: &str| Entry {
+            rule: rule.into(),
+            path: path.into(),
+            fingerprint: fp.into(),
+            line: 1,
+        };
+        let baseline = Baseline {
+            entries: vec![entry("foo", "a.rs", "old"), entry("bar", "b.rs", "keep me")],
+        };
+        // A filtered run matches only its own slice: bar's leftover is
+        // not its business.
+        let slice = baseline.scoped("foo");
+        assert_eq!(slice.entries().len(), 1);
+        assert_eq!(slice.entries()[0].rule, "foo");
+        let (kept, stale) = slice.match_hits(vec![hit("foo", "a.rs", 9, Some("old"))]);
+        assert!(kept.is_empty());
+        assert_eq!(stale, 0);
+
+        // Scoped regen replaces foo's entries and carries bar's over.
+        let fresh = Baseline {
+            entries: vec![entry("foo", "a.rs", "new")],
+        };
+        let merged = baseline.merge("foo", &fresh);
+        let rules: Vec<&str> = merged.entries().iter().map(|e| e.rule.as_str()).collect();
+        assert_eq!(rules, vec!["bar", "foo"]);
+        assert_eq!(merged.entries()[1].fingerprint, "new");
     }
 
     #[test]
