@@ -8,6 +8,7 @@ use crate::allows::{self, Allow};
 use crate::command::{self, Failure};
 use crate::config::{self, Config, Rule};
 
+/// One rule hit with the words that teach it.
 pub struct Diagnostic {
     pub rule: String,
     pub file: String,
@@ -24,6 +25,7 @@ pub struct Diagnostic {
     pub source: Option<String>,
 }
 
+/// One allow that suppressed a hit.
 pub struct Allowed {
     pub rule: String,
     pub file: String,
@@ -32,6 +34,7 @@ pub struct Allowed {
     pub reason: String,
 }
 
+/// A run that never got to hits: setup or check.
 pub enum Problem {
     Setup(String),
     Check {
@@ -41,6 +44,7 @@ pub enum Problem {
     },
 }
 
+/// Everything one run found: hits, allows and problems.
 #[derive(Default)]
 pub struct Report {
     pub diagnostics: Vec<Diagnostic>,
@@ -49,6 +53,7 @@ pub struct Report {
 }
 
 impl Report {
+    /// 2 with problems, 1 with hits, else 0.
     pub fn exit_code(&self) -> u8 {
         if !self.problems.is_empty() {
             2
@@ -66,6 +71,7 @@ struct Raw<'a> {
     hit: command::Hit,
 }
 
+/// Run the selected rules, apply allows, report the rest.
 pub fn run(config: &Config, root: &Path, only: Option<&str>) -> Report {
     let mut report = Report::default();
     let selected: Vec<&Rule> = config

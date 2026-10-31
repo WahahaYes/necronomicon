@@ -6,6 +6,7 @@ use super::{split_pathspecs, text_lines, tracked};
 
 const USAGE: &str = "necro grep [--skip-comments <marker>]… <regex> [-- <pathspec>…]";
 
+/// The `grep` finder: every regex match in the tracked files.
 pub fn run(args: &[String]) -> Result<Vec<String>, String> {
     let (opts, pathspecs) = split_pathspecs(args);
     let mut markers: Vec<String> = Vec::new();

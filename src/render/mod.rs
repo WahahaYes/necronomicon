@@ -9,6 +9,7 @@ pub mod full;
 use crate::config::ConfigError;
 use crate::run::{Problem, Report};
 
+/// Config errors to stderr, one per line.
 pub fn config_errors(errors: &[ConfigError]) {
     let mut err = std::io::stderr().lock();
     for e in errors {
@@ -47,14 +48,17 @@ pub fn problems(report: &Report) {
     }
 }
 
+/// One setup error to stderr.
 pub fn setup_error(message: &str) {
     let _ = writeln!(std::io::stderr(), "necro: setup error: {message}");
 }
 
+/// One usage error to stderr.
 pub fn usage(message: &str) {
     let _ = writeln!(std::io::stderr(), "necro: {message}");
 }
 
+/// Finder hits to stdout, one per line.
 pub fn lines(lines: &[String]) {
     let mut out = std::io::stdout().lock();
     for l in lines {
@@ -62,18 +66,22 @@ pub fn lines(lines: &[String]) {
     }
 }
 
+/// One line to stdout.
 pub fn line(text: &str) {
     let _ = writeln!(std::io::stdout(), "{text}");
 }
 
+/// One report in the `full` format to stdout.
 pub fn full(report: &Report) {
     let _ = write!(std::io::stdout(), "{}", full::render(report));
 }
 
+/// Pre-rendered text to stdout.
 pub fn text(text: &str) {
     let _ = write!(std::io::stdout(), "{text}");
 }
 
+/// One report in the `terse` format to stdout.
 pub fn terse(report: &Report) {
     let mut out = std::io::stdout().lock();
     for d in &report.diagnostics {
@@ -86,6 +94,7 @@ pub fn terse(report: &Report) {
     }
 }
 
+/// The `--help` text: usage, finders and exit codes.
 pub const HELP: &str = "\
 necro: checks a repo against its house rules (necro.yaml).
 

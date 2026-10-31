@@ -18,6 +18,7 @@ fn snippets(out: &mut String, title: &str, list: &[String]) {
     out.push('\n');
 }
 
+/// The `--explain` text for one rule.
 pub fn render(r: &Rule) -> String {
     let mut out = String::new();
     let _ = writeln!(out, "{}: {}\n", r.name, r.message.trim_end());

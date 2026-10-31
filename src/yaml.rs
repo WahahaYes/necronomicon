@@ -11,6 +11,7 @@ pub struct Pos {
     pub col: usize,
 }
 
+/// A YAML value; scalars stay strings for the config layer.
 #[derive(Debug, Clone)]
 pub enum Value {
     Map(Vec<(Key, Node)>),
@@ -22,12 +23,14 @@ pub enum Value {
     Null,
 }
 
+/// A mapping key with its position.
 #[derive(Debug, Clone)]
 pub struct Key {
     pub name: String,
     pub pos: Pos,
 }
 
+/// A YAML node with its position.
 #[derive(Debug, Clone)]
 pub struct Node {
     pub value: Value,
@@ -44,6 +47,7 @@ impl Node {
         }
     }
 
+    /// The scalar as a number, when it reads as one.
     pub fn as_number(&self) -> Option<f64> {
         match &self.value {
             Value::Plain(s) if plain_kind(s) == PlainKind::Number => s.parse().ok(),

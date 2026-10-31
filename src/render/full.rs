@@ -6,6 +6,7 @@ use std::fmt::Write as _;
 
 use crate::run::{Diagnostic, Report};
 
+/// The column `why` and `fix` wrap at.
 pub const WIDTH: usize = 88;
 const REPEATS: usize = 4;
 const TAB: &str = "    ";
@@ -67,6 +68,7 @@ fn snippet(source: &str, col: usize, length: usize) -> (String, usize, usize) {
     (source.replace('\t', TAB), start, span.max(1))
 }
 
+/// The `full` format: the first hit teaches, repeats stay short.
 pub fn render(report: &Report) -> String {
     let mut out = String::new();
     let mut shown: BTreeMap<&str, usize> = BTreeMap::new();
@@ -168,6 +170,7 @@ fn plural(n: usize, one: &str, many: &str) -> String {
     format!("{n} {}", if n == 1 { one } else { many })
 }
 
+/// The counts per rule and the allows behind a report.
 pub fn summary(report: &Report) -> String {
     let mut out = String::new();
     let errors = &report.diagnostics;
