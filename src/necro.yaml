@@ -3,6 +3,39 @@
 # examples/ quote as data stay outside it. Format: spec/v0.md.
 version: 0
 rules:
+  docstring-missing:
+    command: >-
+      uv run --script necro/docstrings.py missing
+    message: an undocumented public item
+    why: this is a binary crate, so pub marks the maintainer and agent API, the surface another session reads before changing the code. An undocumented public item forces that reader to rebuild the promise from the body.
+    fix: add one `///` promise line under the word budget (what it does or guarantees, not how); a `pub mod` may instead open its file with `//!`.
+    details: |
+      Every `pub` item needs a doc comment: `pub fn` (methods included),
+      `struct`, `enum`, `trait`, `type`, `const`, `static` and `mod`.
+      Private items, `impl` headers and `#[cfg(test)]` / `#[test]` items are
+      exempt, and a `pub mod` is also covered when its file opens with `//!`.
+      Both rules share `src/necro/docstrings.py` (stdlib only, single pass);
+      `necro grep` cannot see missing or multi-line docs. The sweep that added
+      this rule documented the whole tree, so a hit is a regression, not
+      grandfathered history.
+    examples:
+      bad: 'pub fn valid_name(name: &str) -> bool {'
+      good: '/// Whether a rule name is lowercase words joined by hyphens.'
+  docstring-too-long:
+    command: >-
+      uv run --script necro/docstrings.py too-long
+    message: a doc comment over fifty words
+    why: fifty words are three to four lines, enough for the promise and the one gotcha the signature does not say. Past that the comment restates the code and drifts from it, and the next reader skims or stops trusting it.
+    fix: cut to what the signature does not say; move the rest behind a pointer into spec/v0.md, and keep examples in tests/.
+    details: |
+      The budget counts the contiguous `///` block attached to the item, or
+      the `//!` block for a module's own docs: markers stripped, fenced code
+      blocks skipped, words are runs of non-blank characters. The sweep that
+      added this rule cut the longest blocks to fit, so a hit is a regression,
+      not grandfathered history.
+    examples:
+      bad: '/// Loads and validates everything in necro.yaml and its includes, collecting every error with its file, position and key path so that nothing runs until all of it loads, then sorting the errors by file and position, while also checking required keys, unknown keys, include globs, command syntax, text fields, details, examples and the spec version along the way.'
+      good: '/// Load and validate everything; errors come back sorted by file (spec: A rule).'
   render-only-prints:
     command: >-
       necro grep --skip-comments // '\be?print(ln)?!|std::io::std(out|err)\(\)'
