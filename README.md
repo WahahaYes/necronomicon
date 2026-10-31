@@ -1,3 +1,5 @@
+<p align="center"><img src="https://raw.githubusercontent.com/WahahaYes/necronomicon/main/docs/banner.png" width="640" alt="necronomicon: lint errors that explain themselves to coding agents. A spiral-eyed pixel robot, wrapped by a green tentacle, takes a dashed feed from a glowing, floating book."></p>
+
 # necronomicon
 
 A simple way to organize a repo's pre-commit hooks for progressive disclosure, steering coding agents toward the repo's conventions and intended architecture. Each rule pairs a command that finds violations with what to say about them: what's wrong, why the rule exists, and what to do instead. An agent sees a rule only when its commit breaks it, at the line it broke, with the long form one `necro --explain` away.
