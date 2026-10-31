@@ -1,4 +1,4 @@
-<p align="center"><img src="https://raw.githubusercontent.com/WahahaYes/necronomicon/main/docs/media/banner.png" width="640" alt="necronomicon: lint errors that explain themselves to coding agents. A spiral-eyed pixel robot, wrapped by a green tentacle, takes a dashed feed from a glowing, floating book."></p>
+<p align="center"><img src="https://raw.githubusercontent.com/WahahaYes/necronomicon/main/docs/banner.png" width="640" alt="necronomicon: lint errors that explain themselves to coding agents. A spiral-eyed pixel robot, wrapped by a green tentacle, takes a dashed feed from a glowing, floating book."></p>
 
 # necronomicon
 
