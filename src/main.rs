@@ -135,17 +135,26 @@ fn main_with(args: Args) -> Result<u8, String> {
     Ok(report.exit_code())
 }
 
-/// `--write-baseline`: snapshot the observed post-allow hits, pruning stale
-/// entries and adding new ones, then confirm and exit 0. Problems fail first:
-/// a partial pipeline must not become the snapshot.
+/// `--write-baseline`: snapshot the observed post-allow hits and confirm.
+/// A full regen replaces the snapshot; a scoped one replaces only that
+/// rule's entries and carries the rest over. Snapshot errors never block
+/// regen (a missing snapshot is empty, a corrupt one is discarded and
+/// rebuilt); problems fail first: a partial pipeline must not become the
+/// snapshot.
 fn write_baseline(config: &config::Config, root: &Path, only: Option<&str>) -> Result<u8, String> {
     let report = run::run_observed(config, root, only);
     if !report.problems.is_empty() {
         render::problems(&report);
         return Ok(2);
     }
-    let baseline = baseline::Baseline::from_diagnostics(&report.diagnostics);
     let path = config.baseline_path(root);
+    let fresh = baseline::Baseline::from_diagnostics(&report.diagnostics);
+    let baseline = match only {
+        Some(rule) => baseline::Baseline::load(&path)
+            .unwrap_or_default()
+            .merge(rule, &fresh),
+        None => fresh,
+    };
     if let Err(message) = baseline.save(&path) {
         render::setup_error(&message);
         return Ok(2);

@@ -1,0 +1,15 @@
+# a snapshot entry for a builtin never silences it: the broken allow still fails
+spec: Baseline
+args: --format terse
+exit: 1
+-- src/a.ts --
+const ok = 1; // necro-allow banned-word: nothing here
+-- necro.baseline.yaml --
+version: 1
+entries:
+  - rule: "necro/unused-allow"
+    path: "src/a.ts"
+    fingerprint: "const ok = 1; //"
+    line: 1
+-- @stdout --
+src/a.ts:1:18: necro/unused-allow the allow for banned-word suppresses nothing
