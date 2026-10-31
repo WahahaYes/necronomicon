@@ -1,0 +1,7 @@
+# clean tree regens to an empty snapshot instead of deleting: exit 0 writes entries: []
+spec: Baseline
+args: --write-baseline
+-- src/a.ts --
+const ok = 1;
+-- @stdout --
+necro: wrote necro.baseline.yaml (0 entries)
