@@ -5,6 +5,7 @@ use std::collections::{BTreeSet, HashMap};
 use std::path::Path;
 
 use crate::allows::{self, Allow};
+use crate::baseline::Baseline;
 use crate::command::{self, Failure};
 use crate::config::{self, Config, Rule};
 
@@ -50,6 +51,8 @@ pub struct Report {
     pub diagnostics: Vec<Diagnostic>,
     pub allowed: Vec<Allowed>,
     pub problems: Vec<Problem>,
+    /// Snapshot entries no observed hit consumed: a warning, never a failure.
+    pub stale_baseline: usize,
 }
 
 impl Report {
@@ -71,8 +74,26 @@ struct Raw<'a> {
     hit: command::Hit,
 }
 
-/// Run the selected rules, apply allows, report the rest.
+/// Run the selected rules, apply allows and the snapshot, report the rest.
 pub fn run(config: &Config, root: &Path, only: Option<&str>) -> Report {
+    let mut report = run_observed(config, root, only);
+    let path = config.baseline_path(root);
+    match Baseline::load(&path) {
+        // No snapshot (or an empty one): nothing to silence.
+        Ok(baseline) if baseline.is_empty() => {}
+        Ok(baseline) => {
+            let (kept, stale) = baseline.match_hits(std::mem::take(&mut report.diagnostics));
+            report.diagnostics = kept;
+            report.stale_baseline = stale;
+        }
+        Err(e) => report.problems.push(Problem::Setup(e.to_string())),
+    }
+    report
+}
+
+/// One run through allows, without the snapshot: every rule's command, then
+/// allows (spec: Commands, Allows). `--write-baseline` snapshots this.
+pub fn run_observed(config: &Config, root: &Path, only: Option<&str>) -> Report {
     let mut report = Report::default();
     let selected: Vec<&Rule> = config
         .rules

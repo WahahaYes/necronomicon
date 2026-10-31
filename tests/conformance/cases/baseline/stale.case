@@ -1,0 +1,18 @@
+# entries nothing consumes warn on stderr without failing
+spec: Baseline
+args: --format terse
+-- src/a.ts --
+const ok = 1;
+-- necro.baseline.yaml --
+version: 1
+entries:
+  - rule: "banned-word"
+    path: "src/a.ts"
+    fingerprint: "const a = \"donkey\";"
+    line: 1
+  - rule: "banned-word"
+    path: "src/a.ts"
+    fingerprint: "const b = \"donkey\";"
+    line: 2
+-- @stderr --
+necro: warning: 2 baseline entries no longer match; refresh with necro --write-baseline

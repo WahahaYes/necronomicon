@@ -1,0 +1,8 @@
+# a missing snapshot file means no baseline: the run behaves exactly as without one
+spec: Baseline
+args: --format terse
+exit: 1
+-- src/a.ts --
+const a = "donkey";
+-- @stdout --
+src/a.ts:1:12: banned-word Banned word
