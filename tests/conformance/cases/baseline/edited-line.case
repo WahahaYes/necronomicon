@@ -1,0 +1,22 @@
+# editing a line relitigates it: extra whitespace still matches, a token change fails and leaves its entry stale
+spec: Baseline
+args: --format terse
+exit: 1
+-- src/a.ts --
+  const a = "donkey";
+const b = "donkey loudly";
+-- necro.baseline.yaml --
+version: 1
+entries:
+  - rule: "banned-word"
+    path: "src/a.ts"
+    fingerprint: "const a = \"donkey\";"
+    line: 1
+  - rule: "banned-word"
+    path: "src/a.ts"
+    fingerprint: "const b = \"donkey\";"
+    line: 2
+-- @stdout --
+src/a.ts:2:12: banned-word Banned word
+-- @stderr --
+necro: warning: 1 baseline entry no longer matches; refresh with necro --write-baseline

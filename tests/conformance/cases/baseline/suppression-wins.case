@@ -1,0 +1,13 @@
+# allows apply before the snapshot: each silences its own hit and the run is clean
+spec: Baseline
+args: --format terse
+-- src/a.ts --
+const a = "donkey";
+const a = "donkey"; // necro-allow banned-word: quoted twice on purpose
+-- necro.baseline.yaml --
+version: 1
+entries:
+  - rule: "banned-word"
+    path: "src/a.ts"
+    fingerprint: "const a = \"donkey\";"
+    line: 1
