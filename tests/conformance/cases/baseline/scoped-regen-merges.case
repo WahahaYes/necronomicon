@@ -1,0 +1,18 @@
+# scoped regen replaces only that rule's entries: siblings carry over
+spec: Baseline
+args: --write-baseline --rule banned-word
+-- src/a.ts --
+const a = "donkey";
+-- necro.baseline.yaml --
+version: 1
+entries:
+  - rule: "banned-word"
+    path: "src/a.ts"
+    fingerprint: "a stale line"
+    line: 1
+  - rule: "no-meh"
+    path: "src/b.ts"
+    fingerprint: "meh"
+    line: 3
+-- @stdout --
+necro: wrote necro.baseline.yaml (2 entries)
