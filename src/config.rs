@@ -3,7 +3,7 @@
 //! path; nothing runs until all of it loads.
 
 use std::collections::BTreeMap;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use globset::{GlobBuilder, GlobSetBuilder};
 
@@ -39,11 +39,19 @@ pub struct Rule {
 pub struct Config {
     /// The repo's rules, sorted by name.
     pub rules: Vec<Rule>,
+    /// The snapshot's path, relative to the root; the default when absent.
+    pub baseline: Option<String>,
 }
 
 impl Config {
     pub fn names(&self) -> Vec<&str> {
         self.rules.iter().map(|r| r.name.as_str()).collect()
+    }
+
+    /// Where the snapshot lives: the `baseline:` pointer, else the default
+    /// beside the root. A missing file means no baseline.
+    pub fn baseline_path(&self, root: &Path) -> PathBuf {
+        root.join(self.baseline.as_deref().unwrap_or(DEFAULT_BASELINE))
     }
 }
 
@@ -160,7 +168,10 @@ pub fn valid_name(name: &str) -> bool {
     })
 }
 
-const TOP_KEYS: &[&str] = &["version", "include", "rules"];
+/// The snapshot file when `baseline:` is absent: beside the root.
+pub const DEFAULT_BASELINE: &str = "necro.baseline.yaml";
+
+const TOP_KEYS: &[&str] = &["version", "include", "rules", "baseline"];
 const INCLUDE_KEYS: &[&str] = &["rules"];
 const RULE_KEYS: &[&str] = &["command", "message", "why", "fix", "details", "examples"];
 const REQUIRED: &[&str] = &["command", "message", "why", "fix"];
@@ -229,6 +240,10 @@ pub fn load(root: &Path, files: &[String]) -> Result<Config, Vec<ConfigError>> {
         },
     }
 
+    let baseline = m
+        .get("baseline")
+        .and_then(|(_, n)| string(&mut e, top_file, n, "baseline"));
+
     let mut sources: Vec<(String, Node)> = Vec::new();
     if let Some((_, inc)) = m.get("include") {
         for rel in include_files(&mut e, top_file, inc, files) {
@@ -296,7 +311,7 @@ pub fn load(root: &Path, files: &[String]) -> Result<Config, Vec<ConfigError>> {
         return Err(list);
     }
     rules.sort_by(|a, b| a.name.cmp(&b.name));
-    Ok(Config { rules })
+    Ok(Config { rules, baseline })
 }
 
 /// The files the include globs match, sorted, without necro.yaml itself.

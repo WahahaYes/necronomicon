@@ -51,6 +51,19 @@ pub fn setup_error(message: &str) {
     let _ = writeln!(std::io::stderr(), "necro: setup error: {message}");
 }
 
+/// Snapshot entries nothing consumed, after the hits: a warning, never a failure.
+pub fn stale_warning(report: &Report) {
+    if report.stale_baseline > 0 {
+        let n = report.stale_baseline;
+        let _ = writeln!(
+            std::io::stderr(),
+            "necro: warning: {n} baseline {} no longer {}; refresh with necro --write-baseline",
+            if n == 1 { "entry" } else { "entries" },
+            if n == 1 { "matches" } else { "match" }
+        );
+    }
+}
+
 pub fn usage(message: &str) {
     let _ = writeln!(std::io::stderr(), "necro: {message}");
 }
@@ -91,6 +104,7 @@ necro: checks a repo against its house rules (necro.yaml).
 
 usage: necro [-C <dir>] [--format full|terse] [--rule <name>]
        necro [-C <dir>] --explain <rule>
+       necro [-C <dir>] [--rule <name>] --write-baseline
        necro grep [--skip-comments <marker>]… <regex> [-- <pathspec>…]
        necro --version
 
