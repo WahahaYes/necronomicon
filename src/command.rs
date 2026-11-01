@@ -61,6 +61,7 @@ pub fn split(s: &str) -> Option<Vec<String>> {
     Some(out)
 }
 
+/// Why a rule's command produced no usable hits.
 pub enum Failure {
     /// The program isn't on PATH (a setup error).
     Missing(String),

@@ -65,14 +65,7 @@ pub fn tracked(pathspecs: &[String]) -> Result<Vec<String>, String> {
     Ok(files)
 }
 
-/// The snapshot files `tracked` must skip: the default name, plus the
-/// `baseline:` pointer from necro.yaml when it parses. Finder subprocesses
-/// run with the repo root as their working folder (rule commands run there,
-/// and `necro grep` is usually run there too), so the root is found the same
-/// way main finds it: the nearest necro.yaml above the working folder. The
-/// pointer is only a hint — anything unreadable falls back to the default
-/// name — and matching is by root-relative path, so a direct `necro grep`
-/// from a subfolder still lists the snapshot.
+/// The snapshot files `tracked` must skip: the default plus the `baseline:` pointer.
 fn snapshot_names() -> Vec<String> {
     let mut names = vec![crate::config::DEFAULT_BASELINE.to_string()];
     let root = std::env::current_dir()

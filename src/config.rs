@@ -10,8 +10,10 @@ use globset::{GlobBuilder, GlobSetBuilder};
 use crate::command;
 use crate::yaml::{self, Key, Node, Pos, Value};
 
+/// The `necro.yaml` version this binary reads.
 pub const SPEC_VERSION: i64 = 0;
 
+/// One config problem, with where it lives.
 #[derive(Debug, Clone)]
 pub struct ConfigError {
     pub file: String,
@@ -20,11 +22,13 @@ pub struct ConfigError {
     pub message: String,
 }
 
+/// The bad and good snippets shown by `--explain`.
 pub struct Examples {
     pub bad: Vec<String>,
     pub good: Vec<String>,
 }
 
+/// One house rule: its command plus the words that teach it.
 pub struct Rule {
     pub name: String,
     /// The command as written; `None` for necro's own rules.
@@ -36,6 +40,7 @@ pub struct Rule {
     pub examples: Option<Examples>,
 }
 
+/// The repo's rules, sorted by name.
 pub struct Config {
     /// The repo's rules, sorted by name.
     pub rules: Vec<Rule>,
@@ -44,6 +49,7 @@ pub struct Config {
 }
 
 impl Config {
+    /// The rule names, for unknown-rule errors.
     pub fn names(&self) -> Vec<&str> {
         self.rules.iter().map(|r| r.name.as_str()).collect()
     }
@@ -160,6 +166,7 @@ fn text(e: &mut Errors, root: &Path, file: &str, node: &Node, path: &str) -> Opt
     }
 }
 
+/// Whether a rule name is lowercase words joined by hyphens.
 pub fn valid_name(name: &str) -> bool {
     name.split('-').all(|w| {
         !w.is_empty()

@@ -60,18 +60,22 @@ fn is_builtin(rule: &str) -> bool {
 }
 
 impl Baseline {
+    /// An empty snapshot: no entries to silence.
     pub fn empty() -> Self {
         Self::default()
     }
 
+    /// The snapshot's entries, sorted for matching.
     pub fn entries(&self) -> &[Entry] {
         &self.entries
     }
 
+    /// Whether the snapshot holds no entries.
     pub fn is_empty(&self) -> bool {
         self.entries.is_empty()
     }
 
+    /// The number of snapshot entries.
     pub fn len(&self) -> usize {
         self.entries.len()
     }

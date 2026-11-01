@@ -6,6 +6,7 @@ use std::process::Command;
 
 const ALLOW: &str = "necro-allow";
 
+/// One `necro-allow` exception parsed from a source line.
 pub struct Allow {
     pub file: String,
     pub line: usize,
