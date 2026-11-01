@@ -11,9 +11,17 @@ pub fn find_root(start: &Path) -> Option<PathBuf> {
         .map(Path::to_path_buf)
 }
 
+/// `git` that finds the repo from its working folder, ignoring GIT_DIR and
+/// GIT_WORK_TREE, which git sets for hooks in a worktree.
+pub fn git() -> Command {
+    let mut git = Command::new("git");
+    git.env_remove("GIT_DIR").env_remove("GIT_WORK_TREE");
+    git
+}
+
 /// Whether `root` is inside a git work tree.
 pub fn in_git(root: &Path) -> bool {
-    Command::new("git")
+    git()
         .args(["rev-parse", "--is-inside-work-tree"])
         .current_dir(root)
         .output()
@@ -22,7 +30,7 @@ pub fn in_git(root: &Path) -> bool {
 
 /// Every file git knows under `root` (tracked or not ignored), root-relative.
 pub fn list(root: &Path) -> Vec<String> {
-    let out = Command::new("git")
+    let out = git()
         .args([
             "ls-files",
             "-z",

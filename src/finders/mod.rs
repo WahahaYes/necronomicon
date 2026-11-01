@@ -2,8 +2,6 @@
 //! searches. Each takes `[options] <args> [-- <pathspec>…]` and prints hits in
 //! the rule output format; this module holds what they share.
 
-use std::process::Command;
-
 use crate::render;
 
 mod grep;
@@ -44,7 +42,7 @@ pub fn split_pathspecs(args: &[String]) -> (&[String], &[String]) {
 /// is skipped: its plain-text fingerprints would match the content rules they
 /// were taken from.
 pub fn tracked(pathspecs: &[String]) -> Result<Vec<String>, String> {
-    let out = Command::new("git")
+    let out = crate::files::git()
         .args(["grep", "-l", "-z", "-I", "-e", "", "--"])
         .args(pathspecs)
         .output()

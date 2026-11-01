@@ -1,0 +1,16 @@
+# allows are found from the root, not from GIT_DIR and GIT_WORK_TREE, which git sets for hooks in a worktree
+spec: Allows
+args: -C sub --format terse
+env: GIT_DIR=<root>/.git
+-- necro.yaml --
+-- sub/necro.yaml --
+version: 0
+rules:
+  banned-word:
+    command: necro grep '\bdonkey\b' -- 'a.ts'
+    message: Banned word
+    why: Because.
+    fix: Say good.
+-- sub/a.ts --
+const d = "donkey"; // necro-allow banned-word: quoting the banned word
+-- @stdout --
