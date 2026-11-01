@@ -83,7 +83,11 @@ Command: necro grep '^\s*(from|import)\s+app\b' -- 'src/core/*.py'
 
 ## Install
 
-From PyPI, a wheel around the `necro` binary (no Rust needed): `uv tool install necronomicon` or `pipx install necronomicon`. From crates.io: `cargo install necronomicon`.
+```sh
+uv tool install necronomicon   # PyPI wheel around the necro binary, no Rust needed
+pip install necronomicon       # the same wheel, into the current environment
+cargo install necronomicon     # from crates.io, built from source
+```
 
 As a pre-commit hook, which installs the wheel into pre-commit's own environment:
 
@@ -94,7 +98,7 @@ As a pre-commit hook, which installs the wheel into pre-commit's own environment
       name: necro
       entry: necro
       language: python
-      additional_dependencies: ['necronomicon>=0.1,<0.2']
+      additional_dependencies: ['necronomicon']
       pass_filenames: false
       always_run: true
 ```
