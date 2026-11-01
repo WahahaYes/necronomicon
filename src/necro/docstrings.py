@@ -62,6 +62,7 @@ def code_part(line):
 
 
 def depth_delta(code):
+    """Brace depth change on one comment-stripped line."""
     depth = 0
     for c in code:
         if c in "{[(":
@@ -177,6 +178,7 @@ def scan(path):
 
 
 def module_has_inner_doc(path, mod_name):
+    """True when the module's file starts with an inner doc comment."""
     sibling = path.parent / (mod_name + ".rs")
     nested = path.parent / mod_name / "mod.rs"
     for cand in (sibling, nested):
@@ -191,6 +193,7 @@ def module_has_inner_doc(path, mod_name):
 
 
 def main(argv):
+    """Run one mode over the tree; hits exit 0, clean exits 1."""
     if len(argv) != 2 or argv[1] not in ("missing", "too-long"):
         sys.stderr.write("usage: docstrings.py (missing|too-long)\n")
         return 2
