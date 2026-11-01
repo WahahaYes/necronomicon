@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- README lists `uv tool`, `pip` and `cargo` installs, and its pre-commit snippet no longer pins a version range.
+
 ## 0.2.0 - 2026-10-31
 
 - Baseline ratchet for rolling out rules over existing violations: committed `necro.baseline.yaml` snapshots match post-allow hits by rule, path and fingerprint, so old hits stay silent while new ones fail; stale entries warn on stderr without failing.

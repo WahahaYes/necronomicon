@@ -98,7 +98,7 @@ As a pre-commit hook, which installs the wheel into pre-commit's own environment
       name: necro
       entry: necro
       language: python
-      additional_dependencies: ['necronomicon>=0.1,<0.2']
+      additional_dependencies: ['necronomicon']
       pass_filenames: false
       always_run: true
 ```
