@@ -135,12 +135,7 @@ fn main_with(args: Args) -> Result<u8, String> {
     Ok(report.exit_code())
 }
 
-/// `--write-baseline`: snapshot the observed post-allow hits and confirm.
-/// A full regen replaces the snapshot; a scoped one replaces only that
-/// rule's entries and carries the rest over. Snapshot errors never block
-/// regen (a missing snapshot is empty, a corrupt one is discarded and
-/// rebuilt); problems fail first: a partial pipeline must not become the
-/// snapshot.
+/// `--write-baseline`: snapshot post-allow hits and confirm (spec: Regen).
 fn write_baseline(config: &config::Config, root: &Path, only: Option<&str>) -> Result<u8, String> {
     let report = run::run_observed(config, root, only);
     if !report.problems.is_empty() {
