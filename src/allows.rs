@@ -2,7 +2,6 @@
 //! on a raw line, in any comment style, found with `git grep`.
 
 use std::path::Path;
-use std::process::Command;
 
 const ALLOW: &str = "necro-allow";
 
@@ -20,7 +19,7 @@ pub struct Allow {
 
 /// Every allow in the tracked files under `root`.
 pub fn find(root: &Path) -> Result<Vec<Allow>, String> {
-    let out = Command::new("git")
+    let out = crate::files::git()
         .args(["grep", "-l", "-z", "-I", "-F", "-e", ALLOW])
         .current_dir(root)
         .output()

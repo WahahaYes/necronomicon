@@ -3,11 +3,18 @@
 
 use std::collections::{BTreeSet, HashMap};
 use std::path::Path;
+use std::sync::mpsc::{self, Receiver, RecvTimeoutError};
+use std::time::{Duration, Instant};
 
 use crate::allows::{self, Allow};
 use crate::baseline::Baseline;
 use crate::command::{self, Failure};
 use crate::config::{self, Config, Rule};
+use crate::render;
+
+/// How long a command runs before necro says so; it isn't killed (spec:
+/// Commands).
+const LONG_RUN: Duration = Duration::from_secs(60);
 
 /// One rule hit with the words that teach it.
 pub struct Diagnostic {
@@ -107,13 +114,24 @@ pub fn run_observed(config: &Config, root: &Path, only: Option<&str>) -> Report 
         .filter(|r| only.is_none_or(|o| r.name == o))
         .collect();
     let outputs: Vec<Result<Vec<String>, Failure>> = std::thread::scope(|s| {
+        let (done, finished) = mpsc::channel();
         let handles: Vec<_> = selected
             .iter()
-            .map(|r| {
+            .enumerate()
+            .map(|(i, r)| {
                 let command = r.command.as_deref().unwrap_or_default();
-                s.spawn(move || command::run(command, root))
+                let done = done.clone();
+                s.spawn(move || {
+                    let output = command::run(command, root);
+                    // necro-allow swallowed-error: the watcher stops listening once it has spoken
+                    let _ = done.send(i);
+                    output
+                })
             })
             .collect();
+        drop(done);
+        let names: Vec<&str> = selected.iter().map(|r| r.name.as_str()).collect();
+        s.spawn(move || watch(&names, &finished, LONG_RUN, render::still_running));
         handles
             .into_iter()
             .map(|h| {
@@ -210,6 +228,30 @@ pub fn run_observed(config: &Config, root: &Path, only: Option<&str>) -> Report 
 }
 
 /// Parse a command's output; every path must be a file under the root.
+/// Wait for every rule's command; at `after`, name the ones still running,
+/// once, and stop watching.
+fn watch(
+    names: &[&str],
+    finished: &Receiver<usize>,
+    after: Duration,
+    say: impl FnOnce(&[&str], u64),
+) {
+    let deadline = Instant::now() + after;
+    let mut running: BTreeSet<usize> = (0..names.len()).collect();
+    while !running.is_empty() {
+        match finished.recv_timeout(deadline.saturating_duration_since(Instant::now())) {
+            Ok(i) => {
+                running.remove(&i);
+            }
+            Err(RecvTimeoutError::Timeout) => {
+                let late: Vec<&str> = running.iter().map(|&i| names[i]).collect();
+                return say(&late, after.as_secs());
+            }
+            Err(RecvTimeoutError::Disconnected) => return,
+        }
+    }
+}
+
 fn read_hits(root: &Path, lines: &[String]) -> Result<Vec<command::Hit>, Failure> {
     let mut hits = Vec::new();
     for (i, line) in lines.iter().enumerate() {

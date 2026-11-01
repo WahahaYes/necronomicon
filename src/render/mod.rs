@@ -66,6 +66,14 @@ pub fn stale_warning(report: &Report) {
     }
 }
 
+/// The rules whose commands are still running, one line each, to stderr.
+pub fn still_running(rules: &[&str], secs: u64) {
+    let mut err = std::io::stderr().lock();
+    for rule in rules {
+        let _ = writeln!(err, "necro: still running after {secs} s: {rule}");
+    }
+}
+
 /// One usage error to stderr.
 pub fn usage(message: &str) {
     let _ = writeln!(std::io::stderr(), "necro: {message}");

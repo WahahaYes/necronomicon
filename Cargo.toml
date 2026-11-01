@@ -22,8 +22,5 @@ granit-parser = { version = "=2.0.0", default-features = false, features = ["std
 globset = "0.4.16"
 regex = "1.12"
 
-[target.'cfg(unix)'.dependencies]
-libc = "0.2.174"
-
 [profile.release]
 strip = true
