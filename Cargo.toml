@@ -2,6 +2,8 @@
 name = "necronomicon"
 version = "0.2.0"
 edition = "2024"
+# The pinned toolchain (rust-toolchain.toml): the only one CI builds with.
+rust-version = "1.98"
 description = "Agent mind control for your codebase: house rules that teach. Pre-commit checks tell coding agents what's wrong, why, and what to do instead."
 license = "Apache-2.0"
 repository = "https://github.com/WahahaYes/necronomicon"
