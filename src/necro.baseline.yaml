@@ -1,2 +1,14 @@
 version: 1
-entries: []
+entries:
+  - rule: "swallowed-error"
+    path: "command.rs"
+    fingerprint: "let _ = child.kill();"
+    line: 159
+  - rule: "swallowed-error"
+    path: "command.rs"
+    fingerprint: "let _ = child.wait();"
+    line: 160
+  - rule: "swallowed-error"
+    path: "command.rs"
+    fingerprint: "let _ = stdout.read_to_end(&mut buf);"
+    line: 105

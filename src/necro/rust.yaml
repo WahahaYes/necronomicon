@@ -1,0 +1,101 @@
+# Rust rules meant to become the built-in necro:rust pack. Kept free of
+# anything specific to necronomicon so another repo can run them unchanged.
+# Clippy-based rules go through necro/clippy.py: one cached clippy run serves
+# them all (two with --tests).
+rules:
+  no-unwrap:
+    command: uv run --script necro/clippy.py unwrap_used
+    message: unwrap() outside tests
+    why: an unwrap panics with no word on what went wrong, so a failure in the field reads as a crash with a line number and nothing else.
+    fix: propagate with `?` (adding context to the error), handle the None or Err, or, for a real invariant, `expect("<what must hold>")`.
+    details: |
+      Test code is exempt: the rule runs clippy without test targets, so
+      `#[cfg(test)]` modules and `tests/` aren't compiled. `lock().unwrap()`
+      counts too; say why poisoning can't happen with `expect`, or recover
+      with `into_inner()`.
+    examples:
+      bad: 'let config = fs::read_to_string(path).unwrap();'
+      good: 'let config = fs::read_to_string(path).map_err(|e| Error::Read(path.into(), e))?;'
+  expect-says-invariant:
+    command: >-
+      uv run --script necro/clippy.py
+      --match '\.expect\(\s*"\W*\w*(\W+\w+)?\W*"\s*\)$' expect_used
+    message: an expect message under three words
+    why: the message is all a panic says. One word ("piped", "failed") names neither the invariant nor what broke it.
+    fix: state what must hold, as a short clause, e.g. `expect("stdout is piped")`.
+    details: |
+      Only string-literal messages under three words are flagged, outside
+      tests. A message built with `format!` or a constant is left alone.
+    examples:
+      bad: 'child.stdout.take().expect("piped")'
+      good: 'child.stdout.take().expect("stdout is piped (Stdio::piped above)")'
+  lint-override-reason:
+    command: >-
+      uv run --script necro/clippy.py --tests
+      allow_attributes allow_attributes_without_reason
+    message: a lint override without expect and a reason
+    why: an `#[allow]` outlives the code it excused and says nothing about why; `#[expect]` fails once the lint stops firing, and `reason` is the why.
+    fix: 'write `#[expect(<lint>, reason = "<why>")]`; if the expect then fails as unfulfilled, delete the attribute.'
+    examples:
+      bad: '#[allow(dead_code)]'
+      good: '#[expect(dead_code, reason = "entries() is for the status lane, not wired yet")]'
+  no-stubs:
+    command: uv run --script necro/clippy.py --tests todo unimplemented dbg_macro
+    message: a todo!, unimplemented! or dbg! left in
+    why: stubs compile and then panic at run time, and dbg! writes to stderr in a release build; both are scaffolding that slipped into a commit.
+    fix: finish the code, return an error for the unsupported case, or remove the dbg!.
+  unsafe-safety-comment:
+    command: uv run --script necro/clippy.py --tests undocumented_unsafe_blocks
+    message: an unsafe block with no SAFETY comment
+    why: an unsafe block moves a proof obligation from the compiler to the reader; without the argument written down, the next change can't check it still holds.
+    fix: 'put `// SAFETY: <why this is sound>` on the line above the block.'
+    examples:
+      bad: 'unsafe { libc::kill(pid, libc::SIGKILL) };'
+      good: |-
+        // SAFETY: kill takes plain integers and has no memory effects.
+        unsafe { libc::kill(pid, libc::SIGKILL) };
+  swallowed-error:
+    command: >-
+      uv run --script necro/clippy.py --skip '^let _ = (write|writeln)!'
+      let_underscore_must_use unused_result_ok
+    message: a Result dropped without a word
+    why: '`let _ =` and `.ok();` turn a failure into silence: the caller never learns, and nothing records why ignoring it was safe.'
+    fix: propagate with `?`, handle the error, or if it truly doesn't matter keep it and say why in an allow comment.
+    details: |
+      Outside tests. `let _ = write!(…)` / `writeln!(…)` are skipped, since
+      writes into a String can't fail. Experimental: tuned on necronomicon
+      only.
+    examples:
+      bad: 'let _ = stdout.read_to_end(&mut buf);'
+      good: 'stdout.read_to_end(&mut buf)?;'
+  weasel-type-names:
+    command: >-
+      necro grep '\b(struct|enum|trait|type)\s+\w*(Manager|Service|Factory|Helpers?|Utils?|Handler)\b'
+      -- '*.rs'
+    message: a type named for a role, not a thing
+    why: Manager, Service, Helper and the like say a type exists, not what it holds or does, so it becomes the place every unrelated function lands.
+    fix: name what it is (`Pool`, `Cache`, `Renderer`), or split it; a builder is fine as `…Builder`.
+    details: |
+      From Microsoft's Pragmatic Rust Guidelines (M-WEASEL-WORDS).
+      Experimental: no hits to tune against yet.
+    examples:
+      bad: 'struct ConfigManager {'
+      good: 'struct Config {'
+  lossy-cast:
+    command: uv run --script necro/clippy.py cast_possible_truncation
+    message: a numeric cast that may truncate
+    why: '`as` between number types never fails; a value out of range becomes a different number with no error.'
+    fix: use `try_from` and handle the error, or, when the range is already checked, keep the cast with an allow comment that says where.
+    details: Outside tests. Experimental.
+    examples:
+      bad: 'let n = len as u32;'
+      good: 'let n = u32::try_from(len)?;'
+  cargo-manifest:
+    command: uv run --script necro/cargo_manifest.py
+    message: a crate manifest below the house baseline
+    why: an older edition misses the current language defaults, and a publishable crate with no rust-version fails on an old toolchain with compile errors instead of a clear version message.
+    fix: set `edition = "2024"`, and `rust-version` to the oldest toolchain you test (the pinned one, if that's all CI runs).
+    details: |
+      Every workspace member, read through `cargo metadata`, so
+      `edition.workspace = true` counts. rust-version is only required where
+      `publish` isn't false.
