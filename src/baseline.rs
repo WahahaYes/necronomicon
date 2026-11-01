@@ -315,6 +315,7 @@ fn read_entry(file: &str, i: usize, node: &yaml::Node) -> Result<Entry, LoadErro
     let fingerprint = field("fingerprint", fingerprint)?;
     let line = line.ok_or_else(|| LoadError::Shape(format!("{at}: missing key `line`")))?;
     let line = match line.as_number() {
+        // necro-allow lossy-cast: whole and non-negative per the guard; `as` saturates
         Some(n) if n.fract() == 0.0 && n >= 0.0 => n as usize,
         _ => {
             return Err(LoadError::Shape(format!(

@@ -2,6 +2,7 @@
 # .pre-commit-config.yaml). Rooted in src/ so the allows that tests/ and
 # examples/ quote as data stay outside it. Format: spec/v0.md.
 version: 0
+include: [necro/rust.yaml] # the Rust rules, a pack in waiting
 rules:
   docstring-missing:
     command: >-

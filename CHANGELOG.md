@@ -3,6 +3,8 @@
 ## Unreleased
 
 - README lists `uv tool`, `pip` and `cargo` installs, and its pre-commit snippet no longer pins a version range.
+- Rust house rules in `src/necro/rust.yaml` (no-unwrap, expect-says-invariant, lint-override-reason, no-stubs, unsafe-safety-comment, swallowed-error, weasel-type-names, lossy-cast, cargo-manifest), mostly clippy lints run through `src/necro/clippy.py` with necro's wording; the three swallowed errors in `command.rs` are baselined.
+- The crate declares `rust-version = "1.98"`, the pinned toolchain.
 
 ## 0.2.0 - 2026-10-31
 

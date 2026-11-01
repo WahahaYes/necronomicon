@@ -1,9 +1,7 @@
 //! `necro`: checks a repo against its house rules (spec/v0.md).
 
 mod allows;
-// Lane 1's snapshot API: entries() serves later lanes (spec + status), so it
-// has no caller yet.
-#[allow(dead_code)]
+#[expect(dead_code, reason = "entries() serves the status lane; no caller yet")]
 mod baseline;
 mod command;
 mod config;
