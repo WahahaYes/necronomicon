@@ -6,6 +6,7 @@
 - Rust house rules in `src/necro/rust.yaml` (no-unwrap, expect-says-invariant, lint-override-reason, no-stubs, unsafe-safety-comment, swallowed-error, weasel-type-names, lossy-cast, cargo-manifest), mostly clippy lints run through `src/necro/clippy.py` with necro's wording; the three swallowed errors in `command.rs` are baselined.
 - The crate declares `rust-version = "1.98"`, the pinned toolchain.
 - Allows are found in commits made from a git worktree: necro's own `git` calls ignore `GIT_DIR` and `GIT_WORK_TREE`, as rule commands already did, so a hook no longer misses every allow when the root is below the repo's top.
+- Commands no longer time out after 120 s (a cold `cargo` build could hit it): necro waits for every command and, past 60 s, names the rules still running on stderr. Commands now share necro's process group, so Ctrl-C stops them too; the `libc` dependency is gone.
 
 ## 0.2.0 - 2026-10-31
 

@@ -4,9 +4,7 @@ use std::collections::VecDeque;
 use std::io::{BufRead, BufReader, Read};
 use std::path::Path;
 use std::process::{Command, Stdio};
-use std::time::{Duration, Instant};
 
-const TIMEOUT: Duration = Duration::from_secs(120);
 const STDERR_TAIL: usize = 20;
 
 /// Split `s` into words as a POSIX shell would (quotes, backslashes), with no
@@ -89,8 +87,6 @@ pub fn run(command: &str, root: &Path) -> Result<Vec<String>, Failure> {
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
-    #[cfg(unix)]
-    std::os::unix::process::CommandExt::process_group(&mut cmd, 0);
     let mut child = match cmd.spawn() {
         Ok(c) => c,
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
@@ -115,22 +111,17 @@ pub fn run(command: &str, root: &Path) -> Result<Vec<String>, Failure> {
         }
         Vec::from(tail)
     });
-    let deadline = Instant::now() + TIMEOUT;
-    let status = loop {
-        match child.try_wait() {
-            Ok(Some(status)) => break Some(status),
-            Ok(None) if Instant::now() < deadline => std::thread::sleep(Duration::from_millis(5)),
-            _ => {
-                kill(&mut child);
-                break None;
-            }
-        }
-    };
+    let status = child.wait();
     let stdout = out.join().unwrap_or_default();
     let tail = err.join().unwrap_or_default();
-    let Some(status) = status else {
-        let secs = TIMEOUT.as_secs();
-        return Err(Failure::Check(format!("timed out after {secs} s"), tail));
+    let status = match status {
+        Ok(status) => status,
+        Err(e) => {
+            return Err(Failure::Check(
+                format!("can't wait for {program}: {e}"),
+                tail,
+            ));
+        }
     };
     match status.code() {
         Some(0 | 1) => {}
@@ -148,16 +139,6 @@ fn path_with_necro() -> Option<std::ffi::OsString> {
     let dir = exe.parent()?.to_path_buf();
     let rest = std::env::var_os("PATH").unwrap_or_default();
     std::env::join_paths(std::iter::once(dir).chain(std::env::split_paths(&rest))).ok()
-}
-
-fn kill(child: &mut std::process::Child) {
-    #[cfg(unix)]
-    // SAFETY: signals the process group the child leads (process_group(0)).
-    unsafe {
-        libc::kill(-(child.id() as i32), libc::SIGKILL);
-    }
-    let _ = child.kill();
-    let _ = child.wait();
 }
 
 /// One violation as printed: `path[:line[:col[-endcol]]][:label]`.
