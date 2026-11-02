@@ -6,7 +6,7 @@ rules:
     command: necro clippy unwrap_used
     message: unwrap() outside tests
     why: an unwrap panics with no word on what went wrong, so a failure in the field reads as a crash with a line number and nothing else.
-    fix: propagate with `?` (adding context to the error), return early with `let … else`, or fall back with `unwrap_or`, `unwrap_or_else` or `unwrap_or_default`. `expect` is no fix; no-expect flags it too.
+    fix: propagate with `?` (adding context to the error; `ok_or` turns a None into one), return early with `let … else`, or fall back with `unwrap_or`, `unwrap_or_else` or `unwrap_or_default`. `expect` is no fix; no-expect flags it too.
     details: |
       Test code is exempt: the rule runs clippy without test targets, so
       `#[cfg(test)]` modules and `tests/` aren't compiled. `lock().unwrap()`
@@ -46,7 +46,7 @@ rules:
     command: necro clippy --tests todo unimplemented dbg_macro
     message: a todo!, unimplemented! or dbg! left in
     why: stubs compile and then panic at run time, and dbg! writes to stderr in a release build; both are scaffolding that slipped into a commit.
-    fix: finish the code, return an error for the unsupported case, or remove the dbg!.
+    fix: finish the code, return an error for the unsupported case, or remove the dbg!. A case that truly can't happen is `unreachable!("<why>")`, which this rule leaves alone.
   unsafe-safety-comment:
     command: necro clippy --tests undocumented_unsafe_blocks
     message: an unsafe block with no SAFETY comment
