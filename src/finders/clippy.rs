@@ -103,10 +103,18 @@ fn check(
     cmd.arg("--target-dir").arg(cache(ws));
     cmd.arg("--");
     cmd.args(LINTS.iter().map(|l| format!("-Wclippy::{l}")));
+    // Only a cold build waits its turn: a warm one replays in a moment.
+    let warm = cache(ws).join(if o.tests { ".warm-tests" } else { ".warm" });
+    let turn = if warm.exists() {
+        None
+    } else {
+        one_build_at_a_time()
+    };
     let out = cmd
         .current_dir(&ws.root)
         .output()
         .map_err(|e| format!("can't run cargo: {e}"))?;
+    drop(turn);
     let mut errors = Vec::new();
     for line in String::from_utf8_lossy(&out.stdout).lines() {
         let Ok(msg) = serde_json::from_str::<Value>(line) else {
@@ -163,7 +171,25 @@ fn check(
         }
         return Err(text.trim_end().to_string());
     }
+    // necro-allow rust/swallowed-error: without the marker the next run only waits its turn again
+    let _ = std::fs::write(warm, "");
     Ok(())
+}
+
+/// Wait for this machine's other cold `necro clippy` builds; the lock holds
+/// until the file is dropped. Concurrent rules would otherwise check two cold
+/// workspaces at once, each with its full share of memory. Without a lock
+/// file (a read-only temp folder) builds simply overlap.
+fn one_build_at_a_time() -> Option<std::fs::File> {
+    let path = std::env::temp_dir().join("necro-clippy.lock");
+    let file = std::fs::OpenOptions::new()
+        .create(true)
+        .truncate(false)
+        .write(true)
+        .open(path)
+        .ok()?;
+    file.lock().ok()?;
+    Some(file)
 }
 
 /// The diagnostic's primary span in the repo's code, following macro
