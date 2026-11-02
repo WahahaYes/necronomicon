@@ -1,6 +1,0 @@
-version: 1
-entries:
-  - rule: "swallowed-error"
-    path: "command.rs"
-    fingerprint: "let _ = stdout.read_to_end(&mut buf);"
-    line: 101
