@@ -63,8 +63,8 @@ rules:
     fix: propagate with `?`, handle the error, or if it truly doesn't matter keep it and say why in an allow comment.
     details: |
       Outside tests. `let _ = write!(…)` / `writeln!(…)` are skipped, since
-      writes into a String can't fail. Experimental: tuned on necronomicon
-      only.
+      writes into a String can't fail. Most hits are best-effort cleanup
+      (removing a temp file, killing a child): say so in the allow comment.
     examples:
       bad: 'let _ = stdout.read_to_end(&mut buf);'
       good: 'stdout.read_to_end(&mut buf)?;'
@@ -86,7 +86,7 @@ rules:
     message: a numeric cast that may truncate
     why: '`as` between number types never fails; a value out of range becomes a different number with no error.'
     fix: use `try_from` and handle the error, or, when the range is already checked, keep the cast with an allow comment that says where.
-    details: Outside tests. Experimental.
+    details: Outside tests.
     examples:
       bad: 'let n = len as u32;'
       good: 'let n = u32::try_from(len)?;'
