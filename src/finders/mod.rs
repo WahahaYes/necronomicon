@@ -19,6 +19,11 @@ const FINDERS: &[(&str, Finder)] = &[
     ("grep", grep::run),
 ];
 
+/// Remove the Cargo finders' build folders: each as (folder, size).
+pub fn clean_cache() -> Result<Vec<(String, String)>, String> {
+    cargo::clean_cache()
+}
+
 /// Run `args[0]` as a finder, if it names one: the exit code.
 pub fn dispatch(args: &[String]) -> Option<u8> {
     let (name, rest) = args.split_first()?;

@@ -22,6 +22,7 @@ struct Args {
     rule: Option<String>,
     explain: Option<String>,
     write_baseline: bool,
+    clean_cache: bool,
 }
 
 fn parse(argv: Vec<String>) -> Result<Args, String> {
@@ -44,6 +45,7 @@ fn parse(argv: Vec<String>) -> Result<Args, String> {
             "--rule" => a.rule = Some(value("--rule", inline.as_deref())?),
             "--explain" => a.explain = Some(value("--explain", inline.as_deref())?),
             "--write-baseline" => a.write_baseline = true,
+            "--clean-cache" => a.clean_cache = true,
             f if f.starts_with('-') && f.len() > 1 => {
                 return Err(format!("unknown option {f} (see necro --help)"));
             }
@@ -95,6 +97,9 @@ fn main_with(args: Args) -> Result<u8, String> {
     if !files::in_git(&root) {
         render::setup_error(&format!("{} isn't inside a git work tree", root.display()));
         return Ok(2);
+    }
+    if args.clean_cache {
+        return clean_cache(&root);
     }
     let config = match config::load(&root, &files::list(&root)) {
         Ok(c) => c,
@@ -161,5 +166,24 @@ fn write_baseline(config: &config::Config, root: &Path, only: Option<&str>) -> R
         n,
         if n == 1 { "entry" } else { "entries" }
     ));
+    Ok(0)
+}
+
+/// `--clean-cache`: remove the Cargo finders' build folders (spec: CLI).
+fn clean_cache(root: &Path) -> Result<u8, String> {
+    std::env::set_current_dir(root).map_err(|e| format!("can't enter {}: {e}", root.display()))?;
+    let removed = match finders::clean_cache() {
+        Ok(removed) => removed,
+        Err(message) => {
+            render::setup_error(&message);
+            return Ok(2);
+        }
+    };
+    if removed.is_empty() {
+        render::line("necro: no cache to clean");
+    }
+    for (folder, size) in removed {
+        render::line(&format!("necro: removed {folder} ({size})"));
+    }
     Ok(0)
 }

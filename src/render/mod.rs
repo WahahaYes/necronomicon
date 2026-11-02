@@ -122,6 +122,7 @@ necro: checks a repo against its house rules (necro.yaml).
 usage: necro [-C <dir>] [--format full|terse] [--rule <name>]
        necro [-C <dir>] --explain <rule>
        necro [-C <dir>] [--rule <name>] --write-baseline
+       necro [-C <dir>] --clean-cache
        necro grep [--skip-comments <marker>]… <regex> [-- <pathspec>…]
        necro --version
 

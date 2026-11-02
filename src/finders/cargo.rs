@@ -124,3 +124,57 @@ pub fn relative(path: &Path) -> Option<String> {
         .collect();
     (!parts.is_empty()).then(|| parts.join("/"))
 }
+
+/// The folder under a workspace's target folder that `necro clippy` builds in.
+pub fn cache(ws: &Workspace) -> PathBuf {
+    ws.target.join("necro")
+}
+
+/// Remove every workspace's cache folder: each as (folder, size), the folder
+/// relative to the working folder when it's under it.
+pub fn clean_cache() -> Result<Vec<(String, String)>, String> {
+    let mut removed = Vec::new();
+    for ws in workspaces()? {
+        let folder = cache(&ws);
+        if !folder.is_dir() {
+            continue;
+        }
+        let size = size(&folder);
+        std::fs::remove_dir_all(&folder)
+            .map_err(|e| format!("can't remove {}: {e}", folder.display()))?;
+        let shown = relative(&folder).unwrap_or_else(|| folder.display().to_string());
+        removed.push((shown, human(size)));
+    }
+    Ok(removed)
+}
+
+/// The bytes in the files under `path`, not following links.
+fn size(path: &Path) -> u64 {
+    let Ok(meta) = std::fs::symlink_metadata(path) else {
+        return 0;
+    };
+    if !meta.is_dir() {
+        return meta.len();
+    }
+    std::fs::read_dir(path)
+        .into_iter()
+        .flatten()
+        .flatten()
+        .map(|entry| size(&entry.path()))
+        .sum()
+}
+
+/// A size in bytes, as `7 B` or `1.9 GB` (1024-based).
+fn human(bytes: u64) -> String {
+    const UNITS: [&str; 4] = ["KB", "MB", "GB", "TB"];
+    if bytes < 1024 {
+        return format!("{bytes} B");
+    }
+    let mut value = bytes as f64 / 1024.0;
+    let mut unit = 0;
+    while value >= 1024.0 && unit < UNITS.len() - 1 {
+        value /= 1024.0;
+        unit += 1;
+    }
+    format!("{value:.1} {}", UNITS[unit])
+}

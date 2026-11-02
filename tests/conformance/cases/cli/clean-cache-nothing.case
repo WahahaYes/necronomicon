@@ -1,0 +1,5 @@
+# --clean-cache with nothing cached says so
+spec: CLI
+args: --clean-cache
+-- @stdout --
+necro: no cache to clean

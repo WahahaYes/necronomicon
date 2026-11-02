@@ -7,7 +7,7 @@ use std::process::Command;
 use regex::Regex;
 use serde_json::Value;
 
-use super::cargo::{Workspace, relative, workspaces};
+use super::cargo::{Workspace, cache, relative, workspaces};
 
 const USAGE: &str = "necro clippy [--tests] [--match <regex>] [--skip <regex>] <lint>…";
 
@@ -100,7 +100,7 @@ fn check(
     }
     // Its own target folder: arguments that differ from the repo's own clippy
     // run would otherwise make each recheck what the other just checked.
-    cmd.arg("--target-dir").arg(ws.target.join("necro"));
+    cmd.arg("--target-dir").arg(cache(ws));
     cmd.arg("--");
     cmd.args(LINTS.iter().map(|l| format!("-Wclippy::{l}")));
     let out = cmd
