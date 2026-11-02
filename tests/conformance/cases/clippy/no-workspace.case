@@ -1,0 +1,5 @@
+# with no Cargo workspace there is nothing to check
+spec: Finders
+args: clippy unwrap_used
+-- src/a.rs --
+fn main() { None::<u8>.unwrap(); }

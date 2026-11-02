@@ -7,6 +7,7 @@ A rule is a command that prints where the violations are, plus the words necro s
 necro runs it from the repo root, splits it into words like a shell (quotes) but runs no shell, and reads one hit per output line: `path[:line[:col[-endcol]]][:label]`. Exit 0 or 1 is normal. It may use git and the repo's own toolchain, nothing else.
 
 - **A pattern:** `necro grep [--skip-comments <marker>] '<regex>' -- <pathspecs>`. Rust regex, columns right for every match, the match as the label. Exclusions are pathspecs (`':!src/net/protocol.gd'`).
+- **Rust:** `necro clippy [--tests] <lint>…` reports clippy lints, from the set the Rust pack uses, in every Cargo workspace under the root; `necro cargo-manifest` checks each crate's edition and `rust-version`. Test code is skipped unless `--tests`.
 - **More than a pattern:** a script in the repo's language that prints the same lines. For Python, `uv run --script necro/x.py` with the script's needs in a PEP 723 header, so nobody installs anything.
 - **Any other tool** works if its output fits, `git grep -n --column -o` included (its columns count bytes and drift after the first match on a line).
 

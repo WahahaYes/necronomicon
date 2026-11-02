@@ -4,13 +4,20 @@
 
 use crate::render;
 
+mod cargo;
+mod clippy;
 mod grep;
+mod manifest;
 
 /// A finder: its arguments after the name, to its hits or a usage error.
 type Finder = fn(&[String]) -> Result<Vec<String>, String>;
 
 /// The finders by name, for dispatch from the CLI.
-const FINDERS: &[(&str, Finder)] = &[("grep", grep::run)];
+const FINDERS: &[(&str, Finder)] = &[
+    ("cargo-manifest", manifest::run),
+    ("clippy", clippy::run),
+    ("grep", grep::run),
+];
 
 /// Run `args[0]` as a finder, if it names one: the exit code.
 pub fn dispatch(args: &[String]) -> Option<u8> {

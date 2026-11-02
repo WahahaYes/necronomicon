@@ -1,0 +1,6 @@
+# cargo-manifest takes no arguments
+spec: Finders
+args: cargo-manifest src
+exit: 2
+-- @stderr --
+necro: cargo-manifest: unexpected argument src: necro cargo-manifest

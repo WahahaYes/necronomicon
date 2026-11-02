@@ -1,0 +1,23 @@
+# --match keeps and --skip drops hits by the span's text
+spec: Finders
+args: clippy --match '"kept' --skip 'kept not' expect_used
+-- Cargo.toml --
+[package]
+name = "c"
+version = "0.1.0"
+edition = "2024"
+publish = false
+-- src/lib.rs --
+pub fn a(x: Option<u8>) -> u8 {
+    x.expect("kept")
+}
+
+pub fn b(x: Option<u8>) -> u8 {
+    x.expect("dropped")
+}
+
+pub fn c(x: Option<u8>) -> u8 {
+    x.expect("kept not")
+}
+-- @stdout --
+src/lib.rs:2:5-20: used `expect()` on an `Option` value

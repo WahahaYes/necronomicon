@@ -1,0 +1,31 @@
+# inherited fields resolve through the workspace, the hit is the member's own edition line, and every workspace runs
+spec: Finders
+args: cargo-manifest
+-- Cargo.toml --
+[workspace]
+members = ["crates/a"]
+
+[workspace.package]
+edition = "2021"
+rust-version = "1.85"
+-- crates/a/Cargo.toml --
+[package]
+name = "a"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+-- crates/a/src/lib.rs --
+pub fn f() {}
+-- tools/Cargo.toml --
+[package]
+name = "tools"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[workspace]
+-- tools/src/lib.rs --
+pub fn f() {}
+-- @stdout --
+crates/a/Cargo.toml:4:1: a is on edition 2021
+tools/Cargo.toml:4:1: tools is on edition 2021

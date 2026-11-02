@@ -1,0 +1,11 @@
+# a crate on 2024 with a rust-version is clean
+spec: Finders
+args: cargo-manifest
+-- Cargo.toml --
+[package]
+name = "fine"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+-- src/lib.rs --
+pub fn f() {}

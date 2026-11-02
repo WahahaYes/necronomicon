@@ -21,6 +21,8 @@ path = "src/main.rs"
 granit-parser = { version = "=2.0.0", default-features = false, features = ["std", "error_messages"] }
 globset = "0.4.16"
 regex = "1.12"
+# Cargo's JSON output, for the Cargo finders (necro clippy, cargo-manifest).
+serde_json = "1.0.154"
 
 [profile.release]
 strip = true

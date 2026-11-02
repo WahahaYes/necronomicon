@@ -1,0 +1,13 @@
+# an edition before 2024 is a hit at its line; a publishable crate needs a rust-version
+spec: Finders
+args: cargo-manifest
+-- Cargo.toml --
+[package]
+name = "old"
+version = "0.1.0"
+edition = "2021"
+-- src/lib.rs --
+pub fn f() {}
+-- @stdout --
+Cargo.toml: old is publishable with no rust-version
+Cargo.toml:4:1: old is on edition 2021
