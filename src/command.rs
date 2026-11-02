@@ -102,8 +102,7 @@ pub fn run(command: &str, root: &Path) -> Result<Vec<String>, Failure> {
     };
     let out = std::thread::spawn(move || {
         let mut buf = Vec::new();
-        let _ = stdout.read_to_end(&mut buf);
-        buf
+        stdout.read_to_end(&mut buf).map(|_| buf)
     });
     let err = std::thread::spawn(move || {
         let mut tail = VecDeque::new();
@@ -116,13 +115,22 @@ pub fn run(command: &str, root: &Path) -> Result<Vec<String>, Failure> {
         Vec::from(tail)
     });
     let status = child.wait();
-    let stdout = out.join().unwrap_or_default();
+    let stdout = out.join().unwrap_or_else(|_| Ok(Vec::new()));
     let tail = err.join().unwrap_or_default();
     let status = match status {
         Ok(status) => status,
         Err(e) => {
             return Err(Failure::Check(
                 format!("can't wait for {program}: {e}"),
+                tail,
+            ));
+        }
+    };
+    let stdout = match stdout {
+        Ok(buf) => buf,
+        Err(e) => {
+            return Err(Failure::Check(
+                format!("can't read {program}'s output: {e}"),
                 tail,
             ));
         }
