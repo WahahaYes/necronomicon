@@ -1,0 +1,12 @@
+# with no edition key cargo uses 2015: a whole-file hit
+spec: Finders
+args: cargo-manifest
+-- Cargo.toml --
+[package]
+name = "bare"
+version = "0.1.0"
+publish = false
+-- src/lib.rs --
+pub fn f() {}
+-- @stdout --
+Cargo.toml: bare is on edition 2015

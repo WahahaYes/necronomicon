@@ -1,0 +1,28 @@
+# every workspace below the working folder runs, a nested one with its own [workspace] included
+spec: Finders
+args: clippy unwrap_used
+-- app/Cargo.toml --
+[package]
+name = "app"
+version = "0.1.0"
+edition = "2024"
+publish = false
+-- app/src/lib.rs --
+pub fn a(s: &str) -> u8 {
+    s.parse().unwrap()
+}
+-- app/engine/Cargo.toml --
+[package]
+name = "engine"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[workspace]
+-- app/engine/src/lib.rs --
+pub fn e(s: &str) -> u8 {
+    s.parse().unwrap()
+}
+-- @stdout --
+app/engine/src/lib.rs:2:5-22: used `unwrap()` on a `Result` value
+app/src/lib.rs:2:5-22: used `unwrap()` on a `Result` value

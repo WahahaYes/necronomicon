@@ -1,0 +1,14 @@
+# two of the given lints on one line are one hit, at the leftmost column
+spec: Finders
+args: clippy allow_attributes allow_attributes_without_reason
+-- Cargo.toml --
+[package]
+name = "c"
+version = "0.1.0"
+edition = "2024"
+publish = false
+-- src/lib.rs --
+#[allow(dead_code)]
+fn unused() {}
+-- @stdout --
+src/lib.rs:1:1-19: `allow` attribute without specifying a reason

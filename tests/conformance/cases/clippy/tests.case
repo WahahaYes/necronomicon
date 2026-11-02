@@ -1,0 +1,24 @@
+# --tests adds test targets and #[cfg(test)] code
+spec: Finders
+args: clippy --tests unwrap_used
+-- Cargo.toml --
+[package]
+name = "c"
+version = "0.1.0"
+edition = "2024"
+publish = false
+-- src/lib.rs --
+pub fn parse(s: &str) -> u32 {
+    s.parse().unwrap()
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn parses() {
+        assert_eq!(super::parse("1"), "1".parse::<u32>().unwrap());
+    }
+}
+-- @stdout --
+src/lib.rs:2:5-22: used `unwrap()` on a `Result` value
+src/lib.rs:9:39-65: used `unwrap()` on a `Result` value

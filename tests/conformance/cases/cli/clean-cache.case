@@ -1,0 +1,20 @@
+# --clean-cache removes the Cargo finders' build folder in each workspace and names it with its size
+spec: CLI
+args: --clean-cache
+-- necro.yaml --
+version: 0
+rules: {broken
+-- Cargo.toml --
+[package]
+name = "c"
+version = "0.1.0"
+edition = "2024"
+publish = false
+-- src/lib.rs --
+pub fn f() {}
+-- target/necro/debug/stamp --
+cached
+-- target/debug/keep --
+the repo's own build
+-- @stdout --
+necro: removed target/necro (7 B)

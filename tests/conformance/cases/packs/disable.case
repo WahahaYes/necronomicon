@@ -1,0 +1,9 @@
+# disable turns a pack rule off for the whole repo
+spec: Packs
+args: --format terse
+-- necro.yaml --
+version: 0
+include: [necro:rust]
+disable: [rust/weasel-type-names]
+-- src/a.rs --
+struct ConfigManager {}

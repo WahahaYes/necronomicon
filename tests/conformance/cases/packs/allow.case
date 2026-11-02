@@ -1,0 +1,9 @@
+# an allow names a pack rule by its full name
+spec: Packs
+-- necro.yaml --
+version: 0
+include: [necro:rust]
+-- src/a.rs --
+struct ConfigManager {} // necro-allow rust/weasel-type-names: mirrors upstream's API
+-- @stdout --
+necro: allowed rust/weasel-type-names at src/a.rs:1:1: mirrors upstream's API

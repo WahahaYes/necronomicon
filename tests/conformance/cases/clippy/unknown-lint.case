@@ -1,0 +1,6 @@
+# a lint outside necro clippy's set is a usage error
+spec: Finders
+args: clippy unwrap_used print_stdout
+exit: 2
+-- @stderr --
+necro: clippy: print_stdout isn't one of necro clippy's lints: allow_attributes, allow_attributes_without_reason, cast_possible_truncation, dbg_macro, expect_used, let_underscore_must_use, todo, undocumented_unsafe_blocks, unimplemented, unused_result_ok, unwrap_used

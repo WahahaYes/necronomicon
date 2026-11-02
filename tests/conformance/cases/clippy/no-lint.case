@@ -1,0 +1,6 @@
+# a lint is required
+spec: Finders
+args: clippy --tests
+exit: 2
+-- @stderr --
+necro: clippy: give at least one lint: necro clippy [--tests] [--match <regex>] [--skip <regex>] <lint>…

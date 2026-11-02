@@ -1,0 +1,7 @@
+# a pack necro doesn't have is a config error
+spec: Packs
+-- necro.yaml --
+version: 0
+include: [necro:cobol]
+-- @config-error --
+necro.yaml:2:11: include[0]

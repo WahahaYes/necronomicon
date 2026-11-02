@@ -1,0 +1,34 @@
+# a root inside a workspace runs the enclosing one, and keeps only hits under the root
+spec: Finders
+args: -C src --format terse
+exit: 1
+-- Cargo.toml --
+[package]
+name = "c"
+version = "0.1.0"
+edition = "2024"
+publish = false
+-- src/necro.yaml --
+version: 0
+rules:
+  no-unwrap:
+    command: necro clippy unwrap_used
+    message: unwrap() outside tests
+    why: Because.
+    fix: Use ?.
+-- src/lib.rs --
+mod inner;
+pub fn parse(s: &str) -> u32 {
+    s.parse().unwrap()
+}
+-- src/inner.rs --
+pub fn n(s: &str) -> u8 {
+    s.parse().unwrap()
+}
+-- build.rs --
+fn main() {
+    std::env::var("OUT_DIR").unwrap();
+}
+-- @stdout --
+inner.rs:2:5: no-unwrap unwrap() outside tests
+lib.rs:3:5: no-unwrap unwrap() outside tests
