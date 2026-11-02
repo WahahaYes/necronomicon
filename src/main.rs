@@ -7,6 +7,7 @@ mod command;
 mod config;
 mod files;
 mod finders;
+mod packs;
 mod render;
 mod run;
 mod yaml;

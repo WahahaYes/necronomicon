@@ -79,6 +79,7 @@ Command: necro grep '^\s*(from|import)\s+app\b' -- 'src/core/*.py'
 - **An organizer, not a parser.** A rule's `command` is anything that prints one `path[:line[:col]]` per violation: `necro grep` for a pattern, a short script for more, or a tool you already run. necro owns the wording, allows and output, so rules work in any language.
 - **A replacement for the lint script you'd write anyway.** Repos that work with agents tend to grow a `lint_style.py` that greps for house rules and prints one-line errors. necro keeps those rules as config and adds the why, the fix and `--explain`.
 - **Exceptions with reasons.** `necro-allow <rule>: <reason>` in a comment on the line or the one above. An allow without a reason, or one that suppresses nothing, fails the run.
+- **Packs for common languages.** `include: [necro:rust]` adds Rust rules that default clippy leaves off, like no `unwrap` or `expect` outside tests, versioned with necro; `disable:` turns one off.
 - **A ratchet for rollout.** Grandfather existing hits in a committed snapshot so new ones fail alone; refresh it deliberately as debt gets fixed. See [Baseline](https://github.com/WahahaYes/necronomicon/blob/main/spec/v0.md#baseline).
 
 ## Install

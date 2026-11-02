@@ -1,0 +1,16 @@
+# disable takes only rules of an included pack: a repo rule, a typo or a pack that isn't included is a config error
+spec: Packs
+-- necro.yaml --
+version: 0
+include: [necro:rust]
+disable: [rust/no-such-rule, banned-word, go/no-panic]
+rules:
+  banned-word:
+    command: necro grep '\bdonkey\b' -- 'src/*'
+    message: Banned word
+    why: Because.
+    fix: Say good.
+-- @config-error --
+necro.yaml:3:11: disable[0]
+necro.yaml:3:30: disable[1]
+necro.yaml:3:43: disable[2]

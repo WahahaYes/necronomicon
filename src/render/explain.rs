@@ -39,5 +39,12 @@ pub fn render(r: &Rule) -> String {
             let _ = writeln!(out, "Built into necro.");
         }
     }
+    if let Some(pack) = &r.pack {
+        let _ = writeln!(
+            out,
+            "Pack: necro:{pack}, built into necro {}.",
+            env!("CARGO_PKG_VERSION")
+        );
+    }
     out
 }

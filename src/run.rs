@@ -123,7 +123,7 @@ pub fn run_observed(config: &Config, root: &Path, only: Option<&str>) -> Report 
                 let done = done.clone();
                 s.spawn(move || {
                     let output = command::run(command, root);
-                    // necro-allow swallowed-error: the watcher stops listening once it has spoken
+                    // necro-allow rust/swallowed-error: the watcher stops listening once it has spoken
                     let _ = done.send(i);
                     output
                 })

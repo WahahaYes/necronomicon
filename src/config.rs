@@ -38,6 +38,8 @@ pub struct Rule {
     pub fix: String,
     pub details: Option<String>,
     pub examples: Option<Examples>,
+    /// The pack it came from (`rust` for `necro:rust`); `None` for the repo's own.
+    pub pack: Option<String>,
 }
 
 /// The repo's rules, sorted by name.
@@ -178,7 +180,10 @@ pub fn valid_name(name: &str) -> bool {
 /// The snapshot file when `baseline:` is absent: beside the root.
 pub const DEFAULT_BASELINE: &str = "necro.baseline.yaml";
 
-const TOP_KEYS: &[&str] = &["version", "include", "rules", "baseline"];
+const TOP_KEYS: &[&str] = &["version", "include", "disable", "rules", "baseline"];
+
+/// The prefix that names a pack in `include` (spec: Packs).
+const PACK_PREFIX: &str = "necro:";
 const INCLUDE_KEYS: &[&str] = &["rules"];
 const RULE_KEYS: &[&str] = &["command", "message", "why", "fix", "details", "examples"];
 const REQUIRED: &[&str] = &["command", "message", "why", "fix"];
@@ -251,24 +256,33 @@ pub fn load(root: &Path, files: &[String]) -> Result<Config, Vec<ConfigError>> {
         .get("baseline")
         .and_then(|(_, n)| string(&mut e, top_file, n, "baseline"));
 
-    let mut sources: Vec<(String, Node)> = Vec::new();
+    // (file, pack, node): the repo's include files, then the packs.
+    let mut sources: Vec<(String, Option<&str>, Node)> = Vec::new();
     if let Some((_, inc)) = m.get("include") {
         for rel in include_files(&mut e, top_file, inc, files) {
             if let Some(node) = read_yaml(&mut e, root, &rel) {
-                sources.push((rel, node));
+                sources.push((rel, None, node));
+            }
+        }
+        for (name, text) in include_packs(&mut e, top_file, inc) {
+            let file = format!("{PACK_PREFIX}{name}");
+            match yaml::parse(text) {
+                Ok(node) => sources.push((file, Some(name), node)),
+                Err((pos, message)) => e.at(&file, pos, "", message),
             }
         }
     }
 
     let mut rules: Vec<Rule> = Vec::new();
     let mut seen: BTreeMap<String, String> = BTreeMap::new();
-    let mut all: Vec<(&str, Option<&Node>)> = vec![(top_file, m.get("rules").map(|(_, n)| *n))];
-    for (rel, node) in &sources {
+    let mut all: Vec<(&str, Option<&str>, Option<&Node>)> =
+        vec![(top_file, None, m.get("rules").map(|(_, n)| *n))];
+    for (rel, pack, node) in &sources {
         if let Some(inc) = entries(&mut e, rel, node, "", INCLUDE_KEYS) {
-            all.push((rel, inc.get("rules").map(|(_, n)| *n)));
+            all.push((rel, *pack, inc.get("rules").map(|(_, n)| *n)));
         }
     }
-    for (file, node) in all {
+    for (file, pack, node) in all {
         let Some(node) = node else { continue };
         if matches!(node.value, Value::Null) {
             continue;
@@ -296,20 +310,31 @@ pub fn load(root: &Path, files: &[String]) -> Result<Config, Vec<ConfigError>> {
                 );
                 continue;
             }
-            if let Some(first) = seen.get(&key.name) {
+            let name = match pack {
+                Some(p) => format!("{p}/{}", key.name),
+                None => key.name.clone(),
+            };
+            if let Some(first) = seen.get(&name) {
                 e.at(
                     file,
                     key.pos,
                     &path,
-                    format!("rule `{}` is already defined in {first}", key.name),
+                    format!("rule `{name}` is already defined in {first}"),
                 );
                 continue;
             }
-            seen.insert(key.name.clone(), file.to_string());
-            if let Some(rule) = load_rule(&mut e, root, file, key, value) {
+            seen.insert(name.clone(), file.to_string());
+            if let Some(mut rule) = load_rule(&mut e, root, file, key, value) {
+                rule.name = name;
+                rule.pack = pack.map(String::from);
                 rules.push(rule);
             }
         }
+    }
+
+    if let Some((_, node)) = m.get("disable") {
+        let off = disabled(&mut e, top_file, node, &rules);
+        rules.retain(|r| !off.contains(&r.name));
     }
 
     if !e.list.is_empty() {
@@ -321,7 +346,66 @@ pub fn load(root: &Path, files: &[String]) -> Result<Config, Vec<ConfigError>> {
     Ok(Config { rules, baseline })
 }
 
+/// The packs `include` names as `necro:<pack>`, each with its rules' YAML.
+fn include_packs(e: &mut Errors, file: &str, node: &Node) -> Vec<(&'static str, &'static str)> {
+    let Value::Seq(items) = &node.value else {
+        return vec![];
+    };
+    let mut out: Vec<(&'static str, &'static str)> = Vec::new();
+    for (i, item) in items.iter().enumerate() {
+        let Some(name) = item.as_str().and_then(|s| s.strip_prefix(PACK_PREFIX)) else {
+            continue;
+        };
+        match crate::packs::find(name) {
+            Some(pack) if !out.contains(&pack) => out.push(pack),
+            Some(_) => {}
+            None => e.at(
+                file,
+                item.pos,
+                &format!("include[{i}]"),
+                format!(
+                    "necro has no pack `{name}`; packs: {}",
+                    crate::packs::names().join(", ")
+                ),
+            ),
+        }
+    }
+    out
+}
+
+/// The rule names `disable` turns off; each must be a rule of an included pack.
+fn disabled(e: &mut Errors, file: &str, node: &Node, rules: &[Rule]) -> Vec<String> {
+    let Value::Seq(items) = &node.value else {
+        e.at(
+            file,
+            node.pos,
+            "disable",
+            format!("expected a list of pack rules, got {}", node.kind()),
+        );
+        return vec![];
+    };
+    let mut out = Vec::new();
+    for (i, item) in items.iter().enumerate() {
+        let path = format!("disable[{i}]");
+        let Some(name) = string(e, file, item, &path) else {
+            continue;
+        };
+        if rules.iter().any(|r| r.name == name && r.pack.is_some()) {
+            out.push(name);
+        } else {
+            e.at(
+                file,
+                item.pos,
+                &path,
+                format!("`{name}` isn't a rule of an included pack"),
+            );
+        }
+    }
+    out
+}
+
 /// The files the include globs match, sorted, without necro.yaml itself.
+/// Pack entries (`necro:<pack>`) are left to `include_packs`.
 fn include_files(e: &mut Errors, file: &str, node: &Node, files: &[String]) -> Vec<String> {
     let Value::Seq(items) = &node.value else {
         e.at(
@@ -338,6 +422,9 @@ fn include_files(e: &mut Errors, file: &str, node: &Node, files: &[String]) -> V
         let Some(pattern) = string(e, file, item, &path) else {
             continue;
         };
+        if pattern.starts_with(PACK_PREFIX) {
+            continue;
+        }
         match GlobBuilder::new(&pattern).literal_separator(true).build() {
             Ok(g) => {
                 set.add(g);
@@ -420,6 +507,7 @@ fn load_rule(e: &mut Errors, root: &Path, file: &str, key: &Key, node: &Node) ->
         fix: fix?,
         details,
         examples,
+        pack: None,
     })
 }
 
@@ -433,6 +521,7 @@ pub fn builtins() -> [Rule; 2] {
         fix: fix.to_string(),
         details: None,
         examples: None,
+        pack: None,
     };
     [
         rule(

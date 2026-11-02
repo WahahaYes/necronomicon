@@ -19,7 +19,11 @@ The label is what the hit is about (`missing steal_roll`, `3 lines over`). It sh
 
 ## Allows
 
-`necro-allow <rule>: <reason>` in a comment on the hit's line or the one above. A missing reason and an allow that suppresses nothing are errors.
+`necro-allow <rule>: <reason>` in a comment on the hit's line or the one above. A missing reason and an allow that suppresses nothing are errors. A pack rule goes by its full name, `rust/no-unwrap`.
+
+## Packs
+
+`include: [necro:rust]` adds rules built into necro, versioned with it: the Rust pack covers what default clippy leaves off (no `unwrap` or `expect` outside tests, lint overrides as `#[expect]` with a reason, `SAFETY` comments, dropped `Result`s, truncating casts, the crate's edition). Its rules are named `rust/<rule>`; `necro --explain rust/<rule>` gives each one's words. `disable: [rust/lossy-cast]` turns a rule off for the repo; for single hits use allows or the baseline.
 
 ## Layout
 

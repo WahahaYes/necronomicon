@@ -1,0 +1,24 @@
+# --explain shows a pack rule's words and names the pack it comes from
+spec: Packs; CLI
+args: --explain rust/weasel-type-names
+-- necro.yaml --
+version: 0
+include: [necro:rust]
+-- @stdout --
+rust/weasel-type-names: a type named for a role, not a thing
+
+Why: Manager, Service, Helper and the like say a type exists, not what it holds or does, so it becomes the place every unrelated function lands.
+
+Fix: name what it is (`Pool`, `Cache`, `Renderer`), or split it; a builder is fine as `…Builder`.
+
+From Microsoft's Pragmatic Rust Guidelines (M-WEASEL-WORDS).
+Experimental: no hits to tune against yet.
+
+Bad:
+    struct ConfigManager {
+
+Good:
+    struct Config {
+
+Command: necro grep '\b(struct|enum|trait|type)\s+\w*(Manager|Service|Factory|Helpers?|Utils?|Handler)\b' -- '*.rs'
+Pack: necro:rust, built into necro <version>.

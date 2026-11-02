@@ -1,0 +1,17 @@
+# a pack sits beside globs and the repo's own rules, and --rule takes a pack rule's full name
+spec: Packs
+args: --format terse --rule rust/weasel-type-names
+exit: 1
+-- necro.yaml --
+version: 0
+include: [necro/*.yaml, necro:rust]
+rules:
+  banned-word:
+    command: necro grep '\bdonkey\b' -- 'src/*'
+    message: Banned word
+    why: Because.
+    fix: Say good.
+-- src/a.rs --
+struct ServiceFactory {} // donkey
+-- @stdout --
+src/a.rs:1:1: rust/weasel-type-names a type named for a role, not a thing

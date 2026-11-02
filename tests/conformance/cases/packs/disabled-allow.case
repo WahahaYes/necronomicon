@@ -1,0 +1,12 @@
+# a disabled rule is gone, so an allow naming it suppresses nothing
+spec: Packs
+args: --format terse
+exit: 1
+-- necro.yaml --
+version: 0
+include: [necro:rust]
+disable: [rust/weasel-type-names]
+-- src/a.rs --
+struct ConfigManager {} // necro-allow rust/weasel-type-names: upstream's name
+-- @stdout --
+src/a.rs:1:28: necro/unused-allow the allow for rust/weasel-type-names suppresses nothing

@@ -10,7 +10,7 @@ repository = "https://github.com/WahahaYes/necronomicon"
 readme = "README.md"
 # The crate (and the sdist maturin builds from it) is what builds `necro`; the
 # conformance suite, examples and docs stay in the repo.
-include = ["/src/**/*.rs", "/Cargo.toml", "/Cargo.lock", "/pyproject.toml", "/README.md", "/LICENSE", "/CHANGELOG.md"]
+include = ["/src/**/*.rs", "/src/packs/*.yaml", "/Cargo.toml", "/Cargo.lock", "/pyproject.toml", "/README.md", "/LICENSE", "/CHANGELOG.md"]
 
 [[bin]]
 name = "necro"

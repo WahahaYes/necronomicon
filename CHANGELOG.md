@@ -3,7 +3,7 @@
 ## Unreleased
 
 - README lists `uv tool`, `pip` and `cargo` installs, and its pre-commit snippet no longer pins a version range.
-- Rust house rules in `src/necro/rust.yaml` (no-unwrap, no-expect, lint-override-reason, no-stubs, unsafe-safety-comment, swallowed-error, weasel-type-names, lossy-cast, cargo-manifest), mostly clippy lints run through `src/necro/clippy.py` with necro's wording.
+- Packs: `include: [necro:rust]` adds rules built into necro, named `<pack>/<rule>`, and `disable: [<pack>/<rule>]` turns one off. The first is `necro:rust`: no-unwrap, no-expect, lint-override-reason, no-stubs, unsafe-safety-comment, swallowed-error, weasel-type-names, lossy-cast and cargo-manifest, mostly clippy lints with necro's wording. necronomicon's own Rust rules now come from it.
 - Two Cargo finders: `necro clippy <lint>…` prints clippy lints as hits for every Cargo workspace under the root, building in its own `target/necro` so it never invalidates the repo's own clippy cache, and `necro cargo-manifest` reports crates below edition 2024 or publishable without a `rust-version`.
 - A failed read of a rule command's output is a check error naming the program; it used to pass as empty output, so the rule looked clean.
 - The crate declares `rust-version = "1.98"`, the pinned toolchain.

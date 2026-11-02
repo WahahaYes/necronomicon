@@ -1,0 +1,11 @@
+# necro:rust adds the pack's rules, named <pack>/<rule>; with no Cargo workspace its cargo rules find nothing
+spec: Packs
+args: --format terse
+exit: 1
+-- necro.yaml --
+version: 0
+include: [necro:rust]
+-- src/a.rs --
+struct ConfigManager {}
+-- @stdout --
+src/a.rs:1:1: rust/weasel-type-names a type named for a role, not a thing

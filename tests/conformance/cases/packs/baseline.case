@@ -1,0 +1,10 @@
+# pack hits go into the baseline under their full names, unlike necro's own rules
+spec: Packs
+args: --write-baseline
+-- necro.yaml --
+version: 0
+include: [necro:rust]
+-- src/a.rs --
+struct ConfigManager {}
+-- @stdout --
+necro: wrote necro.baseline.yaml (1 entry)

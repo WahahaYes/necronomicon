@@ -1,10 +1,9 @@
-# Rust rules meant to become the built-in necro:rust pack. Kept free of
-# anything specific to necronomicon so another repo can run them unchanged.
-# Clippy-based rules go through necro/clippy.py: one cached clippy run serves
-# them all (two with --tests).
+# The necro:rust pack (spec: Packs), built into the binary. Rule names get
+# the `rust/` prefix when loaded. Commands use only finders: the clippy rules
+# share one cached `necro clippy` run per workspace (two with --tests).
 rules:
   no-unwrap:
-    command: uv run --script necro/clippy.py unwrap_used
+    command: necro clippy unwrap_used
     message: unwrap() outside tests
     why: an unwrap panics with no word on what went wrong, so a failure in the field reads as a crash with a line number and nothing else.
     fix: propagate with `?` (adding context to the error), return early with `let … else`, or fall back with `unwrap_or`, `unwrap_or_else` or `unwrap_or_default`. `expect` is no fix; no-expect flags it too.
@@ -19,7 +18,7 @@ rules:
       bad: 'let config = fs::read_to_string(path).unwrap();'
       good: 'let config = fs::read_to_string(path).map_err(|e| Error::Read(path.into(), e))?;'
   no-expect:
-    command: uv run --script necro/clippy.py expect_used
+    command: necro clippy expect_used
     message: expect() outside tests
     why: an expect is an unwrap with a sentence. It still panics, so the caller can't recover and the process dies, and nearly every case has a form that doesn't.
     fix: as for no-unwrap, propagate with `?`, return early with `let … else`, or fall back; for the rare case that truly can't fail (a constant regex), keep it with an allow comment that says why.
@@ -35,7 +34,7 @@ rules:
         };
   lint-override-reason:
     command: >-
-      uv run --script necro/clippy.py --tests
+      necro clippy --tests
       allow_attributes allow_attributes_without_reason
     message: a lint override without expect and a reason
     why: an `#[allow]` outlives the code it excused and says nothing about why; `#[expect]` fails once the lint stops firing, and `reason` is the why.
@@ -44,12 +43,12 @@ rules:
       bad: '#[allow(dead_code)]'
       good: '#[expect(dead_code, reason = "entries() is for the status lane, not wired yet")]'
   no-stubs:
-    command: uv run --script necro/clippy.py --tests todo unimplemented dbg_macro
+    command: necro clippy --tests todo unimplemented dbg_macro
     message: a todo!, unimplemented! or dbg! left in
     why: stubs compile and then panic at run time, and dbg! writes to stderr in a release build; both are scaffolding that slipped into a commit.
     fix: finish the code, return an error for the unsupported case, or remove the dbg!.
   unsafe-safety-comment:
-    command: uv run --script necro/clippy.py --tests undocumented_unsafe_blocks
+    command: necro clippy --tests undocumented_unsafe_blocks
     message: an unsafe block with no SAFETY comment
     why: an unsafe block moves a proof obligation from the compiler to the reader; without the argument written down, the next change can't check it still holds.
     fix: 'put `// SAFETY: <why this is sound>` on the line above the block.'
@@ -60,7 +59,7 @@ rules:
         unsafe { libc::kill(pid, libc::SIGKILL) };
   swallowed-error:
     command: >-
-      uv run --script necro/clippy.py --skip '^let _ = (write|writeln)!'
+      necro clippy --skip '^let _ = (write|writeln)!'
       let_underscore_must_use unused_result_ok
     message: a Result dropped without a word
     why: '`let _ =` and `.ok();` turn a failure into silence: the caller never learns, and nothing records why ignoring it was safe.'
@@ -86,7 +85,7 @@ rules:
       bad: 'struct ConfigManager {'
       good: 'struct Config {'
   lossy-cast:
-    command: uv run --script necro/clippy.py cast_possible_truncation
+    command: necro clippy cast_possible_truncation
     message: a numeric cast that may truncate
     why: '`as` between number types never fails; a value out of range becomes a different number with no error.'
     fix: use `try_from` and handle the error, or, when the range is already checked, keep the cast with an allow comment that says where.
@@ -95,7 +94,7 @@ rules:
       bad: 'let n = len as u32;'
       good: 'let n = u32::try_from(len)?;'
   cargo-manifest:
-    command: uv run --script necro/cargo_manifest.py
+    command: necro cargo-manifest
     message: a crate manifest below the house baseline
     why: an older edition misses the current language defaults, and a publishable crate with no rust-version fails on an old toolchain with compile errors instead of a clear version message.
     fix: set `edition = "2024"`, and `rust-version` to the oldest toolchain you test (the pinned one, if that's all CI runs).
