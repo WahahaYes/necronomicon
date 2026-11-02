@@ -94,8 +94,12 @@ pub fn run(command: &str, root: &Path) -> Result<Vec<String>, Failure> {
         }
         Err(e) => return Err(Failure::Check(format!("can't run {program}: {e}"), vec![])),
     };
-    let mut stdout = child.stdout.take().expect("stdout is piped above");
-    let stderr = child.stderr.take().expect("stderr is piped above");
+    let (Some(mut stdout), Some(stderr)) = (child.stdout.take(), child.stderr.take()) else {
+        return Err(Failure::Check(
+            format!("can't read {program}'s output"),
+            vec![],
+        ));
+    };
     let out = std::thread::spawn(move || {
         let mut buf = Vec::new();
         let _ = stdout.read_to_end(&mut buf);

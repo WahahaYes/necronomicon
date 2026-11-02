@@ -7,28 +7,32 @@ rules:
     command: uv run --script necro/clippy.py unwrap_used
     message: unwrap() outside tests
     why: an unwrap panics with no word on what went wrong, so a failure in the field reads as a crash with a line number and nothing else.
-    fix: propagate with `?` (adding context to the error), handle the None or Err, or, for a real invariant, `expect("<what must hold>")`.
+    fix: propagate with `?` (adding context to the error), return early with `let … else`, or fall back with `unwrap_or`, `unwrap_or_else` or `unwrap_or_default`. `expect` is no fix; no-expect flags it too.
     details: |
       Test code is exempt: the rule runs clippy without test targets, so
       `#[cfg(test)]` modules and `tests/` aren't compiled. `lock().unwrap()`
-      counts too; say why poisoning can't happen with `expect`, or recover
-      with `into_inner()`.
+      counts too: recover with `unwrap_or_else(PoisonError::into_inner)`. A
+      build script's `main` can return a `Result`. Where failure truly can't
+      happen and nothing above fits, keep it with an allow comment that says
+      why.
     examples:
       bad: 'let config = fs::read_to_string(path).unwrap();'
       good: 'let config = fs::read_to_string(path).map_err(|e| Error::Read(path.into(), e))?;'
-  expect-says-invariant:
-    command: >-
-      uv run --script necro/clippy.py
-      --match '\.expect\(\s*"\W*\w*(\W+\w+)?\W*"\s*\)$' expect_used
-    message: an expect message under three words
-    why: the message is all a panic says. One word ("piped", "failed") names neither the invariant nor what broke it.
-    fix: state what must hold, as a short clause, e.g. `expect("stdout is piped")`.
+  no-expect:
+    command: uv run --script necro/clippy.py expect_used
+    message: expect() outside tests
+    why: an expect is an unwrap with a sentence. It still panics, so the caller can't recover and the process dies, and nearly every case has a form that doesn't.
+    fix: as for no-unwrap, propagate with `?`, return early with `let … else`, or fall back; for the rare case that truly can't fail (a constant regex), keep it with an allow comment that says why.
     details: |
-      Only string-literal messages under three words are flagged, outside
-      tests. A message built with `format!` or a constant is left alone.
+      Test code is exempt, as for no-unwrap. The allow comment's reason
+      takes the place of the expect message, so the exception is written
+      down once and stays visible in review.
     examples:
-      bad: 'child.stdout.take().expect("piped")'
-      good: 'child.stdout.take().expect("stdout is piped (Stdio::piped above)")'
+      bad: 'let stdout = child.stdout.take().expect("stdout is piped");'
+      good: |-
+        let Some(stdout) = child.stdout.take() else {
+            return Err(Error::NoOutput);
+        };
   lint-override-reason:
     command: >-
       uv run --script necro/clippy.py --tests
@@ -63,8 +67,8 @@ rules:
     fix: propagate with `?`, handle the error, or if it truly doesn't matter keep it and say why in an allow comment.
     details: |
       Outside tests. `let _ = write!(…)` / `writeln!(…)` are skipped, since
-      writes into a String can't fail. Experimental: tuned on necronomicon
-      only.
+      writes into a String can't fail. Most hits are best-effort cleanup
+      (removing a temp file, killing a child): say so in the allow comment.
     examples:
       bad: 'let _ = stdout.read_to_end(&mut buf);'
       good: 'stdout.read_to_end(&mut buf)?;'
@@ -86,7 +90,7 @@ rules:
     message: a numeric cast that may truncate
     why: '`as` between number types never fails; a value out of range becomes a different number with no error.'
     fix: use `try_from` and handle the error, or, when the range is already checked, keep the cast with an allow comment that says where.
-    details: Outside tests. Experimental.
+    details: Outside tests.
     examples:
       bad: 'let n = len as u32;'
       good: 'let n = u32::try_from(len)?;'

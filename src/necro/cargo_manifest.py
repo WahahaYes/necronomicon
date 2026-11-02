@@ -7,8 +7,9 @@
 
 Usage: cargo_manifest.py
 
-Reads `cargo metadata` (so `edition.workspace = true` resolves) and reports
-each member whose edition is older than 2024, at its `edition` line, and each
+Reads `cargo metadata` (so `edition.workspace = true` resolves) for every
+workspace that workspaces.py finds, and reports each member under the working
+folder (or holding it, as a root in src/ is held by ../Cargo.toml) whose edition is older than 2024, at its `edition` line, and each
 publishable member with no `rust-version`, as a whole-file hit. Paths are
 relative to the working folder. Exit 0; 2 when cargo fails.
 """
@@ -19,25 +20,34 @@ import re
 import subprocess
 import sys
 
+sys.dont_write_bytecode = True  # no __pycache__ beside the rules
+from workspaces import inside, workspaces
+
 EDITION = "2024"
 
 
-def main():
+def members(root):
+    """The workspace's member packages, from `cargo metadata`."""
     run = subprocess.run(
         ["cargo", "metadata", "--no-deps", "--format-version", "1"],
-        capture_output=True, text=True,
+        capture_output=True, text=True, cwd=root,
     )
     if run.returncode:
         print(run.stderr.strip(), file=sys.stderr)
         sys.exit(2)
     meta = json.loads(run.stdout)
-    members = set(meta["workspace_members"])
+    ids = set(meta["workspace_members"])
+    return [pkg for pkg in meta["packages"] if pkg["id"] in ids]
+
+
+def main():
     hits = []
-    for pkg in meta["packages"]:
-        if pkg["id"] not in members:
-            continue
+    for pkg in (pkg for root in workspaces() for pkg in members(root)):
         manifest = pkg["manifest_path"]
         path = os.path.relpath(manifest)
+        holds_root = inside(os.path.relpath(".", os.path.dirname(manifest)))
+        if not (inside(path) or holds_root):
+            continue
         if pkg["edition"] < EDITION:
             with open(manifest, encoding="utf-8") as f:
                 lines = f.read().splitlines()
