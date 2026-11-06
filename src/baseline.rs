@@ -220,6 +220,16 @@ impl Baseline {
     /// diagnostics are always kept and builtin entries never match:
     /// neither silences the other.
     pub fn match_hits(&self, diagnostics: Vec<Diagnostic>) -> (Vec<Diagnostic>, usize) {
+        self.match_hits_counting(diagnostics, |_| true)
+    }
+
+    /// `match_hits`, counting as stale only leftover entries whose path
+    /// `counts` accepts: a narrowed run judges only its given files.
+    pub fn match_hits_counting(
+        &self,
+        diagnostics: Vec<Diagnostic>,
+        counts_stale: impl Fn(&str) -> bool,
+    ) -> (Vec<Diagnostic>, usize) {
         let mut counts: BTreeMap<(String, String, String), usize> = BTreeMap::new();
         for e in &self.entries {
             if is_builtin(&e.rule) {
@@ -241,7 +251,12 @@ impl Baseline {
                 _ => kept.push(d),
             }
         }
-        (kept, counts.values().sum())
+        let stale = counts
+            .iter()
+            .filter(|((_, path, _), _)| counts_stale(path))
+            .map(|(_, n)| n)
+            .sum();
+        (kept, stale)
     }
 
     /// The entries for one rule: a `--rule` run matches only against its

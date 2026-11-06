@@ -1,0 +1,11 @@
+# given files, necro's allow checks cover only those files
+spec: Narrowed runs
+args: --format terse src/a.ts
+exit: 1
+-- src/a.ts --
+const ok = 1; // necro-allow banned-word: nothing here
+-- src/b.ts --
+const ok = 2; // necro-allow banned-word: nothing here either
+const no = 3; // necro-allow banned-word
+-- @stdout --
+src/a.ts:1:18: necro/unused-allow the allow for banned-word suppresses nothing

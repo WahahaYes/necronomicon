@@ -1,0 +1,6 @@
+# file arguments narrow a check run only: --explain and --clean-cache refuse them
+spec: Narrowed runs
+args: --explain banned-word src/a.ts
+exit: 2
+-- @stderr --
+necro: --explain takes no files; drop the file arguments

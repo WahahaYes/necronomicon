@@ -129,3 +129,21 @@ pub fn text_lines(path: &str) -> Option<Vec<String>> {
             .collect(),
     )
 }
+
+/// A regex error in a few words: "unclosed group" from fancy_regex's
+/// "Parsing error at position 1: Opening parenthesis without closing
+/// parenthesis".
+pub fn regex_error(e: &fancy_regex::Error) -> String {
+    let full = e.to_string();
+    let last = full.lines().last().unwrap_or("").trim();
+    let last = last.strip_prefix("error: ").unwrap_or(last);
+    let short = match last.split_once(": ") {
+        Some((head, rest)) if head.starts_with("Parsing error") => rest,
+        _ => last,
+    };
+    let mut chars = short.chars();
+    chars
+        .next()
+        .map(|c| c.to_lowercase().chain(chars).collect())
+        .unwrap_or_default()
+}

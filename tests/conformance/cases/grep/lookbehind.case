@@ -1,0 +1,9 @@
+# lookaround works, so a match can exclude what comes before it without starting early
+spec: Finders
+args: grep '(?<![.\w])randf\(' -- 'src/*'
+-- src/a.gd --
+var a = randf()
+var b = _rng.randf()
+var c = myrandf()
+-- @stdout --
+src/a.gd:1:9-14: randf(

@@ -1,0 +1,10 @@
+# given files, necro grep searches only those
+spec: Narrowed runs
+args: --format terse src/a.ts
+exit: 1
+-- src/a.ts --
+donkey
+-- src/b.ts --
+donkey
+-- @stdout --
+src/a.ts:1:1: banned-word Banned word

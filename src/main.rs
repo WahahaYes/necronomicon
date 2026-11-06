@@ -23,6 +23,8 @@ struct Args {
     explain: Option<String>,
     write_baseline: bool,
     clean_cache: bool,
+    /// Files for a narrowed run, as given (spec: Narrowed runs).
+    files: Vec<String>,
 }
 
 fn parse(argv: Vec<String>) -> Result<Args, String> {
@@ -49,11 +51,17 @@ fn parse(argv: Vec<String>) -> Result<Args, String> {
             f if f.starts_with('-') && f.len() > 1 => {
                 return Err(format!("unknown option {f} (see necro --help)"));
             }
-            _ => {
-                return Err(format!(
-                    "unexpected argument {arg} (commands choose their own files; see necro --help)"
-                ));
-            }
+            _ => a.files.push(arg),
+        }
+    }
+    if !a.files.is_empty() {
+        let refuses = [
+            (a.write_baseline, "--write-baseline covers every file"),
+            (a.explain.is_some(), "--explain takes no files"),
+            (a.clean_cache, "--clean-cache takes no files"),
+        ];
+        if let Some((_, why)) = refuses.iter().find(|(set, _)| *set) {
+            return Err(format!("{why}; drop the file arguments"));
         }
     }
     match a.format.as_deref() {
@@ -129,7 +137,18 @@ fn main_with(args: Args) -> Result<u8, String> {
     if args.write_baseline {
         return write_baseline(&config, &root, args.rule.as_deref());
     }
-    let report = run::run(&config, &root, args.rule.as_deref());
+    // Given files: a narrowed run over the ones that exist, root-relative.
+    let given: Option<Vec<String>> = (!args.files.is_empty()).then(|| {
+        let mut given: Vec<String> = args
+            .files
+            .iter()
+            .filter_map(|f| files::anchor(&cwd, &root, Path::new(f)))
+            .collect();
+        given.sort();
+        given.dedup();
+        given
+    });
+    let report = run::run(&config, &root, args.rule.as_deref(), given.as_deref());
     match args.format.as_deref() {
         Some("terse") => render::terse(&report),
         _ => render::full(&report),
@@ -141,7 +160,7 @@ fn main_with(args: Args) -> Result<u8, String> {
 
 /// `--write-baseline`: snapshot post-allow hits and confirm (spec: Regen).
 fn write_baseline(config: &config::Config, root: &Path, only: Option<&str>) -> Result<u8, String> {
-    let report = run::run_observed(config, root, only);
+    let report = run::run_observed(config, root, only, None);
     if !report.problems.is_empty() {
         render::problems(&report);
         return Ok(2);

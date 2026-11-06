@@ -1,0 +1,23 @@
+# exclude: drops files a rule would otherwise take; a rule with only exclude: takes every other file
+spec: Narrowed runs
+args: --format terse src/gen/a.ts
+-- necro.yaml --
+version: 0
+rules:
+  ts-mule:
+    command: git grep -n --column -o -E 'mule' -- '*.ts'
+    files: {glob: ["*.ts", "*.tsx"]}
+    exclude: ^src/gen/
+    message: Mule in TypeScript
+    why: Because.
+    fix: Say horse.
+  hand-written:
+    command: git grep -n --column -o -E 'mule' -- 'src/*'
+    exclude: {glob: "src/gen/**"}
+    message: Mule by hand
+    why: Because.
+    fix: Say horse.
+-- src/gen/a.ts --
+mule
+-- src/b.ts --
+mule

@@ -100,9 +100,11 @@ As a pre-commit hook, which installs the wheel into pre-commit's own environment
       entry: necro
       language: python
       additional_dependencies: ['necronomicon']
-      pass_filenames: false
       always_run: true
+      require_serial: true
 ```
+
+pre-commit passes the changed files, so a commit runs only the rules that concern them; in CI, `pre-commit run --from-ref origin/main --to-ref HEAD` does the same for a branch. `necro` with no files checks everything.
 
 Pin below the next 0.x: any 0.x may break the format.
 

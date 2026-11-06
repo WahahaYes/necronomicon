@@ -82,8 +82,8 @@ struct Raw<'a> {
 }
 
 /// Run the selected rules, apply allows and the snapshot, report the rest.
-pub fn run(config: &Config, root: &Path, only: Option<&str>) -> Report {
-    let mut report = run_observed(config, root, only);
+pub fn run(config: &Config, root: &Path, only: Option<&str>, given: Option<&[String]>) -> Report {
+    let mut report = run_observed(config, root, only, given);
     let path = config.baseline_path(root);
     match Baseline::load(&path) {
         // No snapshot (or an empty one): nothing to silence.
@@ -95,7 +95,11 @@ pub fn run(config: &Config, root: &Path, only: Option<&str>) -> Report {
                 Some(rule) => baseline.scoped(rule),
                 None => baseline,
             };
-            let (kept, stale) = baseline.match_hits(std::mem::take(&mut report.diagnostics));
+            // A narrowed run judges stale entries only in its given files.
+            let (kept, stale) = baseline
+                .match_hits_counting(std::mem::take(&mut report.diagnostics), |path| {
+                    given.is_none_or(|g| g.iter().any(|f| f == path))
+                });
             report.diagnostics = kept;
             report.stale_baseline = stale;
         }
@@ -106,23 +110,37 @@ pub fn run(config: &Config, root: &Path, only: Option<&str>) -> Report {
 
 /// One run through allows, without the snapshot: every rule's command, then
 /// allows (spec: Commands, Allows). `--write-baseline` snapshots this.
-pub fn run_observed(config: &Config, root: &Path, only: Option<&str>) -> Report {
+pub fn run_observed(
+    config: &Config,
+    root: &Path,
+    only: Option<&str>,
+    given: Option<&[String]>,
+) -> Report {
     let mut report = Report::default();
     let selected: Vec<&Rule> = config
         .rules
         .iter()
         .filter(|r| only.is_none_or(|o| r.name == o))
+        .filter(|r| given.is_none_or(|g| r.runs_on(g)))
         .collect();
+    let list = match given.map(GivenList::write).transpose() {
+        Ok(list) => list,
+        Err(message) => {
+            report.problems.push(Problem::Setup(message));
+            return report;
+        }
+    };
+    let list_path = list.as_ref().map(|l| l.path.as_path());
     let outputs: Vec<Result<Vec<String>, Failure>> = std::thread::scope(|s| {
         let (done, finished) = mpsc::channel();
         let handles: Vec<_> = selected
             .iter()
             .enumerate()
             .map(|(i, r)| {
-                let command = r.command.as_deref().unwrap_or_default();
+                let words = narrowed(r.command.as_deref().unwrap_or_default(), list_path);
                 let done = done.clone();
                 s.spawn(move || {
-                    let output = command::run(command, root);
+                    let output = command::run(words, root);
                     // necro-allow rust/swallowed-error: the watcher stops listening once it has spoken
                     let _ = done.send(i);
                     output
@@ -203,6 +221,10 @@ pub fn run_observed(config: &Config, root: &Path, only: Option<&str>) -> Report 
     let known: BTreeSet<&str> = config.names().into_iter().collect();
     let [reason_rule, unused_rule] = config::builtins();
     for (a, used) in found.iter_mut().zip(&used) {
+        // A narrowed run checks allows only in its given files.
+        if given.is_some_and(|g| !g.contains(&a.file)) {
+            continue;
+        }
         if a.reason.is_none() {
             let d = allow_diagnostic(&reason_rule, a, "gives no reason", &mut sources);
             report.diagnostics.push(d);
@@ -227,7 +249,56 @@ pub fn run_observed(config: &Config, root: &Path, only: Option<&str>) -> Report 
     report
 }
 
-/// Parse a command's output; every path must be a file under the root.
+/// The finders that search files, which a narrowed run hands its list.
+const FILE_FINDERS: &[&str] = &["grep"];
+
+/// A rule's command as words; in a narrowed run, necro's file finders get
+/// `--files-from <list>` after their name (spec: Narrowed runs).
+fn narrowed(command: &str, list: Option<&Path>) -> Vec<String> {
+    let mut words = command::split(command).unwrap_or_default();
+    if let Some(list) = list
+        && words.first().is_some_and(|w| w == "necro")
+        && words
+            .get(1)
+            .is_some_and(|w| FILE_FINDERS.contains(&w.as_str()))
+    {
+        let at = words.len().min(2);
+        words.splice(
+            at..at,
+            ["--files-from".to_string(), list.display().to_string()],
+        );
+    }
+    words
+}
+
+/// The given files written one per line to a temporary file, removed when
+/// the run ends.
+struct GivenList {
+    path: std::path::PathBuf,
+}
+
+impl GivenList {
+    fn write(given: &[String]) -> Result<GivenList, String> {
+        let nanos = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map_or(0, |d| d.subsec_nanos());
+        let name = format!("necro-files-{}-{nanos}", std::process::id());
+        let path = std::env::temp_dir().join(name);
+        let mut text = given.join("\n");
+        text.push('\n');
+        std::fs::write(&path, text)
+            .map_err(|e| format!("can't write the file list {}: {e}", path.display()))?;
+        Ok(GivenList { path })
+    }
+}
+
+impl Drop for GivenList {
+    fn drop(&mut self) {
+        // necro-allow rust/swallowed-error: a leftover list in the temp folder is harmless
+        let _ = std::fs::remove_file(&self.path);
+    }
+}
+
 /// Wait for every rule's command; at `after`, name the ones still running,
 /// once, and stop watching.
 fn watch(
@@ -252,6 +323,7 @@ fn watch(
     }
 }
 
+/// Parse a command's output; every path must be a file under the root.
 fn read_hits(root: &Path, lines: &[String]) -> Result<Vec<command::Hit>, Failure> {
     let mut hits = Vec::new();
     for (i, line) in lines.iter().enumerate() {

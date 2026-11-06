@@ -1,0 +1,19 @@
+# given paths are relative to the working folder and re-anchored to the root; missing files are dropped
+spec: Narrowed runs
+args: -C sub --format terse sub/src/a.ts sub/src/gone.ts
+exit: 1
+-- necro.yaml --
+-- sub/necro.yaml --
+version: 0
+rules:
+  banned-word:
+    command: necro grep '\bdonkey\b' -- 'src/*'
+    message: Banned word
+    why: Because.
+    fix: Say good.
+-- sub/src/a.ts --
+donkey
+-- sub/src/b.ts --
+donkey
+-- @stdout --
+src/a.ts:1:1: banned-word Banned word

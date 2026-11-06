@@ -1,9 +1,11 @@
 # The necro:rust pack (spec: Packs), built into the binary. Rule names get
 # the `rust/` prefix when loaded. Commands use only finders: the clippy rules
-# share one cached `necro clippy` run per workspace (two with --tests).
+# share one cached `necro clippy` run per workspace (two with --tests). Each
+# rule's files: lets a narrowed run skip it when no Rust file changed.
 rules:
   no-unwrap:
     command: necro clippy unwrap_used
+    files: '\.rs$|(^|/)(Cargo\.(toml|lock)|\.?clippy\.toml|rust-toolchain(\.toml)?)$'
     message: unwrap() outside tests
     why: an unwrap panics with no word on what went wrong, so a failure in the field reads as a crash with a line number and nothing else.
     fix: propagate with `?` (adding context to the error; `ok_or` turns a None into one), return early with `let … else`, or fall back with `unwrap_or`, `unwrap_or_else` or `unwrap_or_default`. `expect` is no fix; no-expect flags it too.
@@ -19,6 +21,7 @@ rules:
       good: 'let config = fs::read_to_string(path).map_err(|e| Error::Read(path.into(), e))?;'
   no-expect:
     command: necro clippy expect_used
+    files: '\.rs$|(^|/)(Cargo\.(toml|lock)|\.?clippy\.toml|rust-toolchain(\.toml)?)$'
     message: expect() outside tests
     why: an expect is an unwrap with a sentence. It still panics, so the caller can't recover and the process dies, and nearly every case has a form that doesn't.
     fix: as for no-unwrap, propagate with `?`, return early with `let … else`, or fall back; for the rare case that truly can't fail (a constant regex), keep it with an allow comment that says why.
@@ -36,6 +39,7 @@ rules:
     command: >-
       necro clippy --tests
       allow_attributes allow_attributes_without_reason
+    files: '\.rs$|(^|/)(Cargo\.(toml|lock)|\.?clippy\.toml|rust-toolchain(\.toml)?)$'
     message: a lint override without expect and a reason
     why: an `#[allow]` outlives the code it excused and says nothing about why; `#[expect]` fails once the lint stops firing, and `reason` is the why.
     fix: 'write `#[expect(<lint>, reason = "<why>")]`; if the expect then fails as unfulfilled, delete the attribute.'
@@ -44,11 +48,13 @@ rules:
       good: '#[expect(dead_code, reason = "entries() is for the status lane, not wired yet")]'
   no-stubs:
     command: necro clippy --tests todo unimplemented dbg_macro
+    files: '\.rs$|(^|/)(Cargo\.(toml|lock)|\.?clippy\.toml|rust-toolchain(\.toml)?)$'
     message: a todo!, unimplemented! or dbg! left in
     why: stubs compile and then panic at run time, and dbg! writes to stderr in a release build; both are scaffolding that slipped into a commit.
     fix: finish the code, return an error for the unsupported case, or remove the dbg!. A case that truly can't happen is `unreachable!("<why>")`, which this rule leaves alone.
   unsafe-safety-comment:
     command: necro clippy --tests undocumented_unsafe_blocks
+    files: '\.rs$|(^|/)(Cargo\.(toml|lock)|\.?clippy\.toml|rust-toolchain(\.toml)?)$'
     message: an unsafe block with no SAFETY comment
     why: an unsafe block moves a proof obligation from the compiler to the reader; without the argument written down, the next change can't check it still holds.
     fix: 'put `// SAFETY: <why this is sound>` on the line above the block.'
@@ -61,6 +67,7 @@ rules:
     command: >-
       necro clippy --skip '^let _ = (write|writeln)!'
       let_underscore_must_use unused_result_ok
+    files: '\.rs$|(^|/)(Cargo\.(toml|lock)|\.?clippy\.toml|rust-toolchain(\.toml)?)$'
     message: a Result dropped without a word
     why: '`let _ =` and `.ok();` turn a failure into silence: the caller never learns, and nothing records why ignoring it was safe.'
     fix: propagate with `?`, handle the error, or if it truly doesn't matter keep it and say why in an allow comment.
@@ -75,6 +82,7 @@ rules:
     command: >-
       necro grep '\b(struct|enum|trait|type)\s+\w*(Manager|Service|Factory|Helpers?|Utils?|Handler)\b'
       -- '*.rs'
+    files: '\.rs$'
     message: a type named for a role, not a thing
     why: Manager, Service, Helper and the like say a type exists, not what it holds or does, so it becomes the place every unrelated function lands.
     fix: name what it is (`Pool`, `Cache`, `Renderer`), or split it; a builder is fine as `…Builder`.
@@ -86,6 +94,7 @@ rules:
       good: 'struct Config {'
   lossy-cast:
     command: necro clippy cast_possible_truncation
+    files: '\.rs$|(^|/)(Cargo\.(toml|lock)|\.?clippy\.toml|rust-toolchain(\.toml)?)$'
     message: a numeric cast that may truncate
     why: '`as` between number types never fails; a value out of range becomes a different number with no error.'
     fix: use `try_from` and handle the error, or, when the range is already checked, keep the cast with an allow comment that says where.
@@ -95,6 +104,7 @@ rules:
       good: 'let n = u32::try_from(len)?;'
   cargo-manifest:
     command: necro cargo-manifest
+    files: '(^|/)Cargo\.toml$'
     message: a crate manifest below the house baseline
     why: an older edition misses the current language defaults, and a publishable crate with no rust-version fails on an old toolchain with compile errors instead of a clear version message.
     fix: set `edition = "2024"`, and `rust-version` to the oldest toolchain you test (the pinned one, if that's all CI runs).

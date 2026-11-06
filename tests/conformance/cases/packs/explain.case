@@ -21,4 +21,5 @@ Good:
     struct Config {
 
 Command: necro grep '\b(struct|enum|trait|type)\s+\w*(Manager|Service|Factory|Helpers?|Utils?|Handler)\b' -- '*.rs'
+Files: \.rs$
 Pack: necro:rust, built into necro <version>.

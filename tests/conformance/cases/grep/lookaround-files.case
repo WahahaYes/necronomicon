@@ -1,0 +1,12 @@
+# a lookaround's text isn't required of a match, so a file without it is still searched
+spec: Finders
+args: grep 'donkey(?!s)|(?<=a )mule' -- 'src/*'
+-- src/a.gd --
+var a = donkey
+-- src/b.gd --
+var b = donkeys
+-- src/c.gd --
+a mule
+-- @stdout --
+src/a.gd:1:9-14: donkey
+src/c.gd:1:3-6: mule

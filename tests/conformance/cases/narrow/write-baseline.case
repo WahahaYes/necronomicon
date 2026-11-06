@@ -1,0 +1,6 @@
+# a baseline covers every file, so --write-baseline takes no files
+spec: Narrowed runs
+args: --write-baseline src/a.ts
+exit: 2
+-- @stderr --
+necro: --write-baseline covers every file; drop the file arguments
