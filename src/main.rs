@@ -21,6 +21,7 @@ struct Args {
     format: Option<String>,
     rule: Option<String>,
     explain: Option<String>,
+    list: bool,
     write_baseline: bool,
     clean_cache: bool,
     /// Files for a narrowed run, as given (spec: Narrowed runs).
@@ -46,6 +47,7 @@ fn parse(argv: Vec<String>) -> Result<Args, String> {
             "--format" => a.format = Some(value("--format", inline.as_deref())?),
             "--rule" => a.rule = Some(value("--rule", inline.as_deref())?),
             "--explain" => a.explain = Some(value("--explain", inline.as_deref())?),
+            "--list" => a.list = true,
             "--write-baseline" => a.write_baseline = true,
             "--clean-cache" => a.clean_cache = true,
             f if f.starts_with('-') && f.len() > 1 => {
@@ -58,6 +60,7 @@ fn parse(argv: Vec<String>) -> Result<Args, String> {
         let refuses = [
             (a.write_baseline, "--write-baseline covers every file"),
             (a.explain.is_some(), "--explain takes no files"),
+            (a.list, "--list takes no files"),
             (a.clean_cache, "--clean-cache takes no files"),
         ];
         if let Some((_, why)) = refuses.iter().find(|(set, _)| *set) {
@@ -118,6 +121,10 @@ fn main_with(args: Args) -> Result<u8, String> {
     };
     let unknown = |name: &str| format!("no rule `{name}`; rules: {}", config.names().join(", "));
 
+    if args.list {
+        render::text(&render::list(&config));
+        return Ok(0);
+    }
     if let Some(name) = &args.explain {
         let builtins = config::builtins();
         let rule = config

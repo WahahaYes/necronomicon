@@ -1,0 +1,20 @@
+# exclude puts files outside a rule in every run: a full run drops its hits there, and an allow there suppresses nothing
+spec: A rule
+args: --format terse
+exit: 1
+-- necro.yaml --
+version: 0
+rules:
+  hand-written:
+    command: necro grep 'mule' -- 'src/*'
+    exclude: {glob: "src/gen/**"}
+    message: Mule by hand
+    why: Because.
+    fix: Say horse.
+-- src/gen/a.ts --
+mule // necro-allow hand-written: generated
+-- src/b.ts --
+mule
+-- @stdout --
+src/b.ts:1:1: hand-written Mule by hand
+src/gen/a.ts:1:9: necro/unused-allow the allow for hand-written suppresses nothing

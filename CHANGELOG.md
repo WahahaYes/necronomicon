@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- **`exclude:` now applies to every run.** A rule's hits in excluded files are dropped, in full runs too, and an allow there suppresses nothing; before, `exclude:` only decided whether a narrowed run ran the rule.
+- **`override:` changes a pack rule's paths.** `override: {rust/no-unwrap: {exclude: '^build\.rs$'}}` replaces the rule's `files:` or `exclude:` with the repo's; `--explain` marks them `(override)`.
+- **Parameters.** A rule's `params:` names values its command and words use as `{name}`, and `override:` sets them for a pack rule. `rust/weasel-type-names` takes `role-words`, the role words it looks for.
+- **`necro --list`** prints every rule, where it comes from, and whether `necro.yaml` disables or overrides it.
+
 ## 0.4.0 - 2026-11-05
 
 - Narrowed runs: `necro [<file>…]` checks what concerns the given files, the way a pre-commit hook does. A rule with the new `files:` or `exclude:` keys runs only when a given file passes them, and then runs in full; `necro grep` searches only the given files. Stale baseline entries and allow checks are judged only in those files. The published hook now passes file names; `necro` with no files, and `--write-baseline`, still cover everything.

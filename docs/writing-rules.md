@@ -23,7 +23,29 @@ The label is what the hit is about (`missing steal_roll`, `3 lines over`). It sh
 
 ## Packs
 
-`include: [necro:rust]` adds rules built into necro, versioned with it: the Rust pack covers what default clippy leaves off (no `unwrap` or `expect` outside tests, lint overrides as `#[expect]` with a reason, `SAFETY` comments, dropped `Result`s, truncating casts, the crate's edition). Its rules are named `rust/<rule>`; `necro --explain rust/<rule>` gives each one's words. `disable: [rust/lossy-cast]` turns a rule off for the repo; for single hits use allows or the baseline.
+`include: [necro:rust]` adds rules built into necro, versioned with it: the Rust pack covers what default clippy leaves off (no `unwrap` or `expect` outside tests, lint overrides as `#[expect]` with a reason, `SAFETY` comments, dropped `Result`s, truncating casts, the crate's edition). Its rules are named `rust/<rule>`; `necro --explain rust/<rule>` gives each one's words. `disable: [rust/lossy-cast]` turns a rule off for the repo; for single hits use allows or the baseline. `override:` gives a pack rule the repo's own `files`, `exclude` or [parameters](#parameters), so it can skip paths it shouldn't judge or loosen a limit:
+
+```yaml
+override:
+  rust/no-unwrap: { exclude: '^build\.rs$' }
+```
+
+Every rule of an included pack is on unless `disable` names it; rules a repo opts into ship as their own pack. `necro --list` shows each rule, where it comes from, and what `necro.yaml` changed.
+
+## Parameters
+
+`params:` names values a rule's command and words use, so a rule in a pack or an include can ship a default a repo changes with `override:` instead of copying the rule:
+
+```yaml
+doc-length:
+  command: uv run --script necro/docs.py --header {header} --item {item}
+  params: { header: 10, item: 6 }
+  message: a doc block is over its limit
+  why: Long docs go stale and hide the code.
+  fix: cut it to {header} lines for the file header, {item} for any other doc.
+```
+
+Only declared names are replaced, so a regex's own braces (`-{6,}`) stay. A value is one word of the command however it reads, and a list given as a whole word (`-- {paths}`) becomes one word per item.
 
 ## Narrowed runs
 
@@ -36,7 +58,7 @@ typecheck:
   exclude: {glob: "src/generated/*"}
 ```
 
-A rule that runs runs in full, so a hit it causes elsewhere still shows. A rule without a filter always runs. `necro` with no files, and `--write-baseline`, cover everything.
+A rule that runs runs in full, so a hit it causes elsewhere still shows, except in excluded files: `exclude` puts files outside the rule in every run, and its hits there are dropped. A rule without a filter always runs. `necro` with no files, and `--write-baseline`, cover everything.
 
 ## Layout
 

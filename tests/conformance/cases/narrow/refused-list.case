@@ -1,0 +1,6 @@
+# --list takes no files
+spec: Narrowed runs; CLI
+args: --list src/a.ts
+exit: 2
+-- @stderr --
+necro: --list takes no files; drop the file arguments

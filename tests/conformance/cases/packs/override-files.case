@@ -1,0 +1,10 @@
+# override replaces a pack rule's files: a narrowed run skips the rule when no given file passes the repo's filter
+spec: Packs; Narrowed runs
+args: --format terse lib/c.rs
+-- necro.yaml --
+version: 0
+include: [necro:rust]
+override:
+  rust/weasel-type-names: { files: {glob: "src/**"} }
+-- lib/c.rs --
+struct ConfigManager {}

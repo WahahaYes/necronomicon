@@ -1,0 +1,14 @@
+# a parameter's name is lowercase words joined by hyphens, and its value a string, number, boolean or a list of them
+spec: Parameters
+-- necro.yaml --
+version: 0
+rules:
+  banned-word:
+    command: necro grep '\bdonkey\b' -- 'src/*'
+    params: { Word: x, deep: {a: 1} }
+    message: Banned word
+    why: Because.
+    fix: Say good.
+-- @config-error --
+necro.yaml:5:15: rules.banned-word.params.Word
+necro.yaml:5:30: rules.banned-word.params.deep

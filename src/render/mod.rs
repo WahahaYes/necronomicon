@@ -121,6 +121,7 @@ necro: checks a repo against its house rules (necro.yaml).
 
 usage: necro [-C <dir>] [--format full|terse] [--rule <name>] [<file>…]
        necro [-C <dir>] --explain <rule>
+       necro [-C <dir>] --list
        necro [-C <dir>] [--rule <name>] --write-baseline
        necro [-C <dir>] --clean-cache
        necro grep [--skip-comments <marker>]… [--glob <glob>]… [--files-from <file>]
@@ -129,9 +130,46 @@ usage: necro [-C <dir>] [--format full|terse] [--rule <name>] [<file>…]
        necro cargo-manifest
        necro --version
 
-Each rule's command chooses its own files. Given files, necro skips the rules
-whose files: and exclude: take none of them, and its finders search only them;
---write-baseline always covers every file.
+Each rule's command chooses its own files; exclude: drops its hits in the
+files it names. Given files, necro skips the rules whose files: and exclude:
+take none of them, and its finders search only them; --write-baseline always
+covers every file. --list shows every rule and where it comes from.
 
 Exit 0 clean, 1 on an error hit or a broken allow, 2 on a config, setup, check
 or usage error.";
+
+/// `--list` (spec: CLI): every rule with where it comes from, and for a pack
+/// rule whether necro.yaml turns it off or overrides it.
+pub fn list(config: &crate::config::Config) -> String {
+    let mut rows: Vec<(&str, &str, String)> = config
+        .rules
+        .iter()
+        .map(|r| {
+            let note = if r.overridden.is_empty() {
+                String::new()
+            } else {
+                format!("override: {}", r.overridden.join(", "))
+            };
+            (r.name.as_str(), r.source.as_str(), note)
+        })
+        .chain(
+            config
+                .disabled
+                .iter()
+                .map(|r| (r.name.as_str(), r.source.as_str(), "disabled".to_string())),
+        )
+        .collect();
+    rows.sort();
+    let width = rows
+        .iter()
+        .map(|(n, _, _)| n.chars().count())
+        .max()
+        .unwrap_or(0);
+    let mut out = String::new();
+    for (name, source, note) in rows {
+        let line = format!("{name:<width$}  {source}  {note}");
+        out.push_str(line.trim_end());
+        out.push('\n');
+    }
+    out
+}

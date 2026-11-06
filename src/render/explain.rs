@@ -34,11 +34,22 @@ pub fn render(r: &Rule) -> String {
     match &r.command {
         Some(c) => {
             let _ = writeln!(out, "Command: {c}");
+            let mark = |key: &str| {
+                if r.overridden.contains(&key) {
+                    " (override)"
+                } else {
+                    ""
+                }
+            };
             if let Some(f) = &r.files {
-                let _ = writeln!(out, "Files: {f}");
+                let _ = writeln!(out, "Files: {f}{}", mark("files"));
             }
             if let Some(f) = &r.exclude {
-                let _ = writeln!(out, "Exclude: {f}");
+                let _ = writeln!(out, "Exclude: {f}{}", mark("exclude"));
+            }
+            for p in &r.params {
+                let set = if p.overridden { " (override)" } else { "" };
+                let _ = writeln!(out, "Param {}: {}{set}", p.name, p.values.join(", "));
             }
         }
         None => {

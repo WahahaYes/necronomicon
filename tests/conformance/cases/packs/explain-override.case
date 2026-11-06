@@ -1,0 +1,29 @@
+# --explain shows a pack rule's files, exclude and parameters as the repo set them, marked (override)
+spec: Packs; CLI
+args: --explain rust/weasel-type-names
+-- necro.yaml --
+version: 0
+include: [necro:rust]
+override:
+  rust/weasel-type-names: { exclude: '^gen/', params: { role-words: Manager } }
+-- @stdout --
+rust/weasel-type-names: a type named for a role, not a thing
+
+Why: Manager, Service, Helper and the like say a type exists, not what it holds or does, so it becomes the place every unrelated function lands.
+
+Fix: name what it is (`Pool`, `Cache`, `Renderer`), or split it; a builder is fine as `…Builder`.
+
+From Microsoft's Pragmatic Rust Guidelines (M-WEASEL-WORDS).
+Experimental: no hits to tune against yet.
+
+Bad:
+    struct ConfigManager {
+
+Good:
+    struct Config {
+
+Command: necro grep '\b(struct|enum|trait|type)\s+\w*({role-words})\b' -- '*.rs'
+Files: \.rs$
+Exclude: ^gen/ (override)
+Param role-words: Manager (override)
+Pack: necro:rust, built into necro <version>.

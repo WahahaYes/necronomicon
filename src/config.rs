@@ -42,8 +42,32 @@ pub struct Rule {
     pub pack: Option<String>,
     /// `files:`, for narrowed runs; `None` takes every file.
     pub files: Option<FileFilter>,
-    /// `exclude:`, for narrowed runs.
+    /// `exclude:`: files outside the rule, in every run.
     pub exclude: Option<FileFilter>,
+    /// Where it's defined: `necro.yaml`, an include file, or `necro:<pack>`.
+    pub source: String,
+    /// The keys `override:` in necro.yaml replaced, in spec order.
+    pub overridden: Vec<&'static str>,
+    /// `params:`, in the order written, with any override applied.
+    pub params: Vec<Param>,
+}
+
+/// One named value a rule's command and words use (spec: Parameters).
+pub struct Param {
+    pub name: String,
+    /// The value's kind as `Node::kind` names it, or `a list`.
+    pub kind: &'static str,
+    /// The value as written; one item unless it's a list.
+    pub values: Vec<String>,
+    pub list: bool,
+    /// Set by `override:` in necro.yaml.
+    pub overridden: bool,
+}
+
+impl Param {
+    fn joined(&self, sep: &str) -> String {
+        self.values.join(sep)
+    }
 }
 
 /// A `files:` or `exclude:` filter in prek's form (spec: Narrowed runs): a
@@ -85,12 +109,63 @@ impl Rule {
                 && !self.exclude.as_ref().is_some_and(|f| f.matches(path))
         })
     }
+
+    /// The command as words with its parameters in place: a word that is
+    /// exactly `{name}` for a list becomes one word per item.
+    pub fn words(&self) -> Vec<String> {
+        let words = self
+            .command
+            .as_deref()
+            .and_then(command::split)
+            .unwrap_or_default();
+        let mut out = Vec::new();
+        for word in words {
+            match self
+                .params
+                .iter()
+                .find(|p| p.list && word == format!("{{{}}}", p.name))
+            {
+                Some(p) => out.extend(p.values.iter().cloned()),
+                None => out.push(fill(&word, &self.params, ",")),
+            }
+        }
+        out
+    }
+
+    /// Put the parameters into the words (`message`, `why`, `fix`, `details`).
+    fn fill_words(&mut self) {
+        if self.params.is_empty() {
+            return;
+        }
+        for text in [&mut self.message, &mut self.why, &mut self.fix] {
+            *text = fill(text, &self.params, ", ");
+        }
+        if let Some(d) = &mut self.details {
+            *d = fill(d, &self.params, ", ");
+        }
+    }
+
+    /// Whether `path` is outside the rule (`exclude:`), so its hits there drop.
+    pub fn excludes(&self, path: &str) -> bool {
+        self.exclude.as_ref().is_some_and(|f| f.matches(path))
+    }
+}
+
+/// `text` with each declared `{name}` replaced; other braces stay.
+fn fill(text: &str, params: &[Param], sep: &str) -> String {
+    let mut out = text.to_string();
+    for p in params {
+        out = out.replace(&format!("{{{}}}", p.name), &p.joined(sep));
+    }
+    out
 }
 
 /// The repo's rules, sorted by name.
 pub struct Config {
     /// The repo's rules, sorted by name.
     pub rules: Vec<Rule>,
+    /// Pack rules `disable:` turned off, sorted by name, for `--list`.
+    pub disabled: Vec<Rule>,
     /// The snapshot's path, relative to the root; the default when absent.
     pub baseline: Option<String>,
 }
@@ -225,13 +300,17 @@ pub fn valid_name(name: &str) -> bool {
 /// The snapshot file when `baseline:` is absent: beside the root.
 pub const DEFAULT_BASELINE: &str = "necro.baseline.yaml";
 
-const TOP_KEYS: &[&str] = &["version", "include", "disable", "rules", "baseline"];
+const TOP_KEYS: &[&str] = &[
+    "version", "include", "disable", "override", "rules", "baseline",
+];
+/// What `override:` may replace on a pack rule.
+const OVERRIDE_KEYS: &[&str] = &["files", "exclude", "params"];
 
 /// The prefix that names a pack in `include` (spec: Packs).
 const PACK_PREFIX: &str = "necro:";
 const INCLUDE_KEYS: &[&str] = &["rules"];
 const RULE_KEYS: &[&str] = &[
-    "command", "message", "why", "fix", "details", "examples", "files", "exclude",
+    "command", "message", "why", "fix", "details", "examples", "files", "exclude", "params",
 ];
 const REQUIRED: &[&str] = &["command", "message", "why", "fix"];
 
@@ -374,14 +453,23 @@ pub fn load(root: &Path, files: &[String]) -> Result<Config, Vec<ConfigError>> {
             if let Some(mut rule) = load_rule(&mut e, root, file, key, value) {
                 rule.name = name;
                 rule.pack = pack.map(String::from);
+                rule.source = file.to_string();
                 rules.push(rule);
             }
         }
     }
 
+    let mut off_rules: Vec<Rule> = Vec::new();
     if let Some((_, node)) = m.get("disable") {
         let off = disabled(&mut e, top_file, node, &rules);
-        rules.retain(|r| !off.contains(&r.name));
+        (off_rules, rules) = rules.into_iter().partition(|r| off.contains(&r.name));
+    }
+    if let Some((_, node)) = m.get("override") {
+        overrides(&mut e, top_file, node, &mut rules, &off_rules);
+    }
+
+    for rule in &mut rules {
+        rule.fill_words();
     }
 
     if !e.list.is_empty() {
@@ -390,7 +478,12 @@ pub fn load(root: &Path, files: &[String]) -> Result<Config, Vec<ConfigError>> {
         return Err(list);
     }
     rules.sort_by(|a, b| a.name.cmp(&b.name));
-    Ok(Config { rules, baseline })
+    off_rules.sort_by(|a, b| a.name.cmp(&b.name));
+    Ok(Config {
+        rules,
+        disabled: off_rules,
+        baseline,
+    })
 }
 
 /// The packs `include` names as `necro:<pack>`, each with its rules' YAML.
@@ -449,6 +542,174 @@ fn disabled(e: &mut Errors, file: &str, node: &Node, rules: &[Rule]) -> Vec<Stri
         }
     }
     out
+}
+
+/// Apply `override:`: each entry names a rule of an included pack that
+/// `disable` leaves on, and replaces its `files` or `exclude`.
+fn overrides(e: &mut Errors, file: &str, node: &Node, rules: &mut [Rule], off: &[Rule]) {
+    let Value::Map(items) = &node.value else {
+        e.at(
+            file,
+            node.pos,
+            "override",
+            format!("expected a mapping of pack rules, got {}", node.kind()),
+        );
+        return;
+    };
+    for (key, value) in items {
+        let path = format!("override.{}", key.name);
+        let name = key.name.as_str();
+        let Some(rule) = rules
+            .iter_mut()
+            .find(|r| r.name == name && r.pack.is_some())
+        else {
+            let why = if off.iter().any(|r| r.name == name) {
+                format!("`{name}` is turned off by disable; drop one of the two")
+            } else {
+                format!("`{name}` isn't a rule of an included pack")
+            };
+            e.at(file, key.pos, &path, why);
+            continue;
+        };
+        let Some(m) = entries(e, file, value, &path, OVERRIDE_KEYS) else {
+            continue;
+        };
+        if let Some((_, n)) = m.get("params") {
+            override_params(e, file, n, &format!("{path}.params"), rule);
+        }
+        for k in &OVERRIDE_KEYS[..2] {
+            let Some((_, n)) = m.get(k) else { continue };
+            let Some(filter) = file_filter(e, file, n, &format!("{path}.{k}")) else {
+                continue;
+            };
+            match *k {
+                "files" => rule.files = Some(filter),
+                _ => rule.exclude = Some(filter),
+            }
+            rule.overridden.push(k);
+        }
+    }
+}
+
+/// `override: {<rule>: {params: …}}`: each name must be declared, its value
+/// of the default's kind.
+fn override_params(e: &mut Errors, file: &str, node: &Node, path: &str, rule: &mut Rule) {
+    let Some(given) = params(e, file, node, path) else {
+        return;
+    };
+    let mut any = false;
+    for (p, pos) in given {
+        let at = format!("{path}.{}", p.name);
+        let Some(declared) = rule.params.iter_mut().find(|d| d.name == p.name) else {
+            let names: Vec<&str> = rule.params.iter().map(|d| d.name.as_str()).collect();
+            let has = if names.is_empty() {
+                "none".to_string()
+            } else {
+                names.join(", ")
+            };
+            e.at(
+                file,
+                pos.0,
+                &at,
+                format!(
+                    "`{}` has no parameter `{}`; it has {has}",
+                    rule.name, p.name
+                ),
+            );
+            continue;
+        };
+        if declared.kind != p.kind {
+            e.at(
+                file,
+                pos.1,
+                &at,
+                format!("`{}` is {}, not {}", p.name, declared.kind, p.kind),
+            );
+            continue;
+        }
+        declared.values = p.values;
+        declared.overridden = true;
+        any = true;
+    }
+    if any {
+        rule.overridden.push("params");
+    }
+}
+
+/// A `params:` mapping: each name, its value, and where the key and value are.
+fn params(e: &mut Errors, file: &str, node: &Node, path: &str) -> Option<Vec<(Param, (Pos, Pos))>> {
+    let Value::Map(items) = &node.value else {
+        e.at(
+            file,
+            node.pos,
+            path,
+            format!("expected a mapping of parameters, got {}", node.kind()),
+        );
+        return None;
+    };
+    let mut out = Vec::new();
+    for (key, value) in items {
+        let at = format!("{path}.{}", key.name);
+        if !valid_name(&key.name) {
+            e.at(
+                file,
+                key.pos,
+                &at,
+                format!(
+                    "`{}` isn't a parameter name: lowercase words joined by hyphens",
+                    key.name
+                ),
+            );
+            continue;
+        }
+        let scalar = |n: &Node| match &n.value {
+            Value::Str(s) | Value::Plain(s) => Some(s.clone()),
+            _ => None,
+        };
+        let (kind, values, list) = match &value.value {
+            Value::Seq(items) => {
+                let values: Option<Vec<String>> = items.iter().map(scalar).collect();
+                match values {
+                    Some(v) => ("a list", v, true),
+                    None => {
+                        e.at(
+                            file,
+                            value.pos,
+                            &at,
+                            "a list's items are strings, numbers or booleans",
+                        );
+                        continue;
+                    }
+                }
+            }
+            _ => match scalar(value) {
+                Some(v) => (value.kind(), vec![v], false),
+                None => {
+                    e.at(
+                        file,
+                        value.pos,
+                        &at,
+                        format!(
+                            "expected a string, number, boolean or a list of them, got {}",
+                            value.kind()
+                        ),
+                    );
+                    continue;
+                }
+            },
+        };
+        out.push((
+            Param {
+                name: key.name.clone(),
+                kind,
+                values,
+                list,
+                overridden: false,
+            },
+            (key.pos, value.pos),
+        ));
+    }
+    Some(out)
 }
 
 /// The files the include globs match, sorted, without necro.yaml itself.
@@ -549,6 +810,11 @@ fn load_rule(e: &mut Errors, root: &Path, file: &str, key: &Key, node: &Node) ->
     let exclude = m
         .get("exclude")
         .and_then(|(_, n)| file_filter(e, file, n, &at("exclude")));
+    let params = m
+        .get("params")
+        .and_then(|(_, n)| params(e, file, n, &at("params")))
+        .map(|ps| ps.into_iter().map(|(p, _)| p).collect())
+        .unwrap_or_default();
     if e.list.len() > before {
         return None;
     }
@@ -563,6 +829,9 @@ fn load_rule(e: &mut Errors, root: &Path, file: &str, key: &Key, node: &Node) ->
         pack: None,
         files,
         exclude,
+        source: file.to_string(),
+        overridden: Vec::new(),
+        params,
     })
 }
 
@@ -649,6 +918,9 @@ pub fn builtins() -> [Rule; 2] {
         pack: None,
         files: None,
         exclude: None,
+        source: String::new(),
+        overridden: Vec::new(),
+        params: Vec::new(),
     };
     [
         rule(
