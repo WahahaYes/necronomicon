@@ -129,9 +129,10 @@ usage: necro [-C <dir>] [--format full|terse] [--rule <name>] [<file>…]
        necro cargo-manifest
        necro --version
 
-Each rule's command chooses its own files. Given files, necro skips the rules
-whose files: and exclude: take none of them, and its finders search only them;
---write-baseline always covers every file.
+Each rule's command chooses its own files; exclude: drops its hits in the
+files it names. Given files, necro skips the rules whose files: and exclude:
+take none of them, and its finders search only them; --write-baseline always
+covers every file.
 
 Exit 0 clean, 1 on an error hit or a broken allow, 2 on a config, setup, check
 or usage error.";

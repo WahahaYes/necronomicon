@@ -165,7 +165,12 @@ pub fn run_observed(
         match output.and_then(|lines| read_hits(root, &lines)) {
             Ok(hits) => {
                 ran.insert(&rule.name);
-                raw.extend(hits.into_iter().map(|hit| Raw { rule, hit }));
+                // An excluded file is outside the rule in every run.
+                raw.extend(
+                    hits.into_iter()
+                        .filter(|hit| !rule.excludes(&hit.path))
+                        .map(|hit| Raw { rule, hit }),
+                );
             }
             Err(Failure::Missing(program)) => report.problems.push(Problem::Setup(format!(
                 "{}: {program} isn't on PATH",

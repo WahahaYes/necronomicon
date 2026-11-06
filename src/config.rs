@@ -42,7 +42,7 @@ pub struct Rule {
     pub pack: Option<String>,
     /// `files:`, for narrowed runs; `None` takes every file.
     pub files: Option<FileFilter>,
-    /// `exclude:`, for narrowed runs.
+    /// `exclude:`: files outside the rule, in every run.
     pub exclude: Option<FileFilter>,
 }
 
@@ -84,6 +84,11 @@ impl Rule {
             self.files.as_ref().is_none_or(|f| f.matches(path))
                 && !self.exclude.as_ref().is_some_and(|f| f.matches(path))
         })
+    }
+
+    /// Whether `path` is outside the rule (`exclude:`), so its hits there drop.
+    pub fn excludes(&self, path: &str) -> bool {
+        self.exclude.as_ref().is_some_and(|f| f.matches(path))
     }
 }
 

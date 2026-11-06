@@ -36,7 +36,7 @@ typecheck:
   exclude: {glob: "src/generated/*"}
 ```
 
-A rule that runs runs in full, so a hit it causes elsewhere still shows. A rule without a filter always runs. `necro` with no files, and `--write-baseline`, cover everything.
+A rule that runs runs in full, so a hit it causes elsewhere still shows, except in excluded files: `exclude` puts files outside the rule in every run, and its hits there are dropped. A rule without a filter always runs. `necro` with no files, and `--write-baseline`, cover everything.
 
 ## Layout
 
