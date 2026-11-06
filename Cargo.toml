@@ -1,6 +1,6 @@
 [package]
 name = "necronomicon"
-version = "0.5.0"
+version = "0.5.1"
 edition = "2024"
 # The pinned toolchain (rust-toolchain.toml): the only one CI builds with.
 rust-version = "1.98"
