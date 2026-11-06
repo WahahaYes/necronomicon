@@ -1,33 +1,25 @@
 name: Bug
-description: necro crashed, reported a wrong hit, missed one, or worded one confusingly.
+description: Something in necro isn't working the way you expected.
 labels: [bug]
 body:
-  - type: input
-    id: version
-    attributes:
-      label: necro --version
-      placeholder: necro 0.4.0
-    validations:
-      required: true
   - type: textarea
-    id: repro
+    id: what
     attributes:
-      label: Minimal repro
-      description: A necro.yaml and the smallest files that show it, with no private code, and the command you ran.
-      render: text
+      label: What happened
+      description: What you ran and what necro did. Its output helps, if you have it.
     validations:
       required: true
   - type: textarea
     id: expected
     attributes:
-      label: Expected
-    validations:
-      required: true
-  - type: textarea
-    id: actual
+      label: What you expected
+  - type: input
+    id: version
     attributes:
-      label: Actual
-      description: necro's output, as printed.
-      render: text
-    validations:
-      required: true
+      label: necro --version
+      placeholder: necro 0.4.0
+  - type: textarea
+    id: repro
+    attributes:
+      label: Repro
+      description: If you can share one, a necro.yaml and a file or two that show it. Leave out private code.

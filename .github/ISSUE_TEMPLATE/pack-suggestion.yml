@@ -21,6 +21,4 @@ body:
     id: hits
     attributes:
       label: Hits on a real repo
-      description: How many hits it found where you use it, and whether they were real. A public repo's name helps.
-    validations:
-      required: true
+      description: If you've run it, how many hits it found and whether they were real. A public repo's name helps.

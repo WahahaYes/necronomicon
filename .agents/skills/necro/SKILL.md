@@ -27,4 +27,4 @@ A rule you didn't see coming means `AGENTS.md` is missing a line. When you finis
 
 ## When necro itself is wrong
 
-necro crashed, reported a hit that's wrong, missed one, or worded one confusingly. Draft an issue for necronomicon with its bug form's headings, as `###` headings: `necro --version`, `Minimal repro` (a `necro.yaml` and a file or two, none of this repo's code, and the command), `Expected` and `Actual` (necro's output as printed). Show the draft and ask the user; only if they agree, file it with `gh issue create --repo WahahaYes/necronomicon --label bug --title <title> --body <draft>`.
+necro crashed, reported a hit that's wrong, missed one, or worded one confusingly. Draft an issue for necronomicon with its bug form's headings, as `###` headings: `What happened` (the command and necro's output as printed), `What you expected`, `necro --version`, and `Repro` (a `necro.yaml` and a file or two that show it, none of this repo's code). Show the draft and ask the user; only if they agree, file it with `gh issue create --repo WahahaYes/necronomicon --label bug --title <title> --body <draft>`.
