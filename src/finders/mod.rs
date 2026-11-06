@@ -5,6 +5,8 @@
 use crate::render;
 
 mod agent_files;
+
+pub use agent_files::FIXABLE as AGENT_FILES_FIXABLE;
 mod cargo;
 mod clippy;
 mod grep;

@@ -1,0 +1,12 @@
+# a real folder where a skill's link goes stops the install before anything is written
+spec: Skills
+args: skills install
+exit: 2
+-- .claude/skills/necro-rules/SKILL.md --
+---
+name: necro-rules
+description: mine
+---
+-- @stderr --
+necro: skills: .claude/skills/necro-rules is a folder, not a link; move it to .agents/skills/necro-rules or remove it, then run again
+-- @file .agents/skills/necro/SKILL.md --

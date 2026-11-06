@@ -1,6 +1,8 @@
 ---
 name: necro-dev
 description: Change necronomicon itself, its engine, CLI, finders, packs or spec. Use when adding or changing a necro.yaml key, a finder (necro <name>), a built-in pack rule, output wording, or a conformance case in this repo.
+metadata:
+  internal: true
 ---
 
 # Developing necronomicon
@@ -35,6 +37,10 @@ The key goes in `RULE_KEYS` (`src/config.rs`), `load_rule` parses and validates 
 - Opinions go in an opt-in companion pack (`<lang>-style`), not in the core one.
 - Pack text can't spell the allow syntax, or the tracked YAML parses as an allow: say "an allow comment".
 - Check a new rule against a real adopter before shipping it: count its hits and read a few.
+
+## Changing a shipped skill
+
+`necro`, `necro-rules` and `necro-adopt` are read in other repos: links are absolute GitHub URLs, and the allow syntax is written with placeholders (`<rule>`), since these files are under this repo's root. `necro` and `necro-rules` are embedded by `src/skills.rs` and listed in `Cargo.toml`'s `include`. Don't run `necro skills install` here; it would stamp the sources.
 
 ## Before committing
 

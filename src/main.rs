@@ -10,6 +10,7 @@ mod finders;
 mod packs;
 mod render;
 mod run;
+mod skills;
 mod yaml;
 
 use std::path::{Path, PathBuf};
@@ -90,6 +91,18 @@ fn main() -> ExitCode {
     let argv: Vec<String> = std::env::args().skip(1).collect();
     if let Some(code) = finders::dispatch(&argv) {
         return ExitCode::from(code);
+    }
+    if argv.first().is_some_and(|a| a == "skills") {
+        return match skills::run(&argv[1..]) {
+            Ok(lines) => {
+                render::lines(&lines);
+                ExitCode::SUCCESS
+            }
+            Err(message) => {
+                render::usage(&format!("skills: {message}"));
+                ExitCode::from(2)
+            }
+        };
     }
     if argv.iter().any(|a| a == "--version") {
         render::line(&format!("necro {}", env!("CARGO_PKG_VERSION")));

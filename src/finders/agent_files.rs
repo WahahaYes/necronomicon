@@ -31,6 +31,9 @@ struct Entry {
     link: bool,
 }
 
+/// The checks `--write` fixes.
+pub const FIXABLE: &[&str] = &["claude-md", "skill-link", "stale-skill"];
+
 /// The `agent-files` finder.
 pub fn run(args: &[String]) -> Result<Vec<String>, String> {
     let mut write = false;
@@ -58,9 +61,9 @@ pub fn run(args: &[String]) -> Result<Vec<String>, String> {
         }
     }
     let check = check.ok_or(format!("name a check: {USAGE}"))?;
-    if (write || only_at.is_some()) && !["claude-md", "skill-link"].contains(&check) {
+    if (write || only_at.is_some()) && !FIXABLE.contains(&check) {
         return Err(format!(
-            "--write goes with claude-md and skill-link: {USAGE}"
+            "--write goes with claude-md, skill-link and stale-skill: {USAGE}"
         ));
     }
     let index = index()?;
@@ -439,21 +442,17 @@ fn fix(check: &str, path: &str) -> Result<bool, String> {
                 std::fs::remove_file(&link).map_err(|e| format!("can't replace {link}: {e}"))?;
             }
             std::fs::create_dir_all(&folder).map_err(|e| format!("can't create {folder}: {e}"))?;
-            symlink(&format!("../../.agents/skills/{name}"), &link)?;
+            crate::files::symlink(&format!("../../.agents/skills/{name}"), Path::new(&link))?;
+            Ok(true)
+        }
+        "stale-skill" if path.contains(".agents/skills/") => {
+            let name = base(dir_of(path).trim_end_matches('/'));
+            let Some(text) = crate::skills::stamped(name) else {
+                return Ok(false);
+            };
+            std::fs::write(path, text).map_err(|e| format!("can't write {path}: {e}"))?;
             Ok(true)
         }
         _ => Ok(false),
     }
-}
-
-#[cfg(unix)]
-fn symlink(target: &str, link: &str) -> Result<(), String> {
-    std::os::unix::fs::symlink(target, link).map_err(|e| format!("can't link {link}: {e}"))
-}
-
-#[cfg(not(unix))]
-fn symlink(_: &str, link: &str) -> Result<(), String> {
-    Err(format!(
-        "can't create the link {link} on this system; create it by hand"
-    ))
 }

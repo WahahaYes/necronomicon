@@ -1,0 +1,7 @@
+# skills install writes at the top of a git work tree, so outside one it stops
+spec: Skills
+args: skills install
+git: false
+exit: 2
+-- @stderr --
+necro: skills: not inside a git work tree

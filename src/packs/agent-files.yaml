@@ -72,7 +72,7 @@ rules:
     files: '(^|/)SKILL\.md$'
     message: a necro skill from another necro version
     why: necro's skills describe the necro that installed them; after an upgrade they teach the old behavior.
-    fix: run `necro skills install` to rewrite them for this version.
+    fix: run `necro --fix`, or `necro skills install`, to rewrite them for this version.
     details: |
       A SKILL.md whose frontmatter `metadata: necro-version:` differs from
       the running necro.

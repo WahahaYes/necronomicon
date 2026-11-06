@@ -1,0 +1,35 @@
+# skills install writes each skill stamped with this necro's version, replacing an older copy, and links it from .claude/skills, replacing a link that points elsewhere
+spec: Skills
+args: skills install
+-- .agents/skills/necro/SKILL.md --
+---
+name: necro
+description: old
+metadata:
+  necro-version: "0.0.1"
+---
+Old.
+-- .claude/skills/necro-rules -> ../../elsewhere --
+-- @stdout --
+necro: installed .agents/skills/necro (necro <version>)
+necro: installed .agents/skills/necro-rules (necro <version>)
+-- @file .agents/skills/necro/SKILL.md --
+---
+name: necro
+…
+metadata:
+  necro-version: "<version>"
+---
+…
+-- @file .agents/skills/necro-rules/SKILL.md --
+---
+name: necro-rules
+…
+metadata:
+  necro-version: "<version>"
+---
+…
+-- @file .claude/skills/necro --
+-> ../../.agents/skills/necro
+-- @file .claude/skills/necro-rules --
+-> ../../.agents/skills/necro-rules

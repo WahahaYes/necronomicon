@@ -109,6 +109,10 @@ pre-commit passes the changed files, so a commit runs only the rules that concer
 
 Pin below the next 0.x: any 0.x may break the format.
 
+## Skills for agents
+
+`npx skills add WahahaYes/necronomicon --skill necro-adopt` gives a coding agent a skill for setting necro up in a repo. Its last step, `necro skills install`, adds two skills versioned with your necro: `necro`, for working with its hits, and `necro-rules`, for writing rules and keeping `AGENTS.md` in step. They go in `.agents/skills`, linked from `.claude/skills`; after an upgrade, `necro --fix` rewrites them.
+
 ## More
 
 - [docs/writing-rules.md](https://github.com/WahahaYes/necronomicon/blob/main/docs/writing-rules.md): writing rules and allows, and the pre-commit hook.

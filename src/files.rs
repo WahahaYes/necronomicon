@@ -91,3 +91,19 @@ pub fn anchor(cwd: &Path, root: &Path, given: &Path) -> Option<String> {
     parts.extend(rest);
     Some(parts.join("/"))
 }
+
+/// Create the symlink `link` pointing at `target`.
+#[cfg(unix)]
+pub fn symlink(target: &str, link: &Path) -> Result<(), String> {
+    std::os::unix::fs::symlink(target, link)
+        .map_err(|e| format!("can't link {}: {e}", link.display()))
+}
+
+/// Create the symlink `link` pointing at `target`.
+#[cfg(not(unix))]
+pub fn symlink(_: &str, link: &Path) -> Result<(), String> {
+    Err(format!(
+        "can't create the link {} on this system; create it by hand",
+        link.display()
+    ))
+}
