@@ -3,4 +3,4 @@ spec: Finders
 args: grep '('
 exit: 2
 -- @stderr --
-necro: grep: `(` isn't a valid regex (unclosed group)
+necro: grep: `(` isn't a valid regex (opening parenthesis without closing parenthesis)

@@ -1,15 +1,15 @@
 //! `necro grep` (spec: Finders): every regex match in the tracked files.
 //!
-//! `git grep -F` picks the files that can match, from fixed text every match
-//! must contain; necro then matches them on all cores and places each hit.
+//! `git grep -F` picks the files holding fixed text every match must contain;
+//! necro matches them on all cores with `fancy_regex` (lookaround works).
 
 use std::sync::atomic::{AtomicUsize, Ordering};
 
+use fancy_regex::Regex;
 use globset::{GlobBuilder, GlobSet, GlobSetBuilder};
-use regex::Regex;
 use regex_syntax::hir::literal::{ExtractKind, Extractor};
 
-use super::{split_pathspecs, text_lines, tracked};
+use super::{regex_error, split_pathspecs, text_lines, tracked};
 
 const USAGE: &str =
     "necro grep [--skip-comments <marker>]… [--glob <glob>]… <regex> [-- <pathspec>…]";
@@ -55,12 +55,8 @@ pub fn run(args: &[String]) -> Result<Vec<String>, String> {
         return Err("--skip-comments needs a non-empty marker".into());
     }
     let pattern = pattern.ok_or(format!("give a regex: {USAGE}"))?;
-    let re = Regex::new(pattern).map_err(|e| {
-        let why = e.to_string();
-        let last = why.lines().last().unwrap_or("").trim();
-        let last = last.strip_prefix("error: ").unwrap_or(last);
-        format!("`{pattern}` isn't a valid regex ({last})")
-    })?;
+    let re = Regex::new(pattern)
+        .map_err(|e| format!("`{pattern}` isn't a valid regex ({})", regex_error(&e)))?;
     let globs = Globs::new(&globs)?;
     let mut specs = pathspecs.to_vec();
     specs.extend(globs.pushdown(pathspecs.is_empty()));
@@ -68,7 +64,7 @@ pub fn run(args: &[String]) -> Result<Vec<String>, String> {
         .into_iter()
         .filter(|path| globs.keeps(path))
         .collect();
-    Ok(search(&files, &re, &markers))
+    search(&files, &re, &markers)
 }
 
 /// The `--glob` filters. A glob without `/` matches the file name at any
@@ -177,13 +173,13 @@ fn required_text(pattern: &str) -> Option<Vec<String>> {
 }
 
 /// Every hit in the files, on all cores, in the files' order.
-fn search(files: &[String], re: &Regex, markers: &[String]) -> Vec<String> {
+fn search(files: &[String], re: &Regex, markers: &[String]) -> Result<Vec<String>, String> {
     let threads = std::thread::available_parallelism()
         .map_or(1, |n| n.get())
         .min(files.len().div_ceil(FILES_PER_THREAD))
         .max(1);
     let next = AtomicUsize::new(0);
-    let mut found: Vec<(usize, Vec<String>)> = std::thread::scope(|s| {
+    let found: Vec<(usize, Vec<String>)> = std::thread::scope(|s| {
         let workers: Vec<_> = (0..threads)
             .map(|_| {
                 s.spawn(|| {
@@ -191,39 +187,46 @@ fn search(files: &[String], re: &Regex, markers: &[String]) -> Vec<String> {
                     loop {
                         let i = next.fetch_add(1, Ordering::Relaxed);
                         let Some(path) = files.get(i) else { break };
-                        let hits = file_hits(path, re, markers);
+                        let hits = file_hits(path, re, markers)?;
                         if !hits.is_empty() {
                             out.push((i, hits));
                         }
                     }
-                    out
+                    Ok(out)
                 })
             })
             .collect();
         workers
             .into_iter()
-            .flat_map(|w| w.join().unwrap_or_else(|e| std::panic::resume_unwind(e)))
-            .collect()
-    });
+            .map(|w| w.join().unwrap_or_else(|e| std::panic::resume_unwind(e)))
+            .collect::<Result<Vec<Vec<_>>, String>>()
+            .map(|parts| parts.into_iter().flatten().collect())
+    })?;
+    let mut found = found;
     found.sort_by_key(|(i, _)| *i);
-    found.into_iter().flat_map(|(_, hits)| hits).collect()
+    Ok(found.into_iter().flat_map(|(_, hits)| hits).collect())
 }
 
-/// One file's hits, `path:line:col-endcol: <match>`.
-fn file_hits(path: &str, re: &Regex, markers: &[String]) -> Vec<String> {
+/// One file's hits, `path:line:col-endcol: <match>`; an error when the
+/// regex gives up on a line (fancy_regex's backtracking limit).
+fn file_hits(path: &str, re: &Regex, markers: &[String]) -> Result<Vec<String>, String> {
     let Some(lines) = text_lines(path) else {
-        return Vec::new();
+        return Ok(Vec::new());
     };
     let mut hits = Vec::new();
     for (n, line) in lines.iter().enumerate() {
         let code = &line[..code_end(line, markers)];
-        for m in re.find_iter(code).filter(|m| !m.is_empty()) {
+        for m in re.find_iter(code) {
+            let m = m.map_err(|e| format!("{path}:{}: the regex gave up ({e})", n + 1))?;
+            if m.as_str().is_empty() {
+                continue;
+            }
             let col = code[..m.start()].chars().count() + 1;
             let end = col + m.as_str().chars().count() - 1;
             hits.push(format!("{path}:{}:{col}-{end}: {}", n + 1, m.as_str()));
         }
     }
-    hits
+    Ok(hits)
 }
 
 /// The byte offset where a line's comment starts: the first marker outside a
