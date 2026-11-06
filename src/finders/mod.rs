@@ -34,12 +34,20 @@ pub fn clean_cache() -> Result<Vec<(String, String)>, String> {
     cargo::clean_cache()
 }
 
+/// Sort hit lines by path, line and column as numbers (spec: Finders), not
+/// as text, where line 12 would come before line 3. Stable, so lines that
+/// don't parse as hits keep their order.
+fn sort_hits(hits: &mut [String]) {
+    hits.sort_by_cached_key(|h| crate::command::parse(h).map(|hit| (hit.path, hit.line, hit.col)));
+}
+
 /// Run `args[0]` as a finder, if it names one: the exit code.
 pub fn dispatch(args: &[String]) -> Option<u8> {
     let (name, rest) = args.split_first()?;
     let (_, run) = FINDERS.iter().find(|(n, _)| n == name)?;
     Some(match run(rest) {
-        Ok(hits) => {
+        Ok(mut hits) => {
+            sort_hits(&mut hits);
             render::lines(&hits);
             0
         }

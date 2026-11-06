@@ -1,12 +1,8 @@
-# lint: each gdlint problem at its line, the check in parentheses; max-returns at its func line
+# lint: each gdlint problem at its line, the check in parentheses; max-returns at its func line; hits sort by line number, so 20 comes after 4
 spec: Finders
 args: gdtoolkit lint
 -- src/a.gd --
 extends Node
-
-
-func BadName() -> void:
-	pass
 
 
 func pick(x: int) -> int:
@@ -23,6 +19,10 @@ func pick(x: int) -> int:
 	if x == 6:
 		return 6
 	return 0
+
+
+func BadName() -> void:
+	pass
 -- @stdout --
-src/a.gd:4: Function name "BadName" is not valid (function-name)
-src/a.gd:8: Function "pick" has more than 6 return statements (max-returns)
+src/a.gd:4: Function "pick" has more than 6 return statements (max-returns)
+src/a.gd:20: Function name "BadName" is not valid (function-name)
