@@ -1,0 +1,54 @@
+# The necro:gdscript pack (spec: Packs), built into the binary: gdtoolkit's
+# formatter, linter and parser, plus guards for what they miss. Rule names
+# get the `gdscript/` prefix when loaded. gdformat and gdlint come from PATH;
+# necronomicon[gdscript] installs the pinned gdtoolkit beside necro.
+rules:
+  gdformat:
+    command: necro gdtoolkit --line-length {line-length} format -- '*.gd'
+    files: '\.gd$'
+    params: { line-length: 100 }
+    message: a GDScript file gdformat would change
+    why: gdformat is the one layout every GDScript file shares; a file it would change makes the next formatted diff noisy and hides real edits.
+    fix: run `necro --fix`, which runs gdformat on it, or `gdformat <file>`; a file holding a lambda inside a multi-line bracket needs that lambda named first (gdscript/inline-lambda).
+    details: |
+      gdformat runs with --line-length {line-length}. --fix reformats the
+      whole file, and skips a file with a lambda inside brackets opened on an
+      earlier line, which gdformat corrupts.
+  gdlint:
+    command: necro gdtoolkit lint -- '*.gd'
+    files: '\.gd$|(^|/)\.?gdlintrc$'
+    message: gdlint reports a problem
+    why: gdlint catches naming, structure and complexity problems the editor accepts silently; its default settings are the shared baseline.
+    fix: fix what the label names (the check is in parentheses); a check the repo disagrees with is configured in its gdlintrc.
+  parse:
+    command: necro gdtoolkit parse -- '*.gd'
+    files: '\.gd$'
+    message: a GDScript file gdtoolkit can't parse
+    why: a file the formatter and linter can't parse gets neither, so every other check on it is silently skipped.
+    fix: fix the syntax at the position shown; if Godot accepts it, gdtoolkit may lag the language, and the file needs an exception until it catches up.
+  inline-lambda:
+    command: necro gdscan inline-lambda -- '*.gd'
+    files: '\.gd$'
+    message: a lambda inside a multi-line bracket
+    why: gdformat corrupts a file with a lambda inside a call, array or dictionary that spans lines, so the formatter can't run on it.
+    fix: 'define the lambda first, `var on_done: Callable = func() -> void: ...`, then pass `on_done`.'
+    details: |
+      A `func(` on a line inside brackets opened on an earlier line. A
+      lambda within one line, `items.filter(func(x): return x > 0)`, is fine.
+    examples:
+      bad: |
+        var hooks: Array = [
+        	func() -> void: pass,
+        ]
+      good: |
+        var hook: Callable = func() -> void: pass
+        var hooks: Array = [hook]
+  uid:
+    command: necro gdscan uid
+    files: '\.gd(\.uid)?$'
+    message: a GDScript file and its .uid aren't tracked together
+    why: since Godot 4.4 a script's .uid file holds the id scenes use to find it; one left untracked is regenerated on every clone with a new id, and references to the script break.
+    fix: open the project in the editor (or `godot --headless --import`) so Godot writes the .uid, and commit it beside the script; delete a .uid whose script is gone.
+    details: |
+      Only in a repo that tracks at least one .gd.uid file, so projects on
+      Godot 4.3 or older find nothing.

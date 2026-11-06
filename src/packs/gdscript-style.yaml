@@ -1,0 +1,56 @@
+# The necro:gdscript-style pack (spec: Packs), built into the binary: opt-in
+# house style for GDScript beside necro:gdscript. Rule names get the
+# `gdscript-style/` prefix. Commands use only necro's own finders, so it
+# needs no gdtoolkit; limits are parameters a repo sets with override.
+rules:
+  walrus:
+    command: necro grep --skip-comments '#' ':=' -- '*.gd'
+    files: '\.gd$'
+    message: a type inferred with :=
+    why: writing types out shows the reader what a value is and keeps the static checks strong; := hides it.
+    fix: 'name the type: `var count: int = 0`.'
+    details: |
+      Comments are skipped; a `:=` inside a string still counts.
+    examples:
+      bad: 'var count := 1'
+      good: 'var count: int = 1'
+  border:
+    command: necro grep '^\s*#+\s*-{{min-dashes},}' -- '*.gd'
+    files: '\.gd$'
+    params: { min-dashes: 6 }
+    message: a decorative comment border
+    why: a line of dashes adds height without saying anything, and makes a file look sectioned where the code isn't.
+    fix: delete it; a ## doc or the two blank lines between functions already separate things, and a file that needs sections wants to be several.
+    examples:
+      bad: '# ------------'
+      good: '## Rolls the dice.'
+  spacing:
+    command: necro gdscan spacing -- '*.gd'
+    files: '\.gd$'
+    message: a function block without two blank lines above it
+    why: two blank lines between top-level functions is the layout gdformat keeps; drift makes diffs noisy.
+    fix: leave two blank lines above the function and the comments attached to it.
+    details: |
+      A top-level `func` or `static func`, with the comments right above it,
+      has two blank lines before it, except the first in the file.
+  export-doc:
+    command: necro gdscan export-doc -- '*.gd'
+    files: '\.gd$'
+    message: an @export with no ## doc above it
+    why: an exported variable shows in the inspector, and its ## line is the tooltip there, the only doc a designer sees.
+    fix: add a ## line directly above the @export saying what the value does.
+    examples:
+      bad: '@export var speed: float = 1.0'
+      good: |
+        ## Dice roll speed, in turns per second.
+        @export var speed: float = 1.0
+  doc-length:
+    command: necro gdscan --header {header} --item {item} doc-length -- '*.gd'
+    files: '\.gd$'
+    params: { header: 10, item: 6 }
+    message: a ## doc block over its line limit
+    why: long docs go stale and hide the code; the class header gets {header} lines, any other doc {item}.
+    fix: cut it to what the code doesn't say; longer reasoning goes in docs, examples in tests.
+    details: |
+      A run of own-line ## comments. The header is the first run, right
+      after `extends`, `class_name`, `@tool` and blank lines.

@@ -2,8 +2,9 @@
 
 ## Unreleased
 
-- **`necro gdtoolkit`** runs gdformat and gdlint from `PATH` over tracked `.gd` files (`format`, `lint`, `parse`); `format --write` reformats, skipping a file with a lambda gdformat corrupts. `necronomicon[gdscript]` installs gdtoolkit 4.5.0 beside necro.
-- **`necro gdscan`** checks GDScript layout line by line (`spacing`, `inline-lambda`, `doc-length`, `export-doc`, `uid`); like `necro grep`, it searches only the given files in a narrowed run.
+- **`necro:gdscript`**, a pack for Godot: `gdformat` (fixable with `--fix`, parameter `line-length`), `gdlint`, `parse`, `inline-lambda` (a lambda inside a multi-line bracket, which gdformat corrupts and `--fix` skips) and `uid` (each script and its `.gd.uid` tracked together, once a repo tracks any). It runs gdtoolkit from `PATH`: install `necronomicon[gdscript]`, which pins gdtoolkit 4.5.0 beside necro.
+- **`necro:gdscript-style`**, opt-in GDScript style: `walrus`, `border` (`min-dashes`), `spacing`, `export-doc` and `doc-length` (`header` 10, `item` 6). It needs no gdtoolkit.
+- **`necro gdscan`** and **`necro gdtoolkit`**, the finders behind them; like `necro grep`, they search only the given files in a narrowed run.
 
 - **Fixes.** `necro --fix` fixes the hits a run reports, then checks again and says what it changed and which hits it couldn't fix; it exits 1 when it changed a file, so a hook fails until the fixed files are re-staged. Allowed and baselined hits are left alone. The published hook and the README's now run `necro --fix`.
 - **`necro grep --replace <text>`** makes a rule fixable: its labels say what each match becomes (`$1` for groups), and `--write` (which `--fix` adds) replaces them in place. Any other command names its fix in the new `autofix:` key, with `{files}` for the files to fix.

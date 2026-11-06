@@ -1,0 +1,29 @@
+# necro:gdscript runs gdtoolkit's formatter, linter and parser and its own guards; necro:gdscript-style adds the house style
+spec: Packs
+args: --format terse
+exit: 1
+-- necro.yaml --
+version: 0
+include: [necro:gdscript, necro:gdscript-style]
+-- src/a.gd --
+extends Node
+## Speed.
+@export var speed: float = 1.0
+
+
+func BadName() -> void:
+	var x := 1
+	print(x)
+-- src/a.gd.uid --
+uid://a
+-- src/b.gd --
+extends Node
+
+
+func f( -> void:
+	pass
+-- @stdout --
+src/a.gd:7:8: gdscript-style/walrus a type inferred with :=
+src/a.gd:6:1: gdscript/gdlint gdlint reports a problem
+src/b.gd:4:9: gdscript/parse a GDScript file gdtoolkit can't parse
+src/b.gd: gdscript/uid a GDScript file and its .uid aren't tracked together
