@@ -2,11 +2,11 @@
 spec: Packs; Parameters
 -- necro.yaml --
 version: 0
-include: [necro:rust]
+include: [necro:rust, necro:rust-style]
 override:
-  rust/weasel-type-names: { params: { role-words: [a, b], nope: x } }
+  rust-style/weasel-type-names: { params: { role-words: [a, b], nope: x } }
   rust/no-unwrap: { params: { x: 1 } }
 -- @config-error --
-necro.yaml:4:51: override.rust/weasel-type-names.params.role-words
-necro.yaml:4:59: override.rust/weasel-type-names.params.nope
+necro.yaml:4:57: override.rust-style/weasel-type-names.params.role-words
+necro.yaml:4:65: override.rust-style/weasel-type-names.params.nope
 necro.yaml:5:31: override.rust/no-unwrap.params.x

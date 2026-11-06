@@ -1,0 +1,74 @@
+# The necro:rust-style pack (spec: Packs), built into the binary: opt-in
+# house style for Rust beside necro:rust. Rule names get the `rust-style/`
+# prefix when loaded. Commands use only finders that read files (necro
+# rust-docs, necro grep), so it needs no cargo; limits are parameters a repo
+# sets with override.
+rules:
+  doc-missing:
+    command: necro rust-docs missing -- '*.rs'
+    files: '\.rs$'
+    message: a public item with no doc comment
+    why: pub marks the surface another reader, often an agent, relies on before changing the code; an undocumented item makes them rebuild its promise from the body.
+    fix: add one `///` line saying what it does or guarantees, not how; a `pub mod` may instead open its file with `//!`.
+    details: |
+      Every `pub` fn (methods included), struct, enum, trait, type, const,
+      static and mod. `pub(crate)` and narrower are exempt, and so are test
+      items (`#[test]`, `cfg(test)`, anything in a `#[cfg(test)]` module).
+      The finder reads lines, not Rust: an item spread over lines from its
+      `pub` is still found at that line.
+    examples:
+      bad: 'pub fn valid_name(name: &str) -> bool {'
+      good: |
+        /// Whether a rule name is lowercase words joined by hyphens.
+        pub fn valid_name(name: &str) -> bool {
+  module-doc:
+    command: necro rust-docs module -- '*.rs'
+    files: '\.rs$'
+    message: a file with no //! module doc
+    why: the first lines of a file are what a reader sees when they open it; a `//!` saying what the module is for saves reading the whole file to find out.
+    fix: open the file with a `//!` line or two on what the module holds and why it exists apart from its neighbours.
+    details: |
+      The first line past blank lines and inner attributes (`#![…]`) must be
+      a `//!` doc. Empty files pass.
+    examples:
+      bad: 'use std::path::Path;'
+      good: |
+        //! Loading and validating the config file.
+        use std::path::Path;
+  doc-length:
+    command: necro rust-docs length --header {header} --item {item} -- '*.rs'
+    files: '\.rs$'
+    params: { header: 10, item: 6 }
+    message: a doc block over its line limit
+    why: long docs go stale and hide the code; a file or type header gets {header} lines, any other doc {item}.
+    fix: cut it to what the signature doesn't say; longer reasoning goes in docs, examples in tests.
+    details: |
+      A run of `///` or `//!` lines counts as one block. The header limit
+      applies to a run holding `//!` and to the doc above a struct, enum,
+      trait, union or impl; every other doc gets the item limit.
+  comment-border:
+    command: necro grep '^\s*//+\s*-{{min-dashes},}' -- '*.rs'
+    files: '\.rs$'
+    params: { min-dashes: 6 }
+    message: a decorative comment border
+    why: a line of dashes adds height without saying anything, and makes a file look sectioned where the code isn't.
+    fix: delete it; a `///` doc or a blank line already separates items, and a module that needs sections wants to be several modules.
+    examples:
+      bad: '// ------------------------------'
+      good: '/// Parsing the header.'
+  weasel-type-names:
+    command: >-
+      necro grep '\b(struct|enum|trait|type)\s+\w*({role-words})\b'
+      -- '*.rs'
+    files: '\.rs$'
+    params:
+      role-words: Manager|Service|Factory|Helpers?|Utils?|Handler
+    message: a type named for a role, not a thing
+    why: Manager, Service, Helper and the like say a type exists, not what it holds or does, so it becomes the place every unrelated function lands.
+    fix: name what it is (`Pool`, `Cache`, `Renderer`), or split it; a builder is fine as `…Builder`.
+    details: |
+      From Microsoft's Pragmatic Rust Guidelines (M-WEASEL-WORDS).
+      Experimental: no hits to tune against yet.
+    examples:
+      bad: 'struct ConfigManager {'
+      good: 'struct Config {'

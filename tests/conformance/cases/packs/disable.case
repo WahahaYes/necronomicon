@@ -3,7 +3,8 @@ spec: Packs
 args: --format terse
 -- necro.yaml --
 version: 0
-include: [necro:rust]
-disable: [rust/weasel-type-names]
+include: [necro:rust-style]
+disable: [rust-style/weasel-type-names]
 -- src/a.rs --
+//! A.
 struct ConfigManager {}

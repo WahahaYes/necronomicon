@@ -1,0 +1,29 @@
+# necro:rust-style: a doc on every public item, a //! on every file, doc blocks within their parameters, no comment borders, no role-word names
+spec: Packs; Parameters
+args: --format terse
+exit: 1
+-- necro.yaml --
+version: 0
+include: [necro:rust-style]
+override:
+  rust-style/doc-length: { params: { item: 2 } }
+-- src/lib.rs --
+//! The crate.
+
+/// One.
+/// Two.
+/// Three.
+pub fn long_doc() {}
+
+pub fn bare() {}
+
+// ----------
+struct ThingManager;
+-- src/other.rs --
+fn f() {}
+-- @stdout --
+src/lib.rs:10:1: rust-style/comment-border a decorative comment border
+src/lib.rs:3:1: rust-style/doc-length a doc block over its line limit
+src/lib.rs:8:1: rust-style/doc-missing a public item with no doc comment
+src/other.rs:1:1: rust-style/module-doc a file with no //! module doc
+src/lib.rs:11:1: rust-style/weasel-type-names a type named for a role, not a thing
