@@ -67,18 +67,17 @@ pub fn run(args: &[String]) -> Result<Vec<String>, String> {
     search(&files, &re, &markers)
 }
 
-/// The `--glob` filters. A glob without `/` matches the file name at any
-/// depth; `*` stays within one folder; a leading `!` excludes.
+/// The `--glob` filters, as prek reads globs: matched against the whole
+/// path, `*` crossing `/`; a leading `!` excludes.
 struct Globs {
     include: Vec<String>,
-    exclude: Vec<String>,
     include_set: Option<GlobSet>,
     exclude_set: GlobSet,
 }
 
 impl Globs {
     fn new(globs: &[String]) -> Result<Globs, String> {
-        let (mut include, mut exclude) = (Vec::new(), Vec::new());
+        let mut include = Vec::new();
         let (mut inc, mut exc) = (GlobSetBuilder::new(), GlobSetBuilder::new());
         for raw in globs {
             let (negated, body) = match raw.strip_prefix('!') {
@@ -86,21 +85,14 @@ impl Globs {
                 None => (false, raw.as_str()),
             };
             let body = body.strip_prefix("./").unwrap_or(body);
-            let full = if body.contains('/') {
-                body.to_string()
-            } else {
-                format!("**/{body}")
-            };
-            let glob = GlobBuilder::new(&full)
-                .literal_separator(true)
+            let glob = GlobBuilder::new(body)
                 .build()
                 .map_err(|e| format!("`{raw}` isn't a valid glob ({})", e.kind()))?;
             if negated {
                 exc.add(glob);
-                exclude.push(full);
             } else {
                 inc.add(glob);
-                include.push(full);
+                include.push(body.to_string());
             }
         }
         let built = |b: GlobSetBuilder| b.build().map_err(|e| e.to_string());
@@ -112,7 +104,6 @@ impl Globs {
             },
             exclude_set: built(exc)?,
             include,
-            exclude,
         })
     }
 
@@ -121,23 +112,24 @@ impl Globs {
             && !self.exclude_set.is_match(path)
     }
 
-    /// The globs as git pathspecs, so `git grep` skips what they rule out.
-    /// Only a narrowing: `keeps` still decides. Includes go only when there
-    /// are no pathspecs (git ORs pathspecs) and git reads every one the same
-    /// way (no braces, classes or escapes).
+    /// The includes as git pathspecs, so `git grep` skips what they rule
+    /// out; `keeps` still decides. Only when there are no pathspecs (git ORs
+    /// them) and every include is `*.<suffix>`, which `:(glob)**/*.<suffix>`
+    /// matches exactly; git's globs stop `*` at `/`, so others would miss
+    /// files.
     fn pushdown(&self, no_pathspecs: bool) -> Vec<String> {
-        let plain = |g: &String| !g.contains(['{', '}', '[', ']', '\\']);
-        let mut specs = Vec::new();
-        if no_pathspecs && !self.include.is_empty() && self.include.iter().all(plain) {
-            specs.extend(self.include.iter().map(|g| format!(":(glob){g}")));
-        }
-        specs.extend(
-            self.exclude
+        let suffix_only = |g: &String| {
+            g.strip_prefix('*')
+                .is_some_and(|rest| !rest.contains(['*', '?', '[', ']', '{', '}', '\\', '/']))
+        };
+        if no_pathspecs && !self.include.is_empty() && self.include.iter().all(suffix_only) {
+            self.include
                 .iter()
-                .filter(|g| plain(g))
-                .map(|g| format!(":(exclude,glob){g}")),
-        );
-        specs
+                .map(|g| format!(":(glob)**/{g}"))
+                .collect()
+        } else {
+            Vec::new()
+        }
     }
 }
 
