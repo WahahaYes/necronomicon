@@ -69,6 +69,7 @@ rules:
       checked against the rules necro.yaml turns on.
   stale-skill:
     command: necro agent-files stale-skill
+    autofix: necro skills install {files}
     files: '(^|/)SKILL\.md$'
     message: a necro skill from another necro version
     why: necro's skills describe the necro that installed them; after an upgrade they teach the old behavior.

@@ -3,4 +3,4 @@ spec: Skills
 args: skills
 exit: 2
 -- @stderr --
-necro: skills: name an action: necro skills install
+necro: skills: name an action: necro skills install [<SKILL.md>…]

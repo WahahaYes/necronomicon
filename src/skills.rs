@@ -12,7 +12,7 @@ const SKILLS: &[(&str, &str)] = &[
     ),
 ];
 
-const USAGE: &str = "necro skills install";
+const USAGE: &str = "necro skills install [<SKILL.md>…]";
 
 /// A carried skill's text with `metadata: necro-version:` closing its
 /// frontmatter, or `None` when necro doesn't carry `name`.
@@ -32,14 +32,15 @@ pub fn stamped(name: &str) -> Option<String> {
 pub fn run(args: &[String]) -> Result<Vec<String>, String> {
     match args {
         [] => Err(format!("name an action: {USAGE}")),
-        [a] if a == "install" => install(),
-        _ => Err(format!("unknown action {}: {USAGE}", args.join(" "))),
+        [a, paths @ ..] if a == "install" => install(paths),
+        [a, ..] => Err(format!("unknown action {a}: {USAGE}")),
     }
 }
 
-/// Write every carried skill into `.agents/skills` at the work tree's top and
-/// link each from `.claude/skills`. Checks first, so a refusal writes nothing.
-fn install() -> Result<Vec<String>, String> {
+/// Write the carried skills into `.agents/skills` at the work tree's top and
+/// link each from `.claude/skills`: all of them, or those the given SKILL.md
+/// paths name (others are skipped). Checks first, so a refusal writes nothing.
+fn install(paths: &[String]) -> Result<Vec<String>, String> {
     let out = crate::files::git()
         .args(["rev-parse", "--show-toplevel"])
         .output()
@@ -49,7 +50,23 @@ fn install() -> Result<Vec<String>, String> {
     }
     let top = String::from_utf8_lossy(&out.stdout).trim().to_string();
     let top = Path::new(&top);
-    for (name, _) in SKILLS {
+    let cwd = std::env::current_dir().map_err(|e| format!("can't read the current folder: {e}"))?;
+    let named: Vec<String> = paths
+        .iter()
+        .map(|p| crate::files::absolute(&cwd, Path::new(p)))
+        .filter_map(|p| {
+            let rest = p.strip_prefix(top.join(".agents/skills")).ok()?;
+            let mut parts = rest.iter();
+            let name = parts.next()?.to_str()?.to_string();
+            (parts.next()? == "SKILL.md" && parts.next().is_none()).then_some(name)
+        })
+        .collect();
+    let chosen: Vec<&str> = SKILLS
+        .iter()
+        .map(|(n, _)| *n)
+        .filter(|n| paths.is_empty() || named.iter().any(|m| m == n))
+        .collect();
+    for name in &chosen {
         let link = format!(".claude/skills/{name}");
         if std::fs::symlink_metadata(top.join(&link)).is_ok_and(|m| m.is_dir()) {
             return Err(format!(
@@ -58,7 +75,7 @@ fn install() -> Result<Vec<String>, String> {
         }
     }
     let mut lines = Vec::new();
-    for (name, _) in SKILLS {
+    for name in chosen {
         let text = stamped(name).ok_or(format!("the {name} skill has no frontmatter"))?;
         let folder = format!(".agents/skills/{name}");
         let file = top.join(&folder).join("SKILL.md");

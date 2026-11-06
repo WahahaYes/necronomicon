@@ -1,0 +1,16 @@
+# given SKILL.md paths, skills install rewrites only the carried skills they name and skips the rest
+spec: Skills
+args: skills install .agents/skills/necro/SKILL.md .agents/skills/mine/SKILL.md
+-- .agents/skills/mine/SKILL.md --
+---
+name: mine
+description: x
+---
+-- @stdout --
+necro: installed .agents/skills/necro (necro <version>)
+-- @file .agents/skills/necro-rules/SKILL.md --
+-- @file .agents/skills/mine/SKILL.md --
+---
+name: mine
+description: x
+---
