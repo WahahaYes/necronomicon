@@ -1,0 +1,48 @@
+# missing: a public item with no /// above it, past blank and attribute lines; restricted visibility, test items and a pub mod whose file opens with //! are exempt
+spec: Finders
+args: rust-docs missing
+-- src/lib.rs --
+//! The crate.
+
+/// Documented.
+#[derive(Debug)]
+pub struct Doc;
+
+pub struct Bare;
+
+#[derive(
+    Debug,
+)]
+pub enum AfterAttribute { A }
+
+pub(crate) fn restricted() {}
+
+pub const LIMIT: u8 = 1;
+pub static mut COUNT: u8 = 0;
+pub const fn make() {}
+pub async unsafe fn run() {}
+
+pub mod documented;
+pub mod undocumented;
+
+#[cfg(test)]
+mod tests {
+    pub fn helper() {}
+}
+
+impl Doc {
+    pub fn method(&self) {}
+}
+-- src/documented.rs --
+//! Has its own doc.
+-- src/undocumented.rs --
+// a plain comment
+-- @stdout --
+src/lib.rs:7:1: struct Bare
+src/lib.rs:12:1: enum AfterAttribute
+src/lib.rs:16:1: const LIMIT
+src/lib.rs:17:1: static COUNT
+src/lib.rs:18:1: fn make
+src/lib.rs:19:1: fn run
+src/lib.rs:22:1: mod undocumented
+src/lib.rs:30:5: fn method

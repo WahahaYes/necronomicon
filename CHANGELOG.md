@@ -5,6 +5,7 @@
 - **`exclude:` now applies to every run.** A rule's hits in excluded files are dropped, in full runs too, and an allow there suppresses nothing; before, `exclude:` only decided whether a narrowed run ran the rule.
 - **`override:` changes a pack rule's paths.** `override: {rust/no-unwrap: {exclude: '^build\.rs$'}}` replaces the rule's `files:` or `exclude:` with the repo's; `--explain` marks them `(override)`.
 - **Parameters.** A rule's `params:` names values its command and words use as `{name}`, and `override:` sets them for a pack rule. `rust/weasel-type-names` takes `role-words`, the role words it looks for.
+- **`necro rust-docs`** finds doc-comment problems in tracked `.rs` files (`missing`, `module`, `length`) and, like `necro grep`, searches only the given files in a narrowed run.
 - **`necro --list`** prints every rule, where it comes from, and whether `necro.yaml` disables or overrides it.
 
 ## 0.4.0 - 2026-11-05

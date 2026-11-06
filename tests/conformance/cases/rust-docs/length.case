@@ -1,0 +1,27 @@
+# length: a //! run or a doc above a type gets --header lines, any other doc --item; //// isn't a doc
+spec: Finders
+args: rust-docs length --header 3 --item 2
+-- src/a.rs --
+//! One.
+//! Two.
+//! Three.
+//! Four.
+
+/// One.
+/// Two.
+/// Three.
+#[derive(Debug)]
+pub struct Ok3;
+
+/// One.
+/// Two.
+/// Three.
+pub fn too_long() {}
+
+//// One.
+//// Two.
+//// Three.
+fn not_docs() {}
+-- @stdout --
+src/a.rs:1:1: doc block is 4 lines (limit 3)
+src/a.rs:12:1: doc block is 3 lines (limit 2)

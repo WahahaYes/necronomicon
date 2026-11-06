@@ -1,0 +1,6 @@
+# a check is required, and limits are whole numbers of lines
+spec: Finders
+args: rust-docs length --item 0
+exit: 2
+-- @stderr --
+necro: rust-docs: --item takes a whole number of lines, got 0
