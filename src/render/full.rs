@@ -84,7 +84,7 @@ pub fn render(report: &Report) -> String {
             let label = if d.label.is_empty() {
                 String::new()
             } else {
-                format!(" ({})", d.label)
+                format!(": {}", d.label)
             };
             let _ = writeln!(out, "{head}: also at {}{label}", location(d));
             out.push_str(&wrap("   = fix: ", &d.fix));

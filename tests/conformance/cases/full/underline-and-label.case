@@ -28,7 +28,7 @@ error[canned]: Canned
   = fix: Fix it.
   = more: necro --explain canned
 
-error[canned]: also at src/a.ts:2:1 (missing a default)
+error[canned]: also at src/a.ts:2:1: missing a default
    = fix: Fix it.
 
 error[canned]: also at src/a.ts:3:1
