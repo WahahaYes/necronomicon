@@ -1,0 +1,8 @@
+# --write rewrites the matches and prints the hits it replaced
+spec: Finders; Fixes
+args: grep --replace '' --write '[ \t]+$' -- 'src/*'
+-- src/a.gd --
+var a = 1   
+var b = 2
+-- @stdout --
+src/a.gd:1:10-12: replace with ""
