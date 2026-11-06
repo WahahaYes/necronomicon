@@ -1,0 +1,11 @@
+# a regex with no fixed text every match must contain still searches every file
+spec: Finders
+args: grep '\d{3}' -- 'src/*'
+-- src/a.gd --
+var a = 1
+var b = 404
+-- src/b.gd --
+// 2026
+-- @stdout --
+src/a.gd:2:9-11: 404
+src/b.gd:1:4-6: 202

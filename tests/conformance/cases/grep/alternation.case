@@ -1,0 +1,12 @@
+# a match in any file is found, whichever branch of the regex it takes and whatever its case
+spec: Finders
+args: grep '(?i)\bdonkey\b|mülé' -- 'src/*'
+-- src/a.gd --
+var a = DONKEY
+-- src/b.gd --
+é mülé
+-- src/c.gd --
+var c = horse
+-- @stdout --
+src/a.gd:1:9-14: DONKEY
+src/b.gd:1:3-6: mülé

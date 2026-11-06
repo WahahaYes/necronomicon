@@ -48,14 +48,27 @@ pub fn split_pathspecs(args: &[String]) -> (&[String], &[String]) {
     }
 }
 
-/// Tracked text files matching the pathspecs under the working folder,
-/// sorted. Listed by `git grep`, not `git ls-files`, which ignores an exclude
-/// pathspec that starts with a wildcard (`:!*x*.gd`). The baseline snapshot
-/// is skipped: its plain-text fingerprints would match the content rules they
-/// were taken from.
-pub fn tracked(pathspecs: &[String]) -> Result<Vec<String>, String> {
-    let out = crate::files::git()
-        .args(["grep", "-l", "-z", "-I", "-e", "", "--"])
+/// Tracked text files matching the pathspecs, sorted; with `containing`,
+/// only those holding one of the strings. `git grep` lists them: unlike
+/// `git ls-files`, it honours an exclude starting with a wildcard
+/// (`:!*x*.gd`). The baseline snapshot is skipped, as its fingerprints would
+/// match the rules they came from.
+pub fn tracked(pathspecs: &[String], containing: Option<&[String]>) -> Result<Vec<String>, String> {
+    let mut git = crate::files::git();
+    git.args(["grep", "-l", "-z", "-I"]);
+    match containing {
+        Some(texts) => {
+            git.arg("-F");
+            for text in texts {
+                git.args(["-e", text]);
+            }
+        }
+        None => {
+            git.args(["-e", ""]);
+        }
+    }
+    let out = git
+        .arg("--")
         .args(pathspecs)
         .output()
         .map_err(|e| format!("can't run git: {e}"))?;

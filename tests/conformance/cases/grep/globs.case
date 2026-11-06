@@ -1,0 +1,19 @@
+# --glob picks files: a glob without / matches the name at any depth, * stays within one folder, ! excludes
+spec: Finders
+args: grep --glob '*.ts' --glob 'lib/*' --glob '!src/gen/**' donkey
+-- src/a.ts --
+donkey
+-- src/deep/b.ts --
+donkey
+-- src/gen/c.ts --
+donkey
+-- src/d.gd --
+donkey
+-- lib/e.gd --
+donkey
+-- lib/sub/f.gd --
+donkey
+-- @stdout --
+lib/e.gd:1:1-6: donkey
+src/a.ts:1:1-6: donkey
+src/deep/b.ts:1:1-6: donkey

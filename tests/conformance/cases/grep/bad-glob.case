@@ -1,0 +1,6 @@
+# a glob that doesn't parse is a usage error
+spec: Finders
+args: grep --glob 'src/[' donkey
+exit: 2
+-- @stderr --
+necro: grep: `src/[` isn't a valid glob (unclosed character class; missing ']')
