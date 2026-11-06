@@ -91,7 +91,7 @@ pip install necronomicon       # the same wheel, into the current environment
 cargo install necronomicon     # from crates.io, built from source
 ```
 
-As a pre-commit hook, which installs the wheel into pre-commit's own environment:
+As a hook for [prek](https://github.com/j178/prek) or pre-commit, which installs the wheel into the hook's own environment:
 
 ```yaml
 - repo: local
@@ -107,7 +107,7 @@ As a pre-commit hook, which installs the wheel into pre-commit's own environment
 
 For `necro:gdscript`, install `necronomicon[gdscript]` instead, which pins gdtoolkit beside necro.
 
-pre-commit passes the changed files, so a commit runs only the rules that concern them, and `--fix` applies the fixes rules carry, failing the commit until you re-stage, as a formatter does; in CI, `pre-commit run --from-ref origin/main --to-ref HEAD` does the same for a branch. `necro` with no files checks everything.
+The runner passes the changed files, so a commit runs only the rules that concern them, and `--fix` applies the fixes rules carry, failing the commit until you re-stage, as a formatter does; in CI, `prek run --from-ref origin/main --to-ref HEAD` (or `pre-commit run`, the same) does it for a branch. `necro` with no files checks everything.
 
 Pin below the next 0.x: any 0.x may break the format.
 
