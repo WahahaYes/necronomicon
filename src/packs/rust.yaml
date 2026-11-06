@@ -109,3 +109,18 @@ rules:
       Each workspace is checked with `cargo fmt --all --check` from its own
       folder, so its rustfmt.toml and toolchain pin apply. A repo that
       doesn't use rustfmt turns it off with `disable: [rust/rustfmt]`.
+  clippy:
+    command: necro clippy --tests --others --except={skip}
+    files: '\.rs$|(^|/)Cargo\.(toml|lock)$|(^|/)\.?clippy\.toml$'
+    params: { skip: [] }
+    message: a compiler or clippy warning
+    why: rustc's warnings and clippy's defaults catch bugs and needless code, and one left in the tree hides the next behind it.
+    fix: change the code as the warning says; `cargo clippy` explains it in full. To drop a lint everywhere, list it in this rule's `skip`, or set it in Cargo.toml's [lints].
+    details: |
+      Every warning from necro's shared clippy run, tests included (as
+      `cargo clippy --all-targets` checks), except the lints the other
+      rust/ rules report. The crate's [lints] tables and #[allow] and
+      #[expect] apply, and a lint they turn on, such as clippy::pedantic,
+      shows here too. A lint raised to deny is reported like the rest.
+      It replaces a `cargo clippy -- -D warnings` hook, and shares one build
+      with the other rules.

@@ -1,0 +1,6 @@
+# --others takes no lints of its own
+spec: Finders
+args: clippy --others unwrap_used
+exit: 2
+-- @stderr --
+necro: clippy: --others takes no lints: necro clippy [--tests] [--match <regex>] [--skip <regex>] (<lint>… | --others [--except=<lint>,…])

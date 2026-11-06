@@ -1,0 +1,23 @@
+# rust/clippy reports every other warning, labelled with its lint; override skip drops lints by name
+spec: Packs
+args: --format terse
+exit: 1
+-- necro.yaml --
+version: 0
+include: [necro:rust]
+disable: [rust/rustfmt, rust/cargo-manifest]
+override:
+  rust/clippy: { params: { skip: [needless_return] } }
+-- Cargo.toml --
+[package]
+name = "c"
+version = "0.1.0"
+edition = "2024"
+publish = false
+-- src/lib.rs --
+pub fn f(x: u32) -> u32 {
+    let unused = 1;
+    return x;
+}
+-- @stdout --
+src/lib.rs:2:9: rust/clippy a compiler or clippy warning
