@@ -1,0 +1,28 @@
+# --fix fixes the hits a run reports, leaves allowed ones alone, checks again and says what it changed and what's left
+spec: Fixes
+args: --fix --format terse
+exit: 1
+-- necro.yaml --
+version: 0
+rules:
+  trailing-space:
+    command: necro grep --replace '' '[ \t]+$' -- 'src/*'
+    message: Trailing whitespace
+    why: Noise in diffs.
+    fix: Delete it.
+  banned-word:
+    command: necro grep '\bdonkey\b' -- 'src/*'
+    message: Banned word
+    why: Because.
+    fix: Say good.
+-- src/a.gd --
+var a = 1   
+# necro-allow trailing-space: kept on purpose
+var b = 2  
+var c = donkey
+-- src/b.gd --
+var d = 4 
+-- @stdout --
+necro: fixed 2 hits in 2 files (trailing-space ×2); review and re-stage them. Why: necro --explain trailing-space
+necro: 1 hit can't be fixed automatically:
+src/a.gd:4:9: banned-word Banned word

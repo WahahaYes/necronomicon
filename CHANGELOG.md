@@ -2,7 +2,9 @@
 
 ## Unreleased
 
-- **`necro grep --replace <text>`** labels each match with what it becomes (`$1` for groups); `--write` replaces the matches in place, and `--only-at` limits it to listed hits.
+- **Fixes.** `necro --fix` fixes the hits a run reports, then checks again and says what it changed and which hits it couldn't fix; it exits 1 when it changed a file, so a hook fails until the fixed files are re-staged. Allowed and baselined hits are left alone. The published hook and the README's now run `necro --fix`.
+- **`necro grep --replace <text>`** makes a rule fixable: its labels say what each match becomes (`$1` for groups), and `--write` (which `--fix` adds) replaces them in place. Any other command names its fix in the new `autofix:` key, with `{files}` for the files to fix.
+- A full run says how many of its hits `--fix` could clear, and `--write-baseline` how many of the entries it wrote are fixable.
 
 - **`exclude:` now applies to every run.** A rule's hits in excluded files are dropped, in full runs too, and an allow there suppresses nothing; before, `exclude:` only decided whether a narrowed run ran the rule.
 - **`override:` changes a pack rule's paths.** `override: {rust/no-unwrap: {exclude: '^build\.rs$'}}` replaces the rule's `files:` or `exclude:` with the repo's; `--explain` marks them `(override)`.

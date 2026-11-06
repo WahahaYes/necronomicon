@@ -1,0 +1,26 @@
+# a command that isn't a fixing finder names its fix in autofix; {files} becomes the files with hits
+spec: Fixes
+args: --fix --format terse
+exit: 1
+-- necro.yaml --
+version: 0
+rules:
+  no-todo:
+    command: necro grep 'TODO' -- 'src/*'
+    autofix: uv run --script necro/done.py {files}
+    message: A TODO left in
+    why: Because.
+    fix: Finish it.
+-- necro/done.py --
+import sys
+for path in sys.argv[1:]:
+    text = open(path).read()
+    open(path, "w").write(text.replace("TODO", "DONE"))
+-- src/a.gd --
+# TODO one
+-- src/b.gd --
+# TODO two
+-- src/c.gd --
+# fine
+-- @stdout --
+necro: fixed 2 hits in 2 files (no-todo ×2); review and re-stage them. Why: necro --explain no-todo

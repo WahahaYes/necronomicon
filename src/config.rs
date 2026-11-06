@@ -50,7 +50,23 @@ pub struct Rule {
     pub overridden: Vec<&'static str>,
     /// `params:`, in the order written, with any override applied.
     pub params: Vec<Param>,
+    /// `autofix:`, the command that fixes the rule's hits (spec: Fixes).
+    pub autofix: Option<String>,
 }
+
+/// How a rule fixes its hits (spec: Fixes).
+pub enum Fixer {
+    /// Its command is a finder given a fix option; necro adds `--write`.
+    Finder,
+    /// Its `autofix:` command, given the files.
+    Command,
+}
+
+/// The finders a fix option makes fixable, and that option.
+const FIX_FINDERS: &[(&str, &str)] = &[("grep", "--replace")];
+
+/// The `autofix:` word that becomes the files to fix.
+pub const FILES_WORD: &str = "{files}";
 
 /// One named value a rule's command and words use (spec: Parameters).
 pub struct Param {
@@ -127,6 +143,41 @@ impl Rule {
             {
                 Some(p) => out.extend(p.values.iter().cloned()),
                 None => out.push(fill(&word, &self.params, ",")),
+            }
+        }
+        out
+    }
+
+    /// How the rule fixes its hits, if it can.
+    pub fn fixer(&self) -> Option<Fixer> {
+        if self.autofix.is_some() {
+            return Some(Fixer::Command);
+        }
+        let words = self.words();
+        let finder = (words.first().map(String::as_str) == Some("necro"))
+            .then(|| words.get(1))
+            .flatten()?;
+        let (_, option) = FIX_FINDERS.iter().find(|(f, _)| f == finder)?;
+        let opts = words.iter().skip(2).take_while(|w| *w != "--");
+        opts.into_iter()
+            .any(|w| w == option || w.starts_with(&format!("{option}=")))
+            .then_some(Fixer::Finder)
+    }
+
+    /// The `autofix:` command as words: parameters in place, and the
+    /// `{files}` word as one word per file.
+    pub fn autofix_words(&self, files: &[String]) -> Vec<String> {
+        let words = self
+            .autofix
+            .as_deref()
+            .and_then(command::split)
+            .unwrap_or_default();
+        let mut out = Vec::new();
+        for word in words {
+            if word == FILES_WORD {
+                out.extend(files.iter().cloned());
+            } else {
+                out.push(fill(&word, &self.params, ","));
             }
         }
         out
@@ -311,6 +362,7 @@ const PACK_PREFIX: &str = "necro:";
 const INCLUDE_KEYS: &[&str] = &["rules"];
 const RULE_KEYS: &[&str] = &[
     "command", "message", "why", "fix", "details", "examples", "files", "exclude", "params",
+    "autofix",
 ];
 const REQUIRED: &[&str] = &["command", "message", "why", "fix"];
 
@@ -662,6 +714,15 @@ fn params(e: &mut Errors, file: &str, node: &Node, path: &str) -> Option<Vec<(Pa
             );
             continue;
         }
+        if key.name == "files" {
+            e.at(
+                file,
+                key.pos,
+                &at,
+                "`files` is taken: {files} in autofix stands for the files to fix",
+            );
+            continue;
+        }
         let scalar = |n: &Node| match &n.value {
             Value::Str(s) | Value::Plain(s) => Some(s.clone()),
             _ => None,
@@ -777,6 +838,25 @@ fn load_rule(e: &mut Errors, root: &Path, file: &str, key: &Key, node: &Node) ->
             }
         }
     });
+    let autofix = m.get("autofix").and_then(|(_, n)| {
+        let s = string(e, file, n, &at("autofix"))?;
+        match command::split(&s) {
+            Some(words) if words.iter().any(|w| w == FILES_WORD) => Some(s),
+            Some(_) => {
+                e.at(
+                    file,
+                    n.pos,
+                    &at("autofix"),
+                    "autofix needs a {files} word: the files with hits to fix",
+                );
+                None
+            }
+            None => {
+                e.at(file, n.pos, &at("autofix"), "an unclosed quote");
+                None
+            }
+        }
+    });
     let mut field = |k: &str| m.get(k).and_then(|(_, n)| text(e, root, file, n, &at(k)));
     let (message, why, fix, details) = (
         field("message"),
@@ -832,6 +912,7 @@ fn load_rule(e: &mut Errors, root: &Path, file: &str, key: &Key, node: &Node) ->
         source: file.to_string(),
         overridden: Vec::new(),
         params,
+        autofix,
     })
 }
 
@@ -921,6 +1002,7 @@ pub fn builtins() -> [Rule; 2] {
         source: String::new(),
         overridden: Vec::new(),
         params: Vec::new(),
+        autofix: None,
     };
     [
         rule(

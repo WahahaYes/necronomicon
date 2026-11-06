@@ -1,0 +1,26 @@
+# without --fix, a full run ends by saying how many of its hits a fix could clear
+spec: Fixes; Messages
+exit: 1
+-- necro.yaml --
+version: 0
+rules:
+  trailing-space:
+    command: necro grep --replace '' '[ \t]+$' -- 'src/*'
+    message: Trailing whitespace
+    why: Noise in diffs.
+    fix: Delete it.
+-- src/a.gd --
+var a = 1  
+-- @stdout --
+error[trailing-space]: Trailing whitespace
+ --> src/a.gd:1:10
+  |
+1 | var a = 1
+  |          ^^ replace with ""
+  |
+  = why: Noise in diffs.
+  = fix: Delete it.
+  = more: necro --explain trailing-space
+
+necro: 1 error (trailing-space ×1)
+necro: 1 of 1 hit can be fixed automatically: necro --fix

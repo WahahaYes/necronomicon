@@ -416,3 +416,116 @@ fn allow_diagnostic(rule: &Rule, a: &Allow, what: &str, sources: &mut Sources) -
         source: Some(sources.line(&a.file, a.line)),
     }
 }
+
+/// What `necro --fix` did (spec: Fixes): the run after the fixes, the hits
+/// each fixed rule cleared, and how many files changed.
+pub struct Fixed {
+    pub report: Report,
+    pub fixed: Vec<(String, usize)>,
+    pub changed: usize,
+}
+
+/// Run, fix what the reported hits' rules can, one rule at a time, then run again.
+pub fn fix(config: &Config, root: &Path, only: Option<&str>, given: Option<&[String]>) -> Fixed {
+    let before = run(config, root, only, given);
+    let mut problems: Vec<Problem> = Vec::new();
+    let mut changed: BTreeSet<String> = BTreeSet::new();
+    let mut counts: Vec<(&Rule, usize)> = Vec::new();
+    for rule in &config.rules {
+        let Some(fixer) = rule.fixer() else { continue };
+        let hits: Vec<&Diagnostic> = before
+            .diagnostics
+            .iter()
+            .filter(|d| d.rule == rule.name)
+            .collect();
+        if hits.is_empty() {
+            continue;
+        }
+        counts.push((rule, hits.len()));
+        let mut files: Vec<String> = hits.iter().map(|d| d.file.clone()).collect();
+        files.dedup();
+        let at: Vec<String> = hits
+            .iter()
+            .map(|d| format!("{}:{}:{}", d.file, d.line, d.col))
+            .collect();
+        let list = match GivenList::write(&at) {
+            Ok(list) => list,
+            Err(message) => {
+                problems.push(Problem::Setup(message));
+                continue;
+            }
+        };
+        let words = match fixer {
+            config::Fixer::Finder => {
+                let mut words = rule.words();
+                let at = words.len().min(2);
+                words.splice(
+                    at..at,
+                    [
+                        "--write".to_string(),
+                        "--only-at".to_string(),
+                        list.path.display().to_string(),
+                    ],
+                );
+                words
+            }
+            config::Fixer::Command => rule.autofix_words(&files),
+        };
+        let snapshot = |files: &[String]| -> Vec<Option<Vec<u8>>> {
+            files
+                .iter()
+                .map(|f| std::fs::read(root.join(f)).ok())
+                .collect()
+        };
+        let old = snapshot(&files);
+        match command::run(words, root) {
+            Ok(_) => {}
+            Err(Failure::Missing(program)) => problems.push(Problem::Setup(format!(
+                "{}: {program} isn't on PATH",
+                rule.name
+            ))),
+            Err(Failure::Check(message, stderr)) => problems.push(Problem::Check {
+                rule: rule.name.clone(),
+                message: format!("its fix failed: {message}"),
+                stderr,
+            }),
+        }
+        for (file, (a, b)) in files.iter().zip(old.iter().zip(snapshot(&files))) {
+            if *a != b {
+                changed.insert(file.clone());
+            }
+        }
+    }
+    let mut report = run(config, root, only, given);
+    report.problems.splice(0..0, problems);
+    let fixed = counts
+        .into_iter()
+        .map(|(rule, n)| {
+            let left = report
+                .diagnostics
+                .iter()
+                .filter(|d| d.rule == rule.name)
+                .count();
+            (rule.name.clone(), n.saturating_sub(left))
+        })
+        .filter(|(_, n)| *n > 0)
+        .collect();
+    Fixed {
+        report,
+        fixed,
+        changed: changed.len(),
+    }
+}
+
+/// How many of the hits a fix could clear: the ones whose rule has a fixer.
+pub fn fixable(config: &Config, diagnostics: &[Diagnostic]) -> usize {
+    diagnostics
+        .iter()
+        .filter(|d| {
+            config
+                .rules
+                .iter()
+                .any(|r| r.name == d.rule && r.fixer().is_some())
+        })
+        .count()
+}

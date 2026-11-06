@@ -1,0 +1,15 @@
+# autofix needs a {files} word, and files is no parameter's name
+spec: Fixes
+-- necro.yaml --
+version: 0
+rules:
+  no-todo:
+    command: necro grep 'TODO' -- 'src/*'
+    autofix: uv run --script necro/done.py
+    params: { files: x }
+    message: A TODO left in
+    why: Because.
+    fix: Finish it.
+-- @config-error --
+necro.yaml:5:14: rules.no-todo.autofix
+necro.yaml:6:15: rules.no-todo.params.files
