@@ -3,8 +3,9 @@ spec: Packs
 args: --write-baseline
 -- necro.yaml --
 version: 0
-include: [necro:rust]
+include: [necro:rust-style]
 -- src/a.rs --
+//! A.
 struct ConfigManager {}
 -- @stdout --
 necro: wrote necro.baseline.yaml (1 entry)

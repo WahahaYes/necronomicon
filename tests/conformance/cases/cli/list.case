@@ -3,11 +3,11 @@ spec: CLI; Packs
 args: --list
 -- necro.yaml --
 version: 0
-include: [necro/*.yaml, necro:rust]
+include: [necro/*.yaml, necro:rust, necro:rust-style]
 disable: [rust/lossy-cast]
 override:
   rust/no-unwrap: { exclude: '^build\.rs$', files: '\.rs$' }
-  rust/weasel-type-names: { params: { role-words: Gizmo } }
+  rust-style/weasel-type-names: { params: { role-words: Gizmo } }
 rules:
   banned-word:
     command: necro grep '\bdonkey\b' -- 'src/*'
@@ -22,14 +22,18 @@ rules:
     why: Because.
     fix: Don't.
 -- @stdout --
-banned-word                 necro.yaml
-core-isolated               necro/layers.yaml
-rust/cargo-manifest         necro:rust
-rust/lint-override-reason   necro:rust
-rust/lossy-cast             necro:rust  disabled
-rust/no-expect              necro:rust
-rust/no-stubs               necro:rust
-rust/no-unwrap              necro:rust  override: files, exclude
-rust/swallowed-error        necro:rust
-rust/unsafe-safety-comment  necro:rust
-rust/weasel-type-names      necro:rust  override: params
+banned-word                   necro.yaml
+core-isolated                 necro/layers.yaml
+rust-style/comment-border     necro:rust-style
+rust-style/doc-length         necro:rust-style
+rust-style/doc-missing        necro:rust-style
+rust-style/module-doc         necro:rust-style
+rust-style/weasel-type-names  necro:rust-style  override: params
+rust/cargo-manifest           necro:rust
+rust/lint-override-reason     necro:rust
+rust/lossy-cast               necro:rust  disabled
+rust/no-expect                necro:rust
+rust/no-stubs                 necro:rust
+rust/no-unwrap                necro:rust  override: files, exclude
+rust/swallowed-error          necro:rust
+rust/unsafe-safety-comment    necro:rust

@@ -1,0 +1,13 @@
+# a narrowed run hands necro rust-docs the given files, as it does necro grep
+spec: Narrowed runs
+args: --format terse src/a.rs
+exit: 1
+-- necro.yaml --
+version: 0
+include: [necro:rust-style]
+-- src/a.rs --
+fn a() {}
+-- src/b.rs --
+fn b() {}
+-- @stdout --
+src/a.rs:1:1: rust-style/module-doc a file with no //! module doc

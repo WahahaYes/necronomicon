@@ -1,0 +1,21 @@
+# module: a file whose first line past blanks and inner attributes isn't //!; an empty file passes
+spec: Finders
+args: rust-docs module
+-- src/a.rs --
+#![allow(dead_code)]
+
+//! Fine.
+-- src/b.rs --
+/// An item doc, not a module doc.
+pub fn f() {}
+-- src/c.rs --
+#![cfg_attr(
+    docsrs,
+    feature(doc_cfg)
+)]
+fn g() {}
+-- src/empty.rs --
+
+-- @stdout --
+src/b.rs:1:1: no //! module doc
+src/c.rs:1:1: no //! module doc

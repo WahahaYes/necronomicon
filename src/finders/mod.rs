@@ -8,6 +8,7 @@ mod cargo;
 mod clippy;
 mod grep;
 mod manifest;
+mod rust_docs;
 
 /// A finder: its arguments after the name, to its hits or a usage error.
 type Finder = fn(&[String]) -> Result<Vec<String>, String>;
@@ -17,6 +18,7 @@ const FINDERS: &[(&str, Finder)] = &[
     ("cargo-manifest", manifest::run),
     ("clippy", clippy::run),
     ("grep", grep::run),
+    ("rust-docs", rust_docs::run),
 ];
 
 /// Remove the Cargo finders' build folders: each as (folder, size).

@@ -78,22 +78,6 @@ rules:
     examples:
       bad: 'let _ = stdout.read_to_end(&mut buf);'
       good: 'stdout.read_to_end(&mut buf)?;'
-  weasel-type-names:
-    command: >-
-      necro grep '\b(struct|enum|trait|type)\s+\w*({role-words})\b'
-      -- '*.rs'
-    files: '\.rs$'
-    params:
-      role-words: Manager|Service|Factory|Helpers?|Utils?|Handler
-    message: a type named for a role, not a thing
-    why: Manager, Service, Helper and the like say a type exists, not what it holds or does, so it becomes the place every unrelated function lands.
-    fix: name what it is (`Pool`, `Cache`, `Renderer`), or split it; a builder is fine as `…Builder`.
-    details: |
-      From Microsoft's Pragmatic Rust Guidelines (M-WEASEL-WORDS).
-      Experimental: no hits to tune against yet.
-    examples:
-      bad: 'struct ConfigManager {'
-      good: 'struct Config {'
   lossy-cast:
     command: necro clippy cast_possible_truncation
     files: '\.rs$|(^|/)(Cargo\.(toml|lock)|\.?clippy\.toml|rust-toolchain(\.toml)?)$'
@@ -105,11 +89,12 @@ rules:
       bad: 'let n = len as u32;'
       good: 'let n = u32::try_from(len)?;'
   cargo-manifest:
-    command: necro cargo-manifest
+    command: necro cargo-manifest --edition {edition}
     files: '(^|/)Cargo\.toml$'
+    params: { edition: 2024 }
     message: a crate manifest below the house baseline
     why: an older edition misses the current language defaults, and a publishable crate with no rust-version fails on an old toolchain with compile errors instead of a clear version message.
-    fix: set `edition = "2024"`, and `rust-version` to the oldest toolchain you test (the pinned one, if that's all CI runs).
+    fix: set `edition = "{edition}"`, and `rust-version` to the oldest toolchain you test (the pinned one, if that's all CI runs).
     details: |
       Every workspace member, read through `cargo metadata`, so
       `edition.workspace = true` counts. rust-version is only required where

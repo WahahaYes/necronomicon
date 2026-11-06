@@ -1,0 +1,11 @@
+# pathspecs narrow the files, and only tracked .rs files are read
+spec: Finders
+args: rust-docs module -- 'src/keep/*'
+-- src/keep/a.rs --
+fn a() {}
+-- src/skip/b.rs --
+fn b() {}
+-- src/keep/notes.txt --
+fn c() {}
+-- @stdout --
+src/keep/a.rs:1:1: no //! module doc

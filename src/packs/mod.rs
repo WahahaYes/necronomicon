@@ -2,7 +2,10 @@
 //! included as `necro:<pack>`. Their commands use only finders.
 
 /// Every pack: its name and its rules, a YAML file holding only `rules:`.
-const PACKS: &[(&str, &str)] = &[("rust", include_str!("rust.yaml"))];
+const PACKS: &[(&str, &str)] = &[
+    ("rust", include_str!("rust.yaml")),
+    ("rust-style", include_str!("rust-style.yaml")),
+];
 
 /// The pack named `name`, as (name, YAML).
 pub fn find(name: &str) -> Option<(&'static str, &'static str)> {

@@ -3,8 +3,9 @@ spec: Packs; Narrowed runs
 args: --format terse lib/c.rs
 -- necro.yaml --
 version: 0
-include: [necro:rust]
+include: [necro:rust-style]
 override:
-  rust/weasel-type-names: { files: {glob: "src/**"} }
+  rust-style/weasel-type-names: { files: {glob: "src/**"} }
 -- lib/c.rs --
+//! A.
 struct ConfigManager {}

@@ -4,9 +4,10 @@ args: --format terse
 exit: 1
 -- necro.yaml --
 version: 0
-include: [necro:rust]
-disable: [rust/weasel-type-names]
+include: [necro:rust-style]
+disable: [rust-style/weasel-type-names]
 -- src/a.rs --
-struct ConfigManager {} // necro-allow rust/weasel-type-names: upstream's name
+//! A.
+struct ConfigManager {} // necro-allow rust-style/weasel-type-names: upstream's name
 -- @stdout --
-src/a.rs:1:28: necro/unused-allow the allow for rust/weasel-type-names suppresses nothing
+src/a.rs:2:28: necro/unused-allow the allow for rust-style/weasel-type-names suppresses nothing

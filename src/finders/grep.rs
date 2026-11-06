@@ -79,7 +79,7 @@ pub fn run(args: &[String]) -> Result<Vec<String>, String> {
 }
 
 /// `--files-from`: paths relative to the working folder, one per line.
-fn read_list(list: &str) -> Result<std::collections::HashSet<String>, String> {
+pub(super) fn read_list(list: &str) -> Result<std::collections::HashSet<String>, String> {
     let text = std::fs::read_to_string(list).map_err(|e| format!("can't read {list}: {e}"))?;
     Ok(text
         .lines()

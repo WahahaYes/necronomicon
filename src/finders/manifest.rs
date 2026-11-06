@@ -5,16 +5,23 @@ use std::path::Path;
 
 use super::cargo::{relative, workspaces};
 
-const USAGE: &str = "necro cargo-manifest";
+const USAGE: &str = "necro cargo-manifest [--edition <year>]";
 
-/// The edition a member must be on. It moves with necro releases, not with
-/// the installed toolchain, so every machine gives the same answer.
+/// The edition a member must be on unless `--edition` says otherwise. It
+/// moves with necro releases, not with the installed toolchain, so every
+/// machine gives the same answer.
 const EDITION: &str = "2024";
 
 /// The `cargo-manifest` finder: every member manifest under the working folder.
 pub fn run(args: &[String]) -> Result<Vec<String>, String> {
-    if let Some(arg) = args.first() {
-        return Err(format!("unexpected argument {arg}: {USAGE}"));
+    let want = match args {
+        [] => EDITION.to_string(),
+        [flag, year] if flag == "--edition" => year.clone(),
+        [flag] if flag.starts_with("--edition=") => flag["--edition=".len()..].to_string(),
+        [arg, ..] => return Err(format!("unexpected argument {arg}: {USAGE}")),
+    };
+    if want.len() != 4 || !want.chars().all(|c| c.is_ascii_digit()) {
+        return Err(format!("--edition takes a year such as 2024, got {want}"));
     }
     // (path, line, text): whole-file hits are line 0, so they sort first.
     let mut hits: Vec<(String, usize, String)> = Vec::new();
@@ -26,7 +33,8 @@ pub fn run(args: &[String]) -> Result<Vec<String>, String> {
             };
             let name = pkg["name"].as_str().unwrap_or_default();
             let edition = pkg["edition"].as_str().unwrap_or("2015");
-            if edition < EDITION {
+            let required = &want;
+            if edition < required.as_str() {
                 let text = format!("{name} is on edition {edition}");
                 match edition_line(manifest) {
                     Some(n) => hits.push((path.clone(), n, format!("{path}:{n}:1: {text}"))),
