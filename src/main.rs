@@ -22,6 +22,7 @@ struct Args {
     rule: Option<String>,
     explain: Option<String>,
     list: bool,
+    fix: bool,
     write_baseline: bool,
     clean_cache: bool,
     /// Files for a narrowed run, as given (spec: Narrowed runs).
@@ -48,12 +49,24 @@ fn parse(argv: Vec<String>) -> Result<Args, String> {
             "--rule" => a.rule = Some(value("--rule", inline.as_deref())?),
             "--explain" => a.explain = Some(value("--explain", inline.as_deref())?),
             "--list" => a.list = true,
+            "--fix" => a.fix = true,
             "--write-baseline" => a.write_baseline = true,
             "--clean-cache" => a.clean_cache = true,
             f if f.starts_with('-') && f.len() > 1 => {
                 return Err(format!("unknown option {f} (see necro --help)"));
             }
             _ => a.files.push(arg),
+        }
+    }
+    if a.fix {
+        let refuses = [
+            (a.write_baseline, "--write-baseline"),
+            (a.explain.is_some(), "--explain"),
+            (a.list, "--list"),
+            (a.clean_cache, "--clean-cache"),
+        ];
+        if let Some((_, other)) = refuses.iter().find(|(set, _)| *set) {
+            return Err(format!("{other} doesn't fix; drop --fix"));
         }
     }
     if !a.files.is_empty() {
@@ -155,10 +168,30 @@ fn main_with(args: Args) -> Result<u8, String> {
         given.dedup();
         given
     });
+    let terse = args.format.as_deref() == Some("terse");
+    if args.fix {
+        let done = run::fix(&config, &root, args.rule.as_deref(), given.as_deref());
+        let report = &done.report;
+        render::fixed(&done.fixed, done.changed, report.diagnostics.len());
+        if terse {
+            render::terse(report);
+        } else {
+            render::full(report);
+        }
+        render::problems(report);
+        render::stale_warning(report);
+        let code = report.exit_code();
+        return Ok(if done.changed > 0 { code.max(1) } else { code });
+    }
     let report = run::run(&config, &root, args.rule.as_deref(), given.as_deref());
-    match args.format.as_deref() {
-        Some("terse") => render::terse(&report),
-        _ => render::full(&report),
+    if terse {
+        render::terse(&report);
+    } else {
+        render::full(&report);
+        render::fixable(
+            run::fixable(&config, &report.diagnostics),
+            report.diagnostics.len(),
+        );
     }
     render::problems(&report);
     render::stale_warning(&report);
@@ -192,6 +225,13 @@ fn write_baseline(config: &config::Config, root: &Path, only: Option<&str>) -> R
         n,
         if n == 1 { "entry" } else { "entries" }
     ));
+    let fixable = run::fixable(config, &report.diagnostics);
+    if fixable > 0 {
+        render::line(&format!(
+            "necro: {fixable} of them can be fixed automatically; to keep them out of the \
+             baseline, run necro --fix first, then --write-baseline again"
+        ));
+    }
     Ok(0)
 }
 

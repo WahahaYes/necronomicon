@@ -119,7 +119,7 @@ pub fn terse(report: &Report) {
 pub const HELP: &str = "\
 necro: checks a repo against its house rules (necro.yaml).
 
-usage: necro [-C <dir>] [--format full|terse] [--rule <name>] [<file>…]
+usage: necro [-C <dir>] [--format full|terse] [--rule <name>] [--fix] [<file>…]
        necro [-C <dir>] --explain <rule>
        necro [-C <dir>] --list
        necro [-C <dir>] [--rule <name>] --write-baseline
@@ -172,4 +172,45 @@ pub fn list(config: &crate::config::Config) -> String {
         out.push('\n');
     }
     out
+}
+
+/// `n` with its noun, plural past one.
+fn count(n: usize, noun: &str) -> String {
+    if n == 1 {
+        format!("{n} {noun}")
+    } else {
+        format!("{n} {noun}s")
+    }
+}
+
+/// What `necro --fix` changed, then how many hits are left (spec: Fixes).
+pub fn fixed(fixed: &[(String, usize)], changed: usize, left: usize) {
+    let total: usize = fixed.iter().map(|(_, n)| n).sum();
+    if changed > 0 || total > 0 {
+        let rules: Vec<String> = fixed.iter().map(|(r, n)| format!("{r} ×{n}")).collect();
+        let first = fixed.first().map_or("<rule>", |(r, _)| r.as_str());
+        let why = if fixed.len() == 1 { first } else { "<rule>" };
+        line(&format!(
+            "necro: fixed {} in {} ({}); review and re-stage them. Why: necro --explain {why}",
+            count(total, "hit"),
+            count(changed, "file"),
+            rules.join(", ")
+        ));
+        if left > 0 {
+            line(&format!(
+                "necro: {} can't be fixed automatically:",
+                count(left, "hit")
+            ));
+        }
+    }
+}
+
+/// After a full-format check: how many of the hits `--fix` could clear.
+pub fn fixable(n: usize, of: usize) {
+    if n > 0 {
+        line(&format!(
+            "necro: {n} of {} can be fixed automatically: necro --fix",
+            count(of, "hit")
+        ));
+    }
 }

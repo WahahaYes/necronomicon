@@ -1,0 +1,7 @@
+# --replace makes grep's hits fixable: each label says what the match becomes, with $1 for a group
+spec: Finders; Fixes
+args: grep --replace 'mule$1' '(d)onkey' -- 'src/*'
+-- src/a.gd --
+var a = donkey
+-- @stdout --
+src/a.gd:1:9-14: replace with "muled"

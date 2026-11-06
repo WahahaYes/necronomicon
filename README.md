@@ -80,6 +80,7 @@ Command: necro grep '^\s*(from|import)\s+app\b' -- 'src/core/*.py'
 - **A replacement for the lint script you'd write anyway.** Repos that work with agents tend to grow a `lint_style.py` that greps for house rules and prints one-line errors. necro keeps those rules as config and adds the why, the fix and `--explain`.
 - **Exceptions with reasons.** `necro-allow <rule>: <reason>` in a comment on the line or the one above. An allow without a reason, or one that suppresses nothing, fails the run.
 - **Packs for common languages.** `include: [necro:rust]` adds Rust rules that default clippy leaves off, like no `unwrap` or `expect` outside tests, and `necro:rust-style` adds doc and naming conventions, versioned with necro; `disable:` turns one off, `override:` changes the paths it judges or its parameters, and `necro --list` shows what's on.
+- **Fixes, when a rule knows one.** `necro grep --replace` fixes a pattern in place, and `autofix:` names any other fixing command (a formatter, a script). `necro --fix` applies them, then says what it changed and which hits it couldn't fix.
 - **A ratchet for rollout.** Grandfather existing hits in a committed snapshot so new ones fail alone; refresh it deliberately as debt gets fixed. See [Baseline](https://github.com/WahahaYes/necronomicon/blob/main/spec/v0.md#baseline).
 
 ## Install
@@ -97,14 +98,14 @@ As a pre-commit hook, which installs the wheel into pre-commit's own environment
   hooks:
     - id: necro
       name: necro
-      entry: necro
+      entry: necro --fix
       language: python
       additional_dependencies: ['necronomicon']
       always_run: true
       require_serial: true
 ```
 
-pre-commit passes the changed files, so a commit runs only the rules that concern them; in CI, `pre-commit run --from-ref origin/main --to-ref HEAD` does the same for a branch. `necro` with no files checks everything.
+pre-commit passes the changed files, so a commit runs only the rules that concern them, and `--fix` applies the fixes rules carry, failing the commit until you re-stage, as a formatter does; in CI, `pre-commit run --from-ref origin/main --to-ref HEAD` does the same for a branch. `necro` with no files checks everything.
 
 Pin below the next 0.x: any 0.x may break the format.
 

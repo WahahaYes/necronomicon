@@ -47,6 +47,20 @@ doc-length:
 
 Only declared names are replaced, so a regex's own braces (`-{6,}`) stay. A value is one word of the command however it reads, and a list given as a whole word (`-- {paths}`) becomes one word per item.
 
+## Fixes
+
+A rule that knows its fix can apply it. For a pattern, give `necro grep` the replacement; for anything else, name the fixing command in `autofix`, with `{files}` where the files go:
+
+```yaml
+trailing-space:
+  command: necro grep --replace '' '[ \t]+$' -- '*.gd'
+license-header:
+  command: uv run --script necro/header.py --check
+  autofix: uv run --script necro/header.py --write {files}
+```
+
+`necro --fix` (what the hook runs) fixes the hits a run reports, one rule at a time, then checks again: `necro: fixed 3 hits in 2 files (…); review and re-stage them`, followed by any hits it couldn't fix in full. Allowed and baselined hits stay as they are, so run `--fix` before `--write-baseline` to keep fixable hits out of the snapshot.
+
 ## Narrowed runs
 
 Given files (pre-commit passes the changed ones), necro skips a rule whose `files:` and `exclude:` take none of them, and `necro grep` searches only them. Give a costly rule a filter, in prek's form: a regex string, or `{glob: …}` with one glob or a list.

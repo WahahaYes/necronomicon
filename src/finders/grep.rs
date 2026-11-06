@@ -12,7 +12,16 @@ use regex_syntax::hir::literal::{ExtractKind, Extractor};
 use super::{regex_error, split_pathspecs, text_lines, tracked};
 
 const USAGE: &str = "necro grep [--skip-comments <marker>]… [--glob <glob>]… \
-     [--files-from <file>] <regex> [-- <pathspec>…]";
+     [--files-from <file>] [--replace <text> [--write] [--only-at <file>]] <regex> \
+     [-- <pathspec>…]";
+
+/// What `--replace`, `--write` and `--only-at` ask for (spec: Fixes).
+struct Fix {
+    replace: Option<String>,
+    write: bool,
+    /// `path:line:col` of the matches `--write` may replace; `None` for all.
+    only: Option<std::collections::HashSet<String>>,
+}
 
 /// Most strings handed to `git grep -F`; past it, every file is searched.
 const MAX_LITERALS: usize = 64;
@@ -27,6 +36,9 @@ pub fn run(args: &[String]) -> Result<Vec<String>, String> {
     let mut markers: Vec<String> = Vec::new();
     let mut globs: Vec<String> = Vec::new();
     let mut lists: Vec<String> = Vec::new();
+    let mut replaces: Vec<String> = Vec::new();
+    let mut only_at: Vec<String> = Vec::new();
+    let mut write = false;
     let mut pattern: Option<&String> = None;
     let mut it = opts.iter();
     while let Some(arg) = it.next() {
@@ -34,6 +46,8 @@ pub fn run(args: &[String]) -> Result<Vec<String>, String> {
             ("--skip-comments", &mut markers),
             ("--glob", &mut globs),
             ("--files-from", &mut lists),
+            ("--replace", &mut replaces),
+            ("--only-at", &mut only_at),
         ]
         .into_iter()
         .find(|(name, _)| arg == name || arg.starts_with(&format!("{name}=")))
@@ -46,6 +60,8 @@ pub fn run(args: &[String]) -> Result<Vec<String>, String> {
                     .clone(),
             };
             list.push(value);
+        } else if arg == "--write" && pattern.is_none() {
+            write = true;
         } else if arg.starts_with('-') && arg.len() > 1 && pattern.is_none() {
             return Err(format!("unknown option {arg}: {USAGE}"));
         } else if pattern.is_none() {
@@ -62,6 +78,17 @@ pub fn run(args: &[String]) -> Result<Vec<String>, String> {
     let pattern = pattern.ok_or(format!("give a regex: {USAGE}"))?;
     let re = Regex::new(pattern)
         .map_err(|e| format!("`{pattern}` isn't a valid regex ({})", regex_error(&e)))?;
+    if replaces.len() > 1 || only_at.len() > 1 {
+        return Err(format!("give --replace and --only-at once each: {USAGE}"));
+    }
+    if (write || !only_at.is_empty()) && replaces.is_empty() {
+        return Err(format!("--write and --only-at need --replace: {USAGE}"));
+    }
+    let fix = Fix {
+        replace: replaces.pop(),
+        write,
+        only: only_at.first().map(|l| read_list(l)).transpose()?,
+    };
     let globs = Globs::new(&globs)?;
     let only = match lists.as_slice() {
         [] => None,
@@ -75,7 +102,7 @@ pub fn run(args: &[String]) -> Result<Vec<String>, String> {
         .filter(|path| globs.keeps(path))
         .filter(|path| only.as_ref().is_none_or(|o| o.contains(path)))
         .collect();
-    search(&files, &re, &markers)
+    search(&files, &re, &markers, &fix)
 }
 
 /// `--files-from`: paths relative to the working folder, one per line.
@@ -186,7 +213,12 @@ fn required_text(pattern: &str) -> Option<Vec<String>> {
 }
 
 /// Every hit in the files, on all cores, in the files' order.
-fn search(files: &[String], re: &Regex, markers: &[String]) -> Result<Vec<String>, String> {
+fn search(
+    files: &[String],
+    re: &Regex,
+    markers: &[String],
+    fix: &Fix,
+) -> Result<Vec<String>, String> {
     let threads = std::thread::available_parallelism()
         .map_or(1, |n| n.get())
         .min(files.len().div_ceil(FILES_PER_THREAD))
@@ -200,7 +232,7 @@ fn search(files: &[String], re: &Regex, markers: &[String]) -> Result<Vec<String
                     loop {
                         let i = next.fetch_add(1, Ordering::Relaxed);
                         let Some(path) = files.get(i) else { break };
-                        let hits = file_hits(path, re, markers)?;
+                        let hits = file_hits(path, re, markers, fix)?;
                         if !hits.is_empty() {
                             out.push((i, hits));
                         }
@@ -220,24 +252,78 @@ fn search(files: &[String], re: &Regex, markers: &[String]) -> Result<Vec<String
     Ok(found.into_iter().flat_map(|(_, hits)| hits).collect())
 }
 
-/// One file's hits, `path:line:col-endcol: <match>`; an error when the
-/// regex gives up on a line (fancy_regex's backtracking limit).
-fn file_hits(path: &str, re: &Regex, markers: &[String]) -> Result<Vec<String>, String> {
-    let Some(lines) = text_lines(path) else {
+/// One file's hits, `path:line:col-endcol: <match>` (or, with `--replace`,
+/// `replace with "<text>"`); with `--write`, the file rewritten and the hits
+/// it replaced. An error when the regex gives up on a line (fancy_regex's
+/// backtracking limit).
+fn file_hits(path: &str, re: &Regex, markers: &[String], fix: &Fix) -> Result<Vec<String>, String> {
+    if fix
+        .only
+        .as_ref()
+        .is_some_and(|o| !o.iter().any(|at| at.starts_with(&format!("{path}:"))))
+    {
         return Ok(Vec::new());
+    }
+    let text = if fix.write {
+        // Rewriting needs the exact text: a binary or non-UTF-8 file is left alone.
+        match std::fs::read(path)
+            .ok()
+            .filter(|b| !b.contains(&0))
+            .map(String::from_utf8)
+        {
+            Some(Ok(t)) => t,
+            _ => return Ok(Vec::new()),
+        }
+    } else {
+        match text_lines(path) {
+            Some(lines) => lines.join("\n"),
+            None => return Ok(Vec::new()),
+        }
     };
     let mut hits = Vec::new();
-    for (n, line) in lines.iter().enumerate() {
-        let code = &line[..code_end(line, markers)];
-        for m in re.find_iter(code) {
-            let m = m.map_err(|e| format!("{path}:{}: the regex gave up ({e})", n + 1))?;
-            if m.as_str().is_empty() {
-                continue;
+    let mut out = String::with_capacity(text.len());
+    for (n, raw) in text.split_inclusive('\n').enumerate() {
+        let body = raw.trim_end_matches('\n').trim_end_matches('\r');
+        let ending = &raw[body.len()..];
+        let code = &body[..code_end(body, markers)];
+        let mut last = 0;
+        if fix.replace.is_none() {
+            for m in re.find_iter(code) {
+                let m = m.map_err(|e| format!("{path}:{}: the regex gave up ({e})", n + 1))?;
+                if m.as_str().is_empty() {
+                    continue;
+                }
+                let col = code[..m.start()].chars().count() + 1;
+                let end = col + m.as_str().chars().count() - 1;
+                hits.push(format!("{path}:{}:{col}-{end}: {}", n + 1, m.as_str()));
             }
+            continue;
+        }
+        for caps in re.captures_iter(code) {
+            let caps = caps.map_err(|e| format!("{path}:{}: the regex gave up ({e})", n + 1))?;
+            let Some(m) = caps.get(0).filter(|m| !m.as_str().is_empty()) else {
+                continue;
+            };
             let col = code[..m.start()].chars().count() + 1;
             let end = col + m.as_str().chars().count() - 1;
-            hits.push(format!("{path}:{}:{col}-{end}: {}", n + 1, m.as_str()));
+            let at = format!("{path}:{}:{col}", n + 1);
+            let mut with = String::new();
+            caps.expand(fix.replace.as_deref().unwrap_or_default(), &mut with);
+            if fix.write {
+                if fix.only.as_ref().is_some_and(|o| !o.contains(&at)) {
+                    continue;
+                }
+                out.push_str(&body[last..m.start()]);
+                out.push_str(&with);
+                last = m.end();
+            }
+            hits.push(format!("{at}-{end}: replace with \"{with}\""));
         }
+        out.push_str(&body[last..]);
+        out.push_str(ending);
+    }
+    if fix.write && !hits.is_empty() {
+        std::fs::write(path, out).map_err(|e| format!("can't write {path}: {e}"))?;
     }
     Ok(hits)
 }

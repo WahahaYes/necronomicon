@@ -1,0 +1,20 @@
+# --fix leaves baselined hits alone
+spec: Fixes; Baseline
+args: --fix --format terse
+-- necro.yaml --
+version: 0
+rules:
+  trailing-space:
+    command: necro grep --replace '' '[ \t]+$' -- 'src/*'
+    message: Trailing whitespace
+    why: Noise in diffs.
+    fix: Delete it.
+-- src/a.gd --
+var a = 1   
+-- necro.baseline.yaml --
+version: 1
+entries:
+  - rule: "trailing-space"
+    path: "src/a.gd"
+    fingerprint: "var a = 1"
+    line: 1

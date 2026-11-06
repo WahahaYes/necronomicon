@@ -3,7 +3,7 @@
 - id: necro
   name: necro
   description: House rules, enforced by messages that teach the rule and the fix.
-  entry: necro
+  entry: necro --fix
   language: python
   # The changed files narrow the run (spec: Narrowed runs); always_run makes
   # a delete-only commit, with no files to pass, a full run.

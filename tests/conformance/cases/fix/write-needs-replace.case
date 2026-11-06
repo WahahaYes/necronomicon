@@ -1,0 +1,6 @@
+# --write and --only-at need --replace
+spec: Finders; Fixes
+args: grep --write donkey -- 'src/*'
+exit: 2
+-- @stderr --
+necro: grep: --write and --only-at need --replace: necro grep [--skip-comments <marker>]… [--glob <glob>]… [--files-from <file>] [--replace <text> [--write] [--only-at <file>]] <regex> [-- <pathspec>…]

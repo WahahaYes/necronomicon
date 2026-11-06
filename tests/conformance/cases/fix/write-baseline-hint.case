@@ -1,0 +1,16 @@
+# --write-baseline says how many of the entries it wrote a fix could clear
+spec: Fixes; Baseline
+args: --write-baseline
+-- necro.yaml --
+version: 0
+rules:
+  trailing-space:
+    command: necro grep --replace '' '[ \t]+$' -- 'src/*'
+    message: Trailing whitespace
+    why: Noise in diffs.
+    fix: Delete it.
+-- src/a.gd --
+var a = 1  
+-- @stdout --
+necro: wrote necro.baseline.yaml (1 entry)
+necro: 1 of them can be fixed automatically; to keep them out of the baseline, run necro --fix first, then --write-baseline again
