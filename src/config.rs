@@ -5,7 +5,7 @@
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
-use globset::{GlobBuilder, GlobSetBuilder};
+use globset::{GlobBuilder, GlobSet, GlobSetBuilder};
 
 use crate::command;
 use crate::yaml::{self, Key, Node, Pos, Value};
@@ -40,6 +40,51 @@ pub struct Rule {
     pub examples: Option<Examples>,
     /// The pack it came from (`rust` for `necro:rust`); `None` for the repo's own.
     pub pack: Option<String>,
+    /// `files:`, for narrowed runs; `None` takes every file.
+    pub files: Option<FileFilter>,
+    /// `exclude:`, for narrowed runs.
+    pub exclude: Option<FileFilter>,
+}
+
+/// A `files:` or `exclude:` filter in prek's form (spec: Narrowed runs): a
+/// regex searched in the path, or globs matched against the whole path.
+pub enum FileFilter {
+    Regex(fancy_regex::Regex, String),
+    Glob(GlobSet, Vec<String>),
+}
+
+impl FileFilter {
+    fn matches(&self, path: &str) -> bool {
+        match self {
+            // A regex too costly to finish counts as a match: running a rule
+            // is the safe side.
+            FileFilter::Regex(re, _) => re.is_match(path).unwrap_or(true),
+            FileFilter::Glob(set, _) => set.is_match(path),
+        }
+    }
+}
+
+impl std::fmt::Display for FileFilter {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            FileFilter::Regex(_, source) => f.write_str(source),
+            FileFilter::Glob(_, globs) => write!(f, "{{glob: [{}]}}", globs.join(", ")),
+        }
+    }
+}
+
+impl Rule {
+    /// Whether a narrowed run over `given` runs this rule: always without
+    /// `files:` or `exclude:`, else when some given file passes both.
+    pub fn runs_on(&self, given: &[String]) -> bool {
+        if self.files.is_none() && self.exclude.is_none() {
+            return true;
+        }
+        given.iter().any(|path| {
+            self.files.as_ref().is_none_or(|f| f.matches(path))
+                && !self.exclude.as_ref().is_some_and(|f| f.matches(path))
+        })
+    }
 }
 
 /// The repo's rules, sorted by name.
@@ -185,7 +230,9 @@ const TOP_KEYS: &[&str] = &["version", "include", "disable", "rules", "baseline"
 /// The prefix that names a pack in `include` (spec: Packs).
 const PACK_PREFIX: &str = "necro:";
 const INCLUDE_KEYS: &[&str] = &["rules"];
-const RULE_KEYS: &[&str] = &["command", "message", "why", "fix", "details", "examples"];
+const RULE_KEYS: &[&str] = &[
+    "command", "message", "why", "fix", "details", "examples", "files", "exclude",
+];
 const REQUIRED: &[&str] = &["command", "message", "why", "fix"];
 
 fn read_yaml(e: &mut Errors, root: &Path, rel: &str) -> Option<Node> {
@@ -496,6 +543,12 @@ fn load_rule(e: &mut Errors, root: &Path, file: &str, key: &Key, node: &Node) ->
             good: good?,
         })
     });
+    let files = m
+        .get("files")
+        .and_then(|(_, n)| file_filter(e, file, n, &at("files")));
+    let exclude = m
+        .get("exclude")
+        .and_then(|(_, n)| file_filter(e, file, n, &at("exclude")));
     if e.list.len() > before {
         return None;
     }
@@ -508,7 +561,79 @@ fn load_rule(e: &mut Errors, root: &Path, file: &str, key: &Key, node: &Node) ->
         details,
         examples,
         pack: None,
+        files,
+        exclude,
     })
+}
+
+/// `files:` or `exclude:`: a regex string, or `{glob: <glob or list>}` with
+/// globset's defaults, so `*` crosses `/` as in prek.
+fn file_filter(e: &mut Errors, file: &str, node: &Node, path: &str) -> Option<FileFilter> {
+    if let Some(source) = node.as_str() {
+        return match fancy_regex::Regex::new(source) {
+            Ok(re) => Some(FileFilter::Regex(re, source.to_string())),
+            Err(err) => {
+                e.at(
+                    file,
+                    node.pos,
+                    path,
+                    format!("bad regex: {}", crate::finders::regex_error(&err)),
+                );
+                None
+            }
+        };
+    }
+    if !matches!(node.value, Value::Map(_)) {
+        e.at(
+            file,
+            node.pos,
+            path,
+            format!(
+                "expected a regex or {{glob: <glob or list>}}, got {}",
+                node.kind()
+            ),
+        );
+        return None;
+    }
+    let before = e.list.len();
+    let m = entries(e, file, node, path, &["glob"])?;
+    let Some((_, value)) = m.get("glob") else {
+        // An unknown key was already reported.
+        if e.list.len() == before {
+            e.at(file, node.pos, path, "expected {glob: <glob or list>}");
+        }
+        return None;
+    };
+    let at = format!("{path}.glob");
+    let globs: Vec<(String, Pos, String)> = match &value.value {
+        Value::Seq(items) if !items.is_empty() => items
+            .iter()
+            .enumerate()
+            .map(|(i, item)| {
+                let p = format!("{at}[{i}]");
+                string(e, file, item, &p).map(|g| (g, item.pos, p))
+            })
+            .collect::<Option<_>>()?,
+        _ => vec![(string(e, file, value, &at)?, value.pos, at.clone())],
+    };
+    let mut set = GlobSetBuilder::new();
+    let mut ok = true;
+    for (glob, pos, p) in &globs {
+        match GlobBuilder::new(glob).build() {
+            Ok(g) => {
+                set.add(g);
+            }
+            Err(err) => {
+                e.at(file, *pos, p, format!("bad glob: {}", err.kind()));
+                ok = false;
+            }
+        }
+    }
+    let set = set.build().ok().filter(|_| ok)?;
+    Some(FileFilter::Glob(
+        set,
+        globs.into_iter().map(|(g, _, _)| g).collect(),
+    ))
 }
 
 /// necro's own rules for allows (spec: Allows); their message names the allow's rule.
@@ -522,6 +647,8 @@ pub fn builtins() -> [Rule; 2] {
         details: None,
         examples: None,
         pack: None,
+        files: None,
+        exclude: None,
     };
     [
         rule(

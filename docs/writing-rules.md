@@ -25,6 +25,19 @@ The label is what the hit is about (`missing steal_roll`, `3 lines over`). It sh
 
 `include: [necro:rust]` adds rules built into necro, versioned with it: the Rust pack covers what default clippy leaves off (no `unwrap` or `expect` outside tests, lint overrides as `#[expect]` with a reason, `SAFETY` comments, dropped `Result`s, truncating casts, the crate's edition). Its rules are named `rust/<rule>`; `necro --explain rust/<rule>` gives each one's words. `disable: [rust/lossy-cast]` turns a rule off for the repo; for single hits use allows or the baseline.
 
+## Narrowed runs
+
+Given files (pre-commit passes the changed ones), necro skips a rule whose `files:` and `exclude:` take none of them, and `necro grep` searches only them. Give a costly rule a filter, in prek's form: a regex string, or `{glob: …}` with one glob or a list.
+
+```yaml
+typecheck:
+  command: uv run --script necro/typecheck.py
+  files: \.py$
+  exclude: {glob: "src/generated/*"}
+```
+
+A rule that runs runs in full, so a hit it causes elsewhere still shows. A rule without a filter always runs. `necro` with no files, and `--write-baseline`, cover everything.
+
 ## Layout
 
 `necro.yaml` at the root holds `version: 0` and the rules; `include: [necro/*.yaml]` splits them across files, and scripts live beside them in `necro/`. Run it from pre-commit with the hook in the [README](../README.md#install), or, to track a necronomicon clone instead of a release (see `.pre-commit-config.yaml` here):
@@ -34,7 +47,8 @@ The label is what the hit is about (`missing steal_roll`, `3 lines over`). It sh
   hooks:
     - id: necro
       name: necro
-      entry: sh -c 'cd <clone> && exec cargo run -q -- -C <repo>'
+      entry: cargo run -q --manifest-path <clone>/Cargo.toml --
       language: system
-      pass_filenames: false
+      always_run: true
+      require_serial: true
 ```

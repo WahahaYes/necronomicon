@@ -1,0 +1,36 @@
+# given files, a rule with files: or exclude: runs in full when one passes and is skipped when none does; a rule with neither always runs in full
+spec: Narrowed runs
+args: --format terse src/a.ts
+exit: 1
+-- necro.yaml --
+version: 0
+rules:
+  any-mule:
+    command: git grep -n --column -o -E 'mule' -- 'src/*'
+    message: Mule anywhere
+    why: Because.
+    fix: Say horse.
+  py-mule:
+    command: git grep -n --column -o -E 'mule' -- '*.py'
+    files: \.py$
+    message: Mule in Python
+    why: Because.
+    fix: Say horse.
+  ts-mule:
+    command: git grep -n --column -o -E 'mule' -- '*.ts'
+    files: {glob: "*.ts"}
+    message: Mule in TypeScript
+    why: Because.
+    fix: Say horse.
+-- src/a.ts --
+mule
+-- src/b.py --
+mule
+-- src/c.ts --
+mule
+-- @stdout --
+src/a.ts:1:1: any-mule Mule anywhere
+src/b.py:1:1: any-mule Mule anywhere
+src/c.ts:1:1: any-mule Mule anywhere
+src/a.ts:1:1: ts-mule Mule in TypeScript
+src/c.ts:1:1: ts-mule Mule in TypeScript

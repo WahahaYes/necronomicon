@@ -67,9 +67,8 @@ pub enum Failure {
     Check(String, Vec<String>),
 }
 
-/// Run `command` in `root` and return its stdout lines.
-pub fn run(command: &str, root: &Path) -> Result<Vec<String>, Failure> {
-    let words = split(command).unwrap_or_default();
+/// Run a command, split into words, in `root` and return its stdout lines.
+pub fn run(words: Vec<String>, root: &Path) -> Result<Vec<String>, Failure> {
     let Some((program, args)) = words.split_first() else {
         return Err(Failure::Check("the command is empty".into(), vec![]));
     };

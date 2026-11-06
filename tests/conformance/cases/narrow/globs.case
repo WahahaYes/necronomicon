@@ -1,0 +1,23 @@
+# a files: glob is matched against the whole path, and * crosses folders, as in prek
+spec: Narrowed runs
+args: --format terse src/deep/a.ts
+exit: 1
+-- necro.yaml --
+version: 0
+rules:
+  src-ts:
+    command: git grep -n --column -o -E 'mule' -- 'src/*'
+    files: {glob: "src/*.ts"}
+    message: Mule in src
+    why: Because.
+    fix: Say horse.
+  top-ts:
+    command: git grep -n --column -o -E 'mule' -- 'src/*'
+    files: {glob: "lib/*.ts"}
+    message: Mule in lib
+    why: Because.
+    fix: Say horse.
+-- src/deep/a.ts --
+mule
+-- @stdout --
+src/deep/a.ts:1:1: src-ts Mule in src

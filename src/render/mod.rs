@@ -119,14 +119,19 @@ pub fn terse(report: &Report) {
 pub const HELP: &str = "\
 necro: checks a repo against its house rules (necro.yaml).
 
-usage: necro [-C <dir>] [--format full|terse] [--rule <name>]
+usage: necro [-C <dir>] [--format full|terse] [--rule <name>] [<file>…]
        necro [-C <dir>] --explain <rule>
        necro [-C <dir>] [--rule <name>] --write-baseline
        necro [-C <dir>] --clean-cache
-       necro grep [--skip-comments <marker>]… <regex> [-- <pathspec>…]
+       necro grep [--skip-comments <marker>]… [--glob <glob>]… [--files-from <file>]
+                  <regex> [-- <pathspec>…]
+       necro clippy [--tests] [--match <regex>] [--skip <regex>] <lint>…
+       necro cargo-manifest
        necro --version
 
-Each rule's command chooses its own files.
+Each rule's command chooses its own files. Given files, necro skips the rules
+whose files: and exclude: take none of them, and its finders search only them;
+--write-baseline always covers every file.
 
 Exit 0 clean, 1 on an error hit or a broken allow, 2 on a config, setup, check
 or usage error.";

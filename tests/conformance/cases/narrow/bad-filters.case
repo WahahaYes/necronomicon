@@ -1,0 +1,31 @@
+# files: and exclude: take a regex string or {glob: <glob or list>}
+spec: Narrowed runs
+-- necro.yaml --
+version: 0
+rules:
+  a:
+    command: git grep -n x
+    files: [x]
+    exclude: {regex: x}
+    message: m
+    why: w
+    fix: f
+  b:
+    command: git grep -n x
+    files: (
+    exclude: {glob: [3]}
+    message: m
+    why: w
+    fix: f
+  c:
+    command: git grep -n x
+    files: {glob: "src/["}
+    message: m
+    why: w
+    fix: f
+-- @config-error --
+necro.yaml:5:12: rules.a.files
+necro.yaml:6:15: rules.a.exclude.regex
+necro.yaml:12:12: rules.b.files
+necro.yaml:13:22: rules.b.exclude.glob[0]
+necro.yaml:19:19: rules.c.files.glob

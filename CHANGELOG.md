@@ -2,8 +2,12 @@
 
 ## Unreleased
 
+- Narrowed runs: `necro [<file>…]` checks what concerns the given files, the way a pre-commit hook does. A rule with the new `files:` or `exclude:` keys runs only when a given file passes them, and then runs in full; `necro grep` searches only the given files. Stale baseline entries and allow checks are judged only in those files. The published hook now passes file names; `necro` with no files, and `--write-baseline`, still cover everything.
+- `files:` and `exclude:` take prek's form: a regex string, or `{glob: <glob or list>}`. The `necro:rust` rules carry them, so a change without Rust files skips them.
 - `necro grep` accepts lookaround and backreferences (it uses `fancy_regex`), so a match can exclude what comes before it without starting early: `(?<![.\w])randf\(`.
 - `necro grep --glob <glob>` picks files by glob, repeatable, with `!` to exclude, read as prek reads globs: against the whole path, with `*` crossing folders. Globs combine with pathspecs.
+- `necro grep --files-from <file>` keeps only the listed files; narrowed runs pass it.
+- `--explain` shows a rule's `files:` and `exclude:`.
 - `necro grep` is several times faster on large repos with the same hits: `git grep -F` picks the files holding text every match must contain, and necro matches them on every core. On rust-lang/rust (64k files) a whole-tree search went from about 2 s to 0.4 s.
 
 ## 0.3.0 - 2026-11-01

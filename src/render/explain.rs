@@ -34,6 +34,12 @@ pub fn render(r: &Rule) -> String {
     match &r.command {
         Some(c) => {
             let _ = writeln!(out, "Command: {c}");
+            if let Some(f) = &r.files {
+                let _ = writeln!(out, "Files: {f}");
+            }
+            if let Some(f) = &r.exclude {
+                let _ = writeln!(out, "Exclude: {f}");
+            }
         }
         None => {
             let _ = writeln!(out, "Built into necro.");

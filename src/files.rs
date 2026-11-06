@@ -67,3 +67,27 @@ pub fn absolute(cwd: &Path, path: &Path) -> PathBuf {
     }
     out
 }
+
+/// A given file's path relative to `root` (with `../` when it's outside),
+/// or `None` when it isn't a file: narrowed runs drop deleted files.
+pub fn anchor(cwd: &Path, root: &Path, given: &Path) -> Option<String> {
+    let path = absolute(cwd, given);
+    if !path.is_file() {
+        return None;
+    }
+    let root = absolute(cwd, root);
+    let common = root
+        .components()
+        .zip(path.components())
+        .take_while(|(a, b)| a == b)
+        .count();
+    let ups = root.components().count() - common;
+    let rest: Vec<String> = path
+        .components()
+        .skip(common)
+        .map(|c| c.as_os_str().to_string_lossy().into_owned())
+        .collect();
+    let mut parts = vec!["..".to_string(); ups];
+    parts.extend(rest);
+    Some(parts.join("/"))
+}

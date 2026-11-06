@@ -11,8 +11,8 @@ use regex_syntax::hir::literal::{ExtractKind, Extractor};
 
 use super::{regex_error, split_pathspecs, text_lines, tracked};
 
-const USAGE: &str =
-    "necro grep [--skip-comments <marker>]… [--glob <glob>]… <regex> [-- <pathspec>…]";
+const USAGE: &str = "necro grep [--skip-comments <marker>]… [--glob <glob>]… \
+     [--files-from <file>] <regex> [-- <pathspec>…]";
 
 /// Most strings handed to `git grep -F`; past it, every file is searched.
 const MAX_LITERALS: usize = 64;
@@ -26,12 +26,17 @@ pub fn run(args: &[String]) -> Result<Vec<String>, String> {
     let (opts, pathspecs) = split_pathspecs(args);
     let mut markers: Vec<String> = Vec::new();
     let mut globs: Vec<String> = Vec::new();
+    let mut lists: Vec<String> = Vec::new();
     let mut pattern: Option<&String> = None;
     let mut it = opts.iter();
     while let Some(arg) = it.next() {
-        if let Some((name, list)) = [("--skip-comments", &mut markers), ("--glob", &mut globs)]
-            .into_iter()
-            .find(|(name, _)| arg == name || arg.starts_with(&format!("{name}=")))
+        if let Some((name, list)) = [
+            ("--skip-comments", &mut markers),
+            ("--glob", &mut globs),
+            ("--files-from", &mut lists),
+        ]
+        .into_iter()
+        .find(|(name, _)| arg == name || arg.starts_with(&format!("{name}=")))
         {
             let value = match arg.strip_prefix(&format!("{name}=")) {
                 Some(v) => v.to_string(),
@@ -58,13 +63,29 @@ pub fn run(args: &[String]) -> Result<Vec<String>, String> {
     let re = Regex::new(pattern)
         .map_err(|e| format!("`{pattern}` isn't a valid regex ({})", regex_error(&e)))?;
     let globs = Globs::new(&globs)?;
+    let only = match lists.as_slice() {
+        [] => None,
+        [list] => Some(read_list(list)?),
+        _ => return Err(format!("give --files-from once: {USAGE}")),
+    };
     let mut specs = pathspecs.to_vec();
     specs.extend(globs.pushdown(pathspecs.is_empty()));
     let files: Vec<String> = tracked(&specs, required_text(pattern).as_deref())?
         .into_iter()
         .filter(|path| globs.keeps(path))
+        .filter(|path| only.as_ref().is_none_or(|o| o.contains(path)))
         .collect();
     search(&files, &re, &markers)
+}
+
+/// `--files-from`: paths relative to the working folder, one per line.
+fn read_list(list: &str) -> Result<std::collections::HashSet<String>, String> {
+    let text = std::fs::read_to_string(list).map_err(|e| format!("can't read {list}: {e}"))?;
+    Ok(text
+        .lines()
+        .map(|l| l.strip_prefix("./").unwrap_or(l).to_string())
+        .filter(|l| !l.is_empty())
+        .collect())
 }
 
 /// The `--glob` filters, as prek reads globs: matched against the whole
