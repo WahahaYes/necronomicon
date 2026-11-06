@@ -30,9 +30,9 @@ test-verbose: ## Run the tests with full output (CI)
 ##@ Linting
 
 .PHONY: lint
-lint: ## Run clippy and this repo's house rules (src/necro.yaml, current build)
+lint: ## Run clippy and this repo's house rules (necro.yaml, current build)
 	@out=$$(cargo clippy --all-targets --quiet -- -D warnings 2>&1) || { echo "$$out"; exit 1; }
-	@cargo run -q -- -C src
+	@cargo run -q --
 
 .PHONY: format
 format: ## Format the Rust sources
