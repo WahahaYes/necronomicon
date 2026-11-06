@@ -1,0 +1,14 @@
+# override sets a pack rule's parameters: here the role words the weasel rule looks for
+spec: Packs; Parameters
+args: --format terse
+exit: 1
+-- necro.yaml --
+version: 0
+include: [necro:rust]
+override:
+  rust/weasel-type-names: { params: { role-words: Gizmo } }
+-- src/a.rs --
+struct ThingGizmo {}
+struct ConfigService {}
+-- @stdout --
+src/a.rs:1:1: rust/weasel-type-names a type named for a role, not a thing

@@ -1,0 +1,32 @@
+# params: {name} in the command and the words takes the value, a list word expands to one word per item, and other braces stay as written
+spec: Parameters
+args: --format terse
+exit: 1
+-- necro.yaml --
+version: 0
+rules:
+  banned-word:
+    command: necro grep '\b{word}s{0,1}\b' -- 'src/*'
+    params: { word: mule }
+    message: Banned word {word}
+    why: Because.
+    fix: Say horse.
+  listed:
+    command: necro grep 'donkey' -- {paths}
+    params: { paths: [src/a.ts, src/b.ts] }
+    message: Donkey in {paths}
+    why: Because.
+    fix: Say horse.
+-- src/a.ts --
+mules
+donkey
+-- src/b.ts --
+mule
+donkey
+-- src/c.ts --
+donkey
+-- @stdout --
+src/a.ts:1:1: banned-word Banned word mule
+src/b.ts:1:1: banned-word Banned word mule
+src/a.ts:2:1: listed Donkey in src/a.ts, src/b.ts
+src/b.ts:2:1: listed Donkey in src/a.ts, src/b.ts

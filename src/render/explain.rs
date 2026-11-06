@@ -47,6 +47,10 @@ pub fn render(r: &Rule) -> String {
             if let Some(f) = &r.exclude {
                 let _ = writeln!(out, "Exclude: {f}{}", mark("exclude"));
             }
+            for p in &r.params {
+                let set = if p.overridden { " (override)" } else { "" };
+                let _ = writeln!(out, "Param {}: {}{set}", p.name, p.values.join(", "));
+            }
         }
         None => {
             let _ = writeln!(out, "Built into necro.");

@@ -137,7 +137,7 @@ pub fn run_observed(
             .iter()
             .enumerate()
             .map(|(i, r)| {
-                let words = narrowed(r.command.as_deref().unwrap_or_default(), list_path);
+                let words = narrowed(r.words(), list_path);
                 let done = done.clone();
                 s.spawn(move || {
                     let output = command::run(words, root);
@@ -257,10 +257,9 @@ pub fn run_observed(
 /// The finders that search files, which a narrowed run hands its list.
 const FILE_FINDERS: &[&str] = &["grep"];
 
-/// A rule's command as words; in a narrowed run, necro's file finders get
+/// A rule's command words; in a narrowed run, necro's file finders get
 /// `--files-from <list>` after their name (spec: Narrowed runs).
-fn narrowed(command: &str, list: Option<&Path>) -> Vec<String> {
-    let mut words = command::split(command).unwrap_or_default();
+fn narrowed(mut words: Vec<String>, list: Option<&Path>) -> Vec<String> {
     if let Some(list) = list
         && words.first().is_some_and(|w| w == "necro")
         && words

@@ -20,6 +20,7 @@ Bad:
 Good:
     struct Config {
 
-Command: necro grep '\b(struct|enum|trait|type)\s+\w*(Manager|Service|Factory|Helpers?|Utils?|Handler)\b' -- '*.rs'
+Command: necro grep '\b(struct|enum|trait|type)\s+\w*({role-words})\b' -- '*.rs'
 Files: \.rs$
+Param role-words: Manager|Service|Factory|Helpers?|Utils?|Handler
 Pack: necro:rust, built into necro <version>.

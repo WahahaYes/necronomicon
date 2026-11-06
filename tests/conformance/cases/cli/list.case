@@ -7,6 +7,7 @@ include: [necro/*.yaml, necro:rust]
 disable: [rust/lossy-cast]
 override:
   rust/no-unwrap: { exclude: '^build\.rs$', files: '\.rs$' }
+  rust/weasel-type-names: { params: { role-words: Gizmo } }
 rules:
   banned-word:
     command: necro grep '\bdonkey\b' -- 'src/*'
@@ -31,4 +32,4 @@ rust/no-stubs               necro:rust
 rust/no-unwrap              necro:rust  override: files, exclude
 rust/swallowed-error        necro:rust
 rust/unsafe-safety-comment  necro:rust
-rust/weasel-type-names      necro:rust
+rust/weasel-type-names      necro:rust  override: params
