@@ -165,10 +165,10 @@ pub fn run_observed(
         match output.and_then(|lines| read_hits(root, &lines)) {
             Ok(hits) => {
                 ran.insert(&rule.name);
-                // An excluded file is outside the rule in every run.
+                // An excluded file is outside the rule, or the whole run, in every run.
                 raw.extend(
                     hits.into_iter()
-                        .filter(|hit| !rule.excludes(&hit.path))
+                        .filter(|hit| !rule.excludes(&hit.path) && !config.excludes(&hit.path))
                         .map(|hit| Raw { rule, hit }),
                 );
             }
@@ -185,7 +185,11 @@ pub fn run_observed(
     }
 
     let mut found = match allows::find(root) {
-        Ok(a) => a,
+        // The top-level exclude's files hold no allows, only quoted text.
+        Ok(a) => a
+            .into_iter()
+            .filter(|a| !config.excludes(&a.file))
+            .collect(),
         Err(message) => {
             report.problems.push(Problem::Setup(message));
             vec![]

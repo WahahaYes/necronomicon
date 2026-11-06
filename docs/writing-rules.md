@@ -76,7 +76,7 @@ A rule that runs runs in full, so a hit it causes elsewhere still shows, except 
 
 ## Layout
 
-`necro.yaml` at the root holds `version: 0` and the rules; `include: [necro/*.yaml]` splits them across files, and scripts live beside them in `necro/`. Run it from pre-commit with the hook in the [README](../README.md#install), or, to track a necronomicon clone instead of a release (see `.pre-commit-config.yaml` here):
+`necro.yaml` at the root holds `version: 0` and the rules; `include: [necro/*.yaml]` splits them across files, and scripts live beside them in `necro/`. A top-level `exclude:`, in the same form as a rule's, leaves files out of every rule and every run: vendored code, fixtures, or files that quote rules and allows as data, whose example allows necro then doesn't read. Run it from pre-commit with the hook in the [README](../README.md#install), or, to track a necronomicon clone instead of a release (see `.pre-commit-config.yaml` here):
 
 ```yaml
 - repo: local

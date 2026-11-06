@@ -226,12 +226,19 @@ pub struct Config {
     pub disabled: Vec<Rule>,
     /// The snapshot's path, relative to the root; the default when absent.
     pub baseline: Option<String>,
+    /// The top-level `exclude:`: files the whole run leaves out.
+    pub exclude: Option<FileFilter>,
 }
 
 impl Config {
     /// The rule names, for unknown-rule errors.
     pub fn names(&self) -> Vec<&str> {
         self.rules.iter().map(|r| r.name.as_str()).collect()
+    }
+
+    /// Whether the top-level `exclude:` leaves `path` out of the run.
+    pub fn excludes(&self, path: &str) -> bool {
+        self.exclude.as_ref().is_some_and(|f| f.matches(path))
     }
 
     /// Where the snapshot lives: the `baseline:` pointer, else the default
@@ -359,7 +366,7 @@ pub fn valid_name(name: &str) -> bool {
 pub const DEFAULT_BASELINE: &str = "necro.baseline.yaml";
 
 const TOP_KEYS: &[&str] = &[
-    "version", "include", "disable", "override", "rules", "baseline",
+    "version", "include", "disable", "override", "rules", "baseline", "exclude",
 ];
 /// What `override:` may replace on a pack rule.
 const OVERRIDE_KEYS: &[&str] = &["files", "exclude", "params"];
@@ -440,6 +447,9 @@ pub fn load(root: &Path, files: &[String]) -> Result<Config, Vec<ConfigError>> {
     let baseline = m
         .get("baseline")
         .and_then(|(_, n)| string(&mut e, top_file, n, "baseline"));
+    let exclude = m
+        .get("exclude")
+        .and_then(|(_, n)| file_filter(&mut e, top_file, n, "exclude"));
 
     // (file, pack, node): the repo's include files, then the packs.
     let mut sources: Vec<(String, Option<&str>, Node)> = Vec::new();
@@ -542,6 +552,7 @@ pub fn load(root: &Path, files: &[String]) -> Result<Config, Vec<ConfigError>> {
         rules,
         disabled: off_rules,
         baseline,
+        exclude,
     })
 }
 

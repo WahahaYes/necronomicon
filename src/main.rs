@@ -157,12 +157,14 @@ fn main_with(args: Args) -> Result<u8, String> {
     if args.write_baseline {
         return write_baseline(&config, &root, args.rule.as_deref());
     }
-    // Given files: a narrowed run over the ones that exist, root-relative.
+    // Given files: a narrowed run over the ones that exist and the top-level
+    // exclude keeps, root-relative.
     let given: Option<Vec<String>> = (!args.files.is_empty()).then(|| {
         let mut given: Vec<String> = args
             .files
             .iter()
             .filter_map(|f| files::anchor(&cwd, &root, Path::new(f)))
+            .filter(|f| !config.excludes(f))
             .collect();
         given.sort();
         given.dedup();

@@ -1,0 +1,13 @@
+# the top-level exclude takes the same forms as a rule's
+spec: A rule
+-- necro.yaml --
+version: 0
+exclude: (
+rules:
+  a:
+    command: git grep -n x
+    message: m
+    why: w
+    fix: f
+-- @config-error --
+necro.yaml:2:10: exclude
