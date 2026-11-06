@@ -44,4 +44,4 @@ The key goes in `RULE_KEYS` (`src/config.rs`), `load_rule` parses and validates 
 
 ## Before committing
 
-`make format`, `make test`, `make lint`; `make check` runs every hook as CI does. One concern per commit; a change that touches the spec, cases and engine for one behavior is one concern.
+`make necro-fix`, `make test`, `make necro`; `make check` runs every hook as CI does. One concern per commit; a change that touches the spec, cases and engine for one behavior is one concern.

@@ -9,7 +9,7 @@ use super::grep::read_list;
 use super::{split_pathspecs, tracked};
 
 const USAGE: &str = "necro gdscan [--files-from <file>] [--header <n>] [--item <n>] \
-                     (spacing|inline-lambda|doc-length|export-doc|uid) [-- <pathspec>…]";
+                     [--write [--only-at <file>]] (spacing|inline-lambda|doc-length|export-doc|uid) [-- <pathspec>…]";
 
 /// What `doc-length` allows when `--header` or `--item` isn't given.
 const HEADER: usize = 10;
@@ -41,6 +41,8 @@ pub fn run(args: &[String]) -> Result<Vec<String>, String> {
     let (opts, pathspecs) = split_pathspecs(args);
     let (mut header, mut item) = (HEADER, ITEM);
     let mut list: Option<String> = None;
+    let mut only_at: Option<String> = None;
+    let mut write = false;
     let mut check: Option<&str> = None;
     let mut it = opts.iter();
     while let Some(arg) = it.next() {
@@ -56,6 +58,8 @@ pub fn run(args: &[String]) -> Result<Vec<String>, String> {
         };
         match flag {
             "--files-from" => list = Some(value()?),
+            "--only-at" => only_at = Some(value()?),
+            "--write" => write = true,
             "--header" => header = lines_arg(flag, &value()?)?,
             "--item" => item = lines_arg(flag, &value()?)?,
             f if f.starts_with('-') => return Err(format!("unknown option {f}: {USAGE}")),
@@ -64,6 +68,9 @@ pub fn run(args: &[String]) -> Result<Vec<String>, String> {
         }
     }
     let check = check.ok_or(format!("name a check: {USAGE}"))?;
+    if (write || only_at.is_some()) && check != "spacing" {
+        return Err(format!("--write goes with spacing: {USAGE}"));
+    }
     let only = list.as_deref().map(read_list).transpose()?;
     if check == "uid" {
         return uid(pathspecs, only.as_ref());
@@ -81,7 +88,65 @@ pub fn run(args: &[String]) -> Result<Vec<String>, String> {
             run(&path, &src, header, item, &mut hits);
         }
     }
-    Ok(hits)
+    if !write {
+        return Ok(hits);
+    }
+    let at: Option<HashSet<String>> = only_at.as_deref().map(read_list).transpose()?.map(|l| {
+        l.iter()
+            .map(|h| h.splitn(3, ':').take(2).collect::<Vec<_>>().join(":"))
+            .collect()
+    });
+    write_spacing(&hits, at.as_ref())
+}
+
+/// `spacing --write`: for each hit's block, join a top-level comment that
+/// blank lines keep from its function (gdformat would widen that gap and
+/// detach a `##` doc), then make two blank lines above the block. Bottom up,
+/// so earlier line numbers hold, in the file's own line endings.
+fn write_spacing(hits: &[String], at: Option<&HashSet<String>>) -> Result<Vec<String>, String> {
+    let mut by_file: std::collections::BTreeMap<&str, Vec<usize>> = Default::default();
+    for hit in hits {
+        let mut parts = hit.splitn(3, ':');
+        let (Some(path), Some(line)) = (parts.next(), parts.next()) else {
+            continue;
+        };
+        if at.is_some_and(|a| !a.contains(&format!("{path}:{line}"))) {
+            continue;
+        }
+        if let Ok(line) = line.parse::<usize>() {
+            by_file.entry(path).or_default().push(line);
+        }
+    }
+    let mut fixed = Vec::new();
+    for (path, mut blocks) in by_file {
+        let text = std::fs::read_to_string(path).map_err(|e| format!("can't read {path}: {e}"))?;
+        let eol = if text.contains("\r\n") { "\r\n" } else { "\n" };
+        let mut lines: Vec<&str> = text.split_inclusive('\n').collect();
+        let blank = |l: &str| l.trim().is_empty();
+        blocks.sort_unstable_by(|a, b| b.cmp(a));
+        for &line in &blocks {
+            let mut start = (line - 1).min(lines.len());
+            let mut gap = start;
+            while gap > 0 && blank(lines[gap - 1]) {
+                gap -= 1;
+            }
+            if gap > 0 && gap < start && lines[gap - 1].starts_with('#') {
+                lines.drain(gap..start);
+                start = gap;
+                while start > 0 && lines[start - 1].starts_with('#') {
+                    start -= 1;
+                }
+            }
+            let above = lines[..start].iter().rev().take_while(|l| blank(l)).count();
+            for _ in above..2 {
+                lines.insert(start, eol);
+            }
+        }
+        std::fs::write(path, lines.concat()).map_err(|e| format!("can't write {path}: {e}"))?;
+        blocks.reverse();
+        fixed.extend(blocks.iter().map(|line| format!("{path}:{line}:1: fixed")));
+    }
+    Ok(fixed)
 }
 
 /// A line limit: a whole number, at least 1.
@@ -258,20 +323,41 @@ fn inline_lambda(path: &str, src: &Source, _: usize, _: usize, hits: &mut Vec<St
     }
 }
 
-/// Each lambda literal on a line inside brackets opened earlier: (line, col, endcol), 1-based.
+/// Each lambda literal inside an open bracket, whether it opened on this line
+/// or an earlier one: (line, col, endcol), 1-based. Strings and comments skip.
 fn lambda_spans(src: &Source) -> Vec<(usize, usize, usize)> {
-    let Ok(re) = Regex::new(r"\bfunc\s*\(") else {
+    let Ok(re) = Regex::new(r"^func\s*\(") else {
         return vec![];
     };
     let mut out = Vec::new();
-    for (n, (raw, depth)) in src.lines.iter().zip(depths(&src.lines)).enumerate() {
-        let stripped = raw.trim();
-        let Some(m) = re.find(stripped).filter(|_| depth > 0 && !src.in_string[n]) else {
+    for (n, (raw, start)) in src.lines.iter().zip(depths(&src.lines)).enumerate() {
+        if src.in_string[n] {
             continue;
-        };
-        let lead = raw.len() - raw.trim_start().len();
-        let col = raw[..lead].chars().count() + stripped[..m.start()].chars().count() + 1;
-        out.push((n + 1, col, col + m.as_str().chars().count() - 1));
+        }
+        let mut depth = start;
+        let mut quote: Option<char> = None;
+        let mut prev_word = false;
+        let mut chars = raw.char_indices().enumerate();
+        while let Some((col, (at, c))) = chars.next() {
+            match quote {
+                Some(_) if c == '\\' => {
+                    chars.next();
+                }
+                Some(q) if c == q => quote = None,
+                Some(_) => {}
+                None if c == '\'' || c == '"' => quote = Some(c),
+                None if c == '#' => break,
+                None if "([{".contains(c) => depth += 1,
+                None if ")]}".contains(c) => depth = depth.saturating_sub(1),
+                None if depth > 0 && !prev_word => {
+                    if let Some(m) = re.find(&raw[at..]) {
+                        out.push((n + 1, col + 1, col + m.as_str().chars().count()));
+                    }
+                }
+                None => {}
+            }
+            prev_word = c.is_alphanumeric() || c == '_';
+        }
     }
     out
 }

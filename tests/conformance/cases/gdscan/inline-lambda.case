@@ -1,4 +1,4 @@
-# inline-lambda: a func( on a line inside brackets opened earlier; one inside a one-line call is fine
+# inline-lambda: each func( lambda inside an open bracket, opened on that line or an earlier one; a lambda outside brackets is fine
 spec: Finders
 args: gdscan inline-lambda
 -- src/a.gd --
@@ -7,5 +7,12 @@ func f() -> void:
 		func() -> void: pass,
 	]
 	var ok: Array = [1].filter(func(x): return x > 0)
+	var both: Array = [func(): pass, func(): pass]
+	var named: Callable = func(x): return x
+	# items.map(func(x): x) in a comment
+	var text: String = "map(func(x): x)"
 -- @stdout --
 src/a.gd:3:3-7
+src/a.gd:5:29-33
+src/a.gd:6:21-25
+src/a.gd:6:35-39

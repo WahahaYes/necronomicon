@@ -29,7 +29,7 @@ rules:
     files: '\.gd$'
     message: a function block without two blank lines above it
     why: two blank lines between top-level functions is the layout gdformat keeps; drift makes diffs noisy.
-    fix: leave two blank lines above the function and the comments attached to it.
+    fix: run `necro --fix`, or leave two blank lines above the function and the comments attached to it.
     details: |
       A top-level `func` or `static func`, with the comments right above it,
       has two blank lines before it, except the first in the file.

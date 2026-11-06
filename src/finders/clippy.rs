@@ -9,7 +9,7 @@ use serde_json::Value;
 
 use super::cargo::{Workspace, cache, relative, workspaces};
 
-const USAGE: &str = "necro clippy [--tests] [--match <regex>] [--skip <regex>] <lint>…";
+const USAGE: &str = "necro clippy [--tests] [--match <regex>] [--skip <regex>] (<lint>… | --others [--except=<lint>,…])";
 
 /// Every lint a run sets to warn, the ones necro:rust uses. One fixed list
 /// keeps clippy's arguments the same for every rule, so cargo replays its
@@ -33,6 +33,9 @@ struct Options {
     keep: Option<Regex>,
     drop: Option<Regex>,
     lints: Vec<String>,
+    /// `--others`: every other warning, minus `except` (names without `clippy::`).
+    others: bool,
+    except: Vec<String>,
 }
 
 fn parse(args: &[String]) -> Result<Options, String> {
@@ -41,11 +44,28 @@ fn parse(args: &[String]) -> Result<Options, String> {
         keep: None,
         drop: None,
         lints: Vec::new(),
+        others: false,
+        except: Vec::new(),
     };
     let mut it = args.iter();
     while let Some(arg) = it.next() {
         match arg.as_str() {
             "--tests" => o.tests = true,
+            "--others" => o.others = true,
+            a if a == "--except" || a.starts_with("--except=") => {
+                let list = match a.strip_prefix("--except=") {
+                    Some(v) => v.to_string(),
+                    None => it
+                        .next()
+                        .ok_or(format!("--except needs lints: {USAGE}"))?
+                        .clone(),
+                };
+                o.except.extend(
+                    list.split(',')
+                        .map(|l| l.trim().trim_start_matches("clippy::").to_string())
+                        .filter(|l| !l.is_empty()),
+                );
+            }
             "--match" | "--skip" => {
                 let pattern = it.next().ok_or(format!("{arg} needs a regex: {USAGE}"))?;
                 let re =
@@ -66,7 +86,13 @@ fn parse(args: &[String]) -> Result<Options, String> {
             }
         }
     }
-    if o.lints.is_empty() {
+    if o.others && !o.lints.is_empty() {
+        return Err(format!("--others takes no lints: {USAGE}"));
+    }
+    if !o.others && !o.except.is_empty() {
+        return Err(format!("--except goes with --others: {USAGE}"));
+    }
+    if !o.others && o.lints.is_empty() {
         return Err(format!("give at least one lint: {USAGE}"));
     }
     Ok(o)
@@ -103,6 +129,8 @@ fn check(
     cmd.arg("--target-dir").arg(cache(ws));
     cmd.arg("--");
     cmd.args(LINTS.iter().map(|l| format!("-Wclippy::{l}")));
+    // A lint a crate raises to deny is still a hit, not a build error.
+    cmd.arg("--cap-lints=warn");
     // Only a cold build waits its turn: a warm one replays in a moment.
     let warm = cache(ws).join(if o.tests { ".warm-tests" } else { ".warm" });
     let turn = if warm.exists() {
@@ -129,7 +157,16 @@ fn check(
             errors.push(text.unwrap_or_default().to_string());
         }
         let code = diag["code"]["code"].as_str().unwrap_or_default();
-        if !wanted.iter().any(|w| w == code) {
+        let name = code.trim_start_matches("clippy::");
+        let keep = if o.others {
+            diag["level"] == "warning"
+                && !code.is_empty()
+                && !LINTS.contains(&name)
+                && !o.except.iter().any(|e| e == name)
+        } else {
+            wanted.iter().any(|w| w == code)
+        };
+        if !keep {
             continue;
         }
         let Some(span) = user_span(diag) else {
@@ -156,7 +193,10 @@ fn check(
         }
         // Two of a rule's lints on one line (allow_attributes and its
         // _without_reason twin) are one violation, at the leftmost column.
-        let message = diag["message"].as_str().unwrap_or_default().to_string();
+        let mut message = diag["message"].as_str().unwrap_or_default().to_string();
+        if o.others {
+            message = format!("{message} ({code})");
+        }
         let slot = hits
             .entry((path, line))
             .or_insert((start, col.clone(), message.clone()));

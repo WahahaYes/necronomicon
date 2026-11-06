@@ -66,6 +66,9 @@ pub enum Fixer {
 const FIX_FINDERS: &[(&str, &[&str])] = &[
     ("grep", &["--replace"]),
     ("gdtoolkit", &["format"]),
+    ("gdscan", &["spacing"]),
+    // Every rustfmt command is fixable: it has no check to name.
+    ("rustfmt", &[]),
     ("agent-files", crate::finders::AGENT_FILES_FIXABLE),
 ];
 
@@ -162,6 +165,9 @@ impl Rule {
             .then(|| words.get(1))
             .flatten()?;
         let (_, options) = FIX_FINDERS.iter().find(|(f, _)| f == finder)?;
+        if options.is_empty() {
+            return Some(Fixer::Finder);
+        }
         let opts = words.iter().skip(2).take_while(|w| *w != "--");
         opts.into_iter()
             .any(|w| {

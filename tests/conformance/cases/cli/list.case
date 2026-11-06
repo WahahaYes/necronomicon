@@ -30,10 +30,12 @@ rust-style/doc-missing        necro:rust-style
 rust-style/module-doc         necro:rust-style
 rust-style/weasel-type-names  necro:rust-style  override: params
 rust/cargo-manifest           necro:rust
+rust/clippy                   necro:rust
 rust/lint-override-reason     necro:rust
 rust/lossy-cast               necro:rust  disabled
 rust/no-expect                necro:rust
 rust/no-stubs                 necro:rust
 rust/no-unwrap                necro:rust  override: files, exclude
+rust/rustfmt                  necro:rust
 rust/swallowed-error          necro:rust
 rust/unsafe-safety-comment    necro:rust

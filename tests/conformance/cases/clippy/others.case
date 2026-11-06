@@ -1,0 +1,32 @@
+# --others: every other warning, rustc's and clippy's defaults, labelled with the lint; necro's own lints stay out; a lint the crate denies is still a hit; --tests adds test code
+spec: Finders
+args: clippy --tests --others
+-- Cargo.toml --
+[package]
+name = "c"
+version = "0.1.0"
+edition = "2024"
+publish = false
+-- src/lib.rs --
+#![deny(unused_variables)]
+pub fn f(x: u32) -> u32 {
+    let unused = 1;
+    return x;
+}
+
+pub fn g(s: &str) -> u32 {
+    s.parse().unwrap()
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn t() {
+        let v = vec![1];
+        assert_eq!(v.len(), 1);
+    }
+}
+-- @stdout --
+src/lib.rs:3:9-14: unused variable: `unused` (unused_variables)
+src/lib.rs:4:5-12: unneeded `return` statement (clippy::needless_return)
+src/lib.rs:15:17-23: useless use of `vec!` (clippy::useless_vec)

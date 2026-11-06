@@ -1,0 +1,14 @@
+# --except drops lints by name, with or without clippy::
+spec: Finders
+args: clippy --others --except=clippy::needless_return,unused_variables
+-- Cargo.toml --
+[package]
+name = "c"
+version = "0.1.0"
+edition = "2024"
+publish = false
+-- src/lib.rs --
+pub fn f(x: u32) -> u32 {
+    let unused = 1;
+    return x;
+}

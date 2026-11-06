@@ -3,4 +3,4 @@ spec: Finders
 args: gdscan nope
 exit: 2
 -- @stderr --
-necro: gdscan: unknown check nope: necro gdscan [--files-from <file>] [--header <n>] [--item <n>] (spacing|inline-lambda|doc-length|export-doc|uid) [-- <pathspec>…]
+necro: gdscan: unknown check nope: necro gdscan [--files-from <file>] [--header <n>] [--item <n>] [--write [--only-at <file>]] (spacing|inline-lambda|doc-length|export-doc|uid) [-- <pathspec>…]

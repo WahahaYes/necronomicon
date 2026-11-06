@@ -1,0 +1,6 @@
+# rustfmt takes only --write and --only-at
+spec: Finders
+args: rustfmt --nope
+exit: 2
+-- @stderr --
+necro: rustfmt: unknown option --nope: necro rustfmt [--write [--only-at <file>]]
