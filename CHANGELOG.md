@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Finders print hits sorted by line and column as numbers; `necro gdtoolkit` sorted them as text, so line 325 came before line 74.
+- `necro gdtoolkit lint` reports `max-returns` at its function's `func` line instead of the last `return`, so baseline entries fingerprint the function.
+- A repeated hit's label follows a colon (`also at src/a.gd:2:1: (.shuffle()`) instead of parentheses, which read as unbalanced around a match ending in a bracket.
+- Allows aren't read from the files rules come from (`necro.yaml`, its includes and `{file: …}` texts), so a rule's words can quote the allow syntax without tripping `necro/allow-reason` or `necro/unused-allow`.
 - **`necro:gdscript`**, a pack for Godot: `gdformat` (fixable with `--fix`, parameter `line-length`), `gdlint`, `parse`, `inline-lambda` (a lambda inside a multi-line bracket, which gdformat corrupts and `--fix` skips) and `uid` (each script and its `.gd.uid` tracked together, once a repo tracks any). It runs gdtoolkit from `PATH`: install `necronomicon[gdscript]`, which pins gdtoolkit 4.5.0 beside necro.
 - **`necro:gdscript-style`**, opt-in GDScript style: `walrus`, `border` (`min-dashes`), `spacing`, `export-doc` and `doc-length` (`header` 10, `item` 6). It needs no gdtoolkit.
 - **`necro gdscan`** and **`necro gdtoolkit`**, the finders behind them; like `necro grep`, they search only the given files in a narrowed run.

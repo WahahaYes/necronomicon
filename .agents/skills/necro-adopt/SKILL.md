@@ -23,7 +23,7 @@ Run `necro`. `necro --fix` clears fixable hits; fix the real ones that are quick
 
 ## 5. Hook and CI
 
-Add the pre-commit hook from the [README](https://github.com/WahahaYes/necronomicon#install) and pin `necronomicon` below the next 0.x. In CI, run `necro` with no files, or `pre-commit run --from-ref origin/main --to-ref HEAD`.
+Add the hook from the [README](https://github.com/WahahaYes/necronomicon#install), for prek or pre-commit, whichever the repo uses, and pin `necronomicon` below the next 0.x. In CI, run `necro` with no files, or `prek run --from-ref origin/main --to-ref HEAD` (`pre-commit run` takes the same arguments).
 
 ## 6. Skills
 

@@ -1,4 +1,4 @@
-# Pre-commit, tests, a Linux wheel and the crate. Every job step is one local
+# Hooks (prek), tests, a Linux wheel and the crate. Every job step is one local
 # command (see Makefile): make check, make lint, make test-verbose, make wheel,
 # make package. Runs on pull requests and pushes to main. release.yml calls
 # this before its wheel matrix; it grants actions: write, which purge_caches
@@ -58,24 +58,24 @@ jobs:
       # A version written into the source or docs goes stale at the next bump.
       - name: No hardcoded versions
         run: uv run --no-project scripts/release-meta.py stale
-      - name: Pre-commit environments cache
-        id: pc-cache
+      - name: Prek environments cache
+        id: prek-cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: ~/.cache/pre-commit
-          key: pre-commit-${{ runner.os }}-${{ hashFiles('.pre-commit-config.yaml') }}
+          path: ~/.cache/prek
+          key: prek-${{ runner.os }}-${{ hashFiles('.pre-commit-config.yaml') }}
       - name: Hooks (all files)
         # gitleaks scans staged changes, which CI has none of; it runs below
         # over the pushed commits instead.
         env:
           SKIP: gitleaks,cargo-clippy,necro
         run: make check
-      - name: Pre-commit environments cache save
-        if: github.ref == 'refs/heads/main' && steps.pc-cache.outputs.cache-hit != 'true'
+      - name: Prek environments cache save
+        if: github.ref == 'refs/heads/main' && steps.prek-cache.outputs.cache-hit != 'true'
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: ~/.cache/pre-commit
-          key: pre-commit-${{ runner.os }}-${{ hashFiles('.pre-commit-config.yaml') }}
+          path: ~/.cache/prek
+          key: prek-${{ runner.os }}-${{ hashFiles('.pre-commit-config.yaml') }}
       - name: Secrets (gitleaks, pushed commits)
         env:
           RANGE: ${{ github.event_name == 'pull_request' && format('{0}..{1}', github.event.pull_request.base.sha, github.event.pull_request.head.sha) || format('{0}..{1}', github.event.before, github.sha) }}
@@ -96,7 +96,7 @@ jobs:
         run: |
           for sha in $(git rev-list --no-merges "${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}"); do
             git log -1 --format=%B "$sha" > "$RUNNER_TEMP/msg"
-            uvx pre-commit@4.6.1 run no-ai-attribution --hook-stage commit-msg --commit-msg-filename "$RUNNER_TEMP/msg" || { echo "bad message in $sha"; exit 1; }
+            uvx prek@0.5.9 run no-ai-attribution --hook-stage commit-msg --commit-msg-filename "$RUNNER_TEMP/msg" || { echo "bad message in $sha"; exit 1; }
           done
 
   test:

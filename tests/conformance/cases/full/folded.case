@@ -21,16 +21,16 @@ error[banned-word]: Banned word
   = fix: Say good.
   = more: necro --explain banned-word
 
-error[banned-word]: also at src/a.ts:2:1 (donkey)
+error[banned-word]: also at src/a.ts:2:1: donkey
    = fix: Say good.
 
-error[banned-word]: also at src/a.ts:3:1 (donkey)
+error[banned-word]: also at src/a.ts:3:1: donkey
    = fix: Say good.
 
-error[banned-word]: also at src/b.ts:1:1 (donkey)
+error[banned-word]: also at src/b.ts:1:1: donkey
    = fix: Say good.
 
-error[banned-word]: also at src/b.ts:2:1 (donkey)
+error[banned-word]: also at src/b.ts:2:1: donkey
    = fix: Say good.
 
 error[banned-word]: 2 more in src/b.ts

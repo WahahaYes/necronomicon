@@ -19,7 +19,7 @@ error[banned-word]: Banned word
   = fix: Say good.
   = more: necro --explain banned-word
 
-error[banned-word]: also at src/c.ts:1:10 (donkey)
+error[banned-word]: also at src/c.ts:1:10: donkey
    = fix: Say good.
 
 necro: 2 errors (banned-word ×2)

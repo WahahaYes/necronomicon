@@ -16,7 +16,7 @@ Needs the Rust toolchain in `rust-toolchain.toml` and `uv` (the suite and script
 
 - `make test`: unit tests and the conformance suite, quiet; failures print in full.
 - `make lint`: clippy, then this repo's rules with the current build.
-- `make format`, `make check` (every pre-commit hook on every file, as CI runs them).
+- `make format`, `make check` (every hook in `.pre-commit-config.yaml` on every file, run with prek, as CI runs them).
 
 ## Changing behavior
 

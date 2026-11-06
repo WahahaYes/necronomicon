@@ -223,7 +223,10 @@ fn lint(files: &[String]) -> Result<Vec<String>, String> {
         let before = hits.len();
         for line in rest {
             match hit.captures(line.trim()) {
-                Some(c) => hits.push(format!("{}:{}: {}", &c[1], &c[2], &c[3])),
+                Some(c) => {
+                    let line = func_line(&c[1], &c[2], &c[3]).unwrap_or_else(|| c[2].to_string());
+                    hits.push(format!("{}:{line}: {}", &c[1], &c[3]));
+                }
                 None if chatter(&line) => {}
                 None => strange.push(line),
             }
@@ -234,6 +237,30 @@ fn lint(files: &[String]) -> Result<Vec<String>, String> {
     }
     hits.sort();
     Ok(hits)
+}
+
+/// For `max-returns`, which gdlint puts on the function's last `return`, the
+/// line of the `func` it names, at or above `line`, so a baseline entry
+/// fingerprints the function.
+fn func_line(path: &str, line: &str, message: &str) -> Option<String> {
+    if !message.ends_with("(max-returns)") {
+        return None;
+    }
+    let name = message.strip_prefix("Function \"")?.split('"').next()?;
+    let at: usize = line.parse().ok()?;
+    let text = std::fs::read_to_string(path).ok()?;
+    let lines: Vec<&str> = text.lines().take(at).collect();
+    lines
+        .iter()
+        .rposition(|l| {
+            let l = l.trim_start();
+            let l = l.strip_prefix("static ").map_or(l, str::trim_start);
+            l.strip_prefix("func ")
+                .map(str::trim_start)
+                .and_then(|r| r.strip_prefix(name))
+                .is_some_and(|r| r.trim_start().starts_with('('))
+        })
+        .map(|i| (i + 1).to_string())
 }
 
 /// `format --write`: reformat the files gdformat would change, except those

@@ -229,6 +229,8 @@ pub struct Config {
     pub baseline: Option<String>,
     /// The top-level `exclude:`: files the whole run leaves out.
     pub exclude: Option<FileFilter>,
+    /// The files rules are read from: necro.yaml, includes, `{file: …}` texts.
+    pub rule_files: Vec<String>,
 }
 
 impl Config {
@@ -251,6 +253,8 @@ impl Config {
 
 struct Errors {
     list: Vec<ConfigError>,
+    /// The `{file: …}` texts read, root-relative.
+    texts: Vec<String>,
 }
 
 impl Errors {
@@ -346,7 +350,10 @@ fn text(e: &mut Errors, root: &Path, file: &str, node: &Node, path: &str) -> Opt
     let at = format!("{path}.file");
     let rel = string(e, file, f, &at)?;
     match std::fs::read_to_string(root.join(&rel)) {
-        Ok(t) => Some(t),
+        Ok(t) => {
+            e.texts.push(rel);
+            Some(t)
+        }
         Err(err) => {
             e.at(file, f.pos, &at, format!("can't read {rel}: {err}"));
             None
@@ -409,7 +416,10 @@ fn read_yaml(e: &mut Errors, root: &Path, rel: &str) -> Option<Node> {
 
 /// Load and validate everything. Errors come back sorted by file and position.
 pub fn load(root: &Path, files: &[String]) -> Result<Config, Vec<ConfigError>> {
-    let mut e = Errors { list: Vec::new() };
+    let mut e = Errors {
+        list: Vec::new(),
+        texts: Vec::new(),
+    };
     let top_file = "necro.yaml";
     let Some(top) = read_yaml(&mut e, root, top_file) else {
         return Err(e.list);
@@ -454,9 +464,11 @@ pub fn load(root: &Path, files: &[String]) -> Result<Config, Vec<ConfigError>> {
 
     // (file, pack, node): the repo's include files, then the packs.
     let mut sources: Vec<(String, Option<&str>, Node)> = Vec::new();
+    let mut rule_files = vec![top_file.to_string()];
     if let Some((_, inc)) = m.get("include") {
         for rel in include_files(&mut e, top_file, inc, files) {
             if let Some(node) = read_yaml(&mut e, root, &rel) {
+                rule_files.push(rel.clone());
                 sources.push((rel, None, node));
             }
         }
@@ -549,11 +561,13 @@ pub fn load(root: &Path, files: &[String]) -> Result<Config, Vec<ConfigError>> {
     }
     rules.sort_by(|a, b| a.name.cmp(&b.name));
     off_rules.sort_by(|a, b| a.name.cmp(&b.name));
+    rule_files.append(&mut e.texts);
     Ok(Config {
         rules,
         disabled: off_rules,
         baseline,
         exclude,
+        rule_files,
     })
 }
 
