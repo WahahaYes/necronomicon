@@ -1,0 +1,11 @@
+# inline-lambda: a func( on a line inside brackets opened earlier; one inside a one-line call is fine
+spec: Finders
+args: gdscan inline-lambda
+-- src/a.gd --
+func f() -> void:
+	var hooks: Array = [
+		func() -> void: pass,
+	]
+	var ok: Array = [1].filter(func(x): return x > 0)
+-- @stdout --
+src/a.gd:3:3-7

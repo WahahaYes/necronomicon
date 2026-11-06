@@ -1,0 +1,5 @@
+# uid: a repo that tracks no .gd.uid file (Godot 4.3 or older) finds nothing
+spec: Finders
+args: gdscan uid
+-- src/a.gd --
+extends Node

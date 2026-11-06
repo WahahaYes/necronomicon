@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **`necro gdscan`** checks GDScript layout line by line (`spacing`, `inline-lambda`, `doc-length`, `export-doc`, `uid`); like `necro grep`, it searches only the given files in a narrowed run.
+
 - **Fixes.** `necro --fix` fixes the hits a run reports, then checks again and says what it changed and which hits it couldn't fix; it exits 1 when it changed a file, so a hook fails until the fixed files are re-staged. Allowed and baselined hits are left alone. The published hook and the README's now run `necro --fix`.
 - **`necro grep --replace <text>`** makes a rule fixable: its labels say what each match becomes (`$1` for groups), and `--write` (which `--fix` adds) replaces them in place. Any other command names its fix in the new `autofix:` key, with `{files}` for the files to fix.
 - A full run says how many of its hits `--fix` could clear, and `--write-baseline` how many of the entries it wrote are fixable.

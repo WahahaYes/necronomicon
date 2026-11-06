@@ -1,0 +1,6 @@
+# gdscan needs a check it knows
+spec: Finders
+args: gdscan nope
+exit: 2
+-- @stderr --
+necro: gdscan: unknown check nope: necro gdscan [--files-from <file>] [--header <n>] [--item <n>] (spacing|inline-lambda|doc-length|export-doc|uid) [-- <pathspec>…]

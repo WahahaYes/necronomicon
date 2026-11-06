@@ -6,6 +6,7 @@ use crate::render;
 
 mod cargo;
 mod clippy;
+mod gdscan;
 mod grep;
 mod manifest;
 mod rust_docs;
@@ -17,6 +18,7 @@ type Finder = fn(&[String]) -> Result<Vec<String>, String>;
 const FINDERS: &[(&str, Finder)] = &[
     ("cargo-manifest", manifest::run),
     ("clippy", clippy::run),
+    ("gdscan", gdscan::run),
     ("grep", grep::run),
     ("rust-docs", rust_docs::run),
 ];
