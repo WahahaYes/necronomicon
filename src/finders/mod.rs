@@ -9,6 +9,8 @@ mod agent_files;
 pub use agent_files::FIXABLE as AGENT_FILES_FIXABLE;
 mod cargo;
 mod clippy;
+mod gdscan;
+mod gdtoolkit;
 mod grep;
 mod manifest;
 mod rust_docs;
@@ -21,6 +23,8 @@ const FINDERS: &[(&str, Finder)] = &[
     ("agent-files", agent_files::run),
     ("cargo-manifest", manifest::run),
     ("clippy", clippy::run),
+    ("gdscan", gdscan::run),
+    ("gdtoolkit", gdtoolkit::run),
     ("grep", grep::run),
     ("rust-docs", rust_docs::run),
 ];

@@ -1,0 +1,11 @@
+# lint: each gdlint problem at its line, the check in parentheses
+spec: Finders
+args: gdtoolkit lint
+-- src/a.gd --
+extends Node
+
+
+func BadName() -> void:
+	pass
+-- @stdout --
+src/a.gd:4: Function name "BadName" is not valid (function-name)

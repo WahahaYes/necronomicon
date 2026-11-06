@@ -65,6 +65,7 @@ pub enum Fixer {
 /// The finders that can fix, and the words in a command that make it fixable.
 const FIX_FINDERS: &[(&str, &[&str])] = &[
     ("grep", &["--replace"]),
+    ("gdtoolkit", &["format"]),
     ("agent-files", crate::finders::AGENT_FILES_FIXABLE),
 ];
 

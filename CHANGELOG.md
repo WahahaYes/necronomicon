@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- **`necro:gdscript`**, a pack for Godot: `gdformat` (fixable with `--fix`, parameter `line-length`), `gdlint`, `parse`, `inline-lambda` (a lambda inside a multi-line bracket, which gdformat corrupts and `--fix` skips) and `uid` (each script and its `.gd.uid` tracked together, once a repo tracks any). It runs gdtoolkit from `PATH`: install `necronomicon[gdscript]`, which pins gdtoolkit 4.5.0 beside necro.
+- **`necro:gdscript-style`**, opt-in GDScript style: `walrus`, `border` (`min-dashes`), `spacing`, `export-doc` and `doc-length` (`header` 10, `item` 6). It needs no gdtoolkit.
+- **`necro gdscan`** and **`necro gdtoolkit`**, the finders behind them; like `necro grep`, they search only the given files in a narrowed run.
 - **`necro:agent-files`**, a pack for the files coding agents read: `claude-md` (a `CLAUDE.md` of only `@AGENTS.md` beside each `AGENTS.md`, fixable), `claude-md-alone`, `skill-link` (each skill in `.agents/skills` linked from `.claude/skills`, fixable), `skill-misplaced`, `skill-frontmatter`, `other-instructions`, `rule-reference` (a rule named in agent instructions that the repo doesn't have) and `stale-skill`. Its finder is `necro agent-files`.
 - **Skills for coding agents.** `necro skills install` writes the `necro` skill (working with hits, allows and the baseline, reporting necro bugs) and `necro-rules` (writing rules, keeping `AGENTS.md` in step) into `.agents/skills`, stamped with this version and linked from `.claude/skills`; `agent-files/stale-skill` fixes with it, so `necro --fix` refreshes them after an upgrade. `necro-adopt`, for setting necro up, installs with `npx skills add WahahaYes/necronomicon --skill necro-adopt`.
 - Issue forms for bugs and pack suggestions, which the skills point to.

@@ -1,0 +1,23 @@
+# format: each file gdformat would change is a whole-file hit; one with a lambda gdformat corrupts says --fix skips it
+spec: Finders
+args: gdtoolkit format
+-- src/fmt.gd --
+extends Node
+func f():
+  var x=1
+  return x
+-- src/lambda.gd --
+extends Node
+func f():
+  var a = [
+    func(): pass,
+  ]
+-- src/ok.gd --
+extends Node
+
+
+func f() -> void:
+	pass
+-- @stdout --
+src/fmt.gd: needs reformatting
+src/lambda.gd: needs reformatting; --fix skips it, as gdformat corrupts a lambda inside a multi-line bracket

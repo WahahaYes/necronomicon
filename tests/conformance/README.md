@@ -6,7 +6,7 @@ Executable cases for [spec/v0.md](../../spec/v0.md), run against any engine comm
 uv run --script tests/conformance/run.py [-k TEXT] [-v] [--engine-version V] -- <engine argv>
 ```
 
-`cargo test` runs it against the built `necro`. Each case copies `base/` into a fresh temp dir, lays its own files over it, makes it a git repo with everything added, and runs the engine there with `NO_COLOR=1`, `CI` unset and the engine on `PATH` as `necro`.
+`cargo test` runs it against the built `necro`. `uv run --script` also installs gdtoolkit (the pin in `run.py`'s header, the same as the `gdscript` extra) and puts it on `PATH`, for the gdscript cases. Each case copies `base/` into a fresh temp dir, lays its own files over it, makes it a git repo with everything added, and runs the engine there with `NO_COLOR=1`, `CI` unset and the engine on `PATH` as `necro`.
 
 ## Case format
 

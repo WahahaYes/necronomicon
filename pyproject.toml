@@ -12,6 +12,11 @@ license = "Apache-2.0"
 readme = "README.md"
 requires-python = ">=3.9"
 
+# Tools packs run, pinned exactly since necro reads their output:
+# `necronomicon[gdscript]` installs them beside necro (spec: Packs).
+[project.optional-dependencies]
+gdscript = ["gdtoolkit==4.5.0"]
+
 [project.urls]
 Repository = "https://github.com/WahahaYes/necronomicon"
 

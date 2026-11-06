@@ -1,0 +1,14 @@
+# --fix runs gdformat through the gdscript pack and reports what's left
+spec: Packs; Fixes
+args: --fix --format terse
+exit: 1
+-- necro.yaml --
+version: 0
+include: [necro:gdscript]
+-- src/a.gd --
+extends Node
+func f():
+  var x=1
+  return x
+-- @stdout --
+necro: fixed 1 hit in 1 file (gdscript/gdformat ×1); review and re-stage them. Why: necro --explain gdscript/gdformat

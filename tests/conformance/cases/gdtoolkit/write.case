@@ -1,0 +1,16 @@
+# --write reformats the files gdformat would change, except one with a lambda it corrupts, and names those it reformatted
+spec: Finders; Fixes
+args: gdtoolkit --write format
+-- src/fmt.gd --
+extends Node
+func f():
+  var x=1
+  return x
+-- src/lambda.gd --
+extends Node
+func f():
+  var a = [
+    func(): pass,
+  ]
+-- @stdout --
+src/fmt.gd: reformatted
