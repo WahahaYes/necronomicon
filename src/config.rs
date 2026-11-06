@@ -44,6 +44,8 @@ pub struct Rule {
     pub files: Option<FileFilter>,
     /// `exclude:`: files outside the rule, in every run.
     pub exclude: Option<FileFilter>,
+    /// The keys `override:` in necro.yaml replaced, in spec order.
+    pub overridden: Vec<&'static str>,
 }
 
 /// A `files:` or `exclude:` filter in prek's form (spec: Narrowed runs): a
@@ -230,7 +232,11 @@ pub fn valid_name(name: &str) -> bool {
 /// The snapshot file when `baseline:` is absent: beside the root.
 pub const DEFAULT_BASELINE: &str = "necro.baseline.yaml";
 
-const TOP_KEYS: &[&str] = &["version", "include", "disable", "rules", "baseline"];
+const TOP_KEYS: &[&str] = &[
+    "version", "include", "disable", "override", "rules", "baseline",
+];
+/// What `override:` may replace on a pack rule.
+const OVERRIDE_KEYS: &[&str] = &["files", "exclude"];
 
 /// The prefix that names a pack in `include` (spec: Packs).
 const PACK_PREFIX: &str = "necro:";
@@ -384,9 +390,13 @@ pub fn load(root: &Path, files: &[String]) -> Result<Config, Vec<ConfigError>> {
         }
     }
 
+    let mut off_rules: Vec<Rule> = Vec::new();
     if let Some((_, node)) = m.get("disable") {
         let off = disabled(&mut e, top_file, node, &rules);
-        rules.retain(|r| !off.contains(&r.name));
+        (off_rules, rules) = rules.into_iter().partition(|r| off.contains(&r.name));
+    }
+    if let Some((_, node)) = m.get("override") {
+        overrides(&mut e, top_file, node, &mut rules, &off_rules);
     }
 
     if !e.list.is_empty() {
@@ -454,6 +464,50 @@ fn disabled(e: &mut Errors, file: &str, node: &Node, rules: &[Rule]) -> Vec<Stri
         }
     }
     out
+}
+
+/// Apply `override:`: each entry names a rule of an included pack that
+/// `disable` leaves on, and replaces its `files` or `exclude`.
+fn overrides(e: &mut Errors, file: &str, node: &Node, rules: &mut [Rule], off: &[Rule]) {
+    let Value::Map(items) = &node.value else {
+        e.at(
+            file,
+            node.pos,
+            "override",
+            format!("expected a mapping of pack rules, got {}", node.kind()),
+        );
+        return;
+    };
+    for (key, value) in items {
+        let path = format!("override.{}", key.name);
+        let name = key.name.as_str();
+        let Some(rule) = rules
+            .iter_mut()
+            .find(|r| r.name == name && r.pack.is_some())
+        else {
+            let why = if off.iter().any(|r| r.name == name) {
+                format!("`{name}` is turned off by disable; drop one of the two")
+            } else {
+                format!("`{name}` isn't a rule of an included pack")
+            };
+            e.at(file, key.pos, &path, why);
+            continue;
+        };
+        let Some(m) = entries(e, file, value, &path, OVERRIDE_KEYS) else {
+            continue;
+        };
+        for k in OVERRIDE_KEYS {
+            let Some((_, n)) = m.get(k) else { continue };
+            let Some(filter) = file_filter(e, file, n, &format!("{path}.{k}")) else {
+                continue;
+            };
+            match *k {
+                "files" => rule.files = Some(filter),
+                _ => rule.exclude = Some(filter),
+            }
+            rule.overridden.push(k);
+        }
+    }
 }
 
 /// The files the include globs match, sorted, without necro.yaml itself.
@@ -568,6 +622,7 @@ fn load_rule(e: &mut Errors, root: &Path, file: &str, key: &Key, node: &Node) ->
         pack: None,
         files,
         exclude,
+        overridden: Vec::new(),
     })
 }
 
@@ -654,6 +709,7 @@ pub fn builtins() -> [Rule; 2] {
         pack: None,
         files: None,
         exclude: None,
+        overridden: Vec::new(),
     };
     [
         rule(

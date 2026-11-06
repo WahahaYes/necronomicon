@@ -23,7 +23,14 @@ The label is what the hit is about (`missing steal_roll`, `3 lines over`). It sh
 
 ## Packs
 
-`include: [necro:rust]` adds rules built into necro, versioned with it: the Rust pack covers what default clippy leaves off (no `unwrap` or `expect` outside tests, lint overrides as `#[expect]` with a reason, `SAFETY` comments, dropped `Result`s, truncating casts, the crate's edition). Its rules are named `rust/<rule>`; `necro --explain rust/<rule>` gives each one's words. `disable: [rust/lossy-cast]` turns a rule off for the repo; for single hits use allows or the baseline.
+`include: [necro:rust]` adds rules built into necro, versioned with it: the Rust pack covers what default clippy leaves off (no `unwrap` or `expect` outside tests, lint overrides as `#[expect]` with a reason, `SAFETY` comments, dropped `Result`s, truncating casts, the crate's edition). Its rules are named `rust/<rule>`; `necro --explain rust/<rule>` gives each one's words. `disable: [rust/lossy-cast]` turns a rule off for the repo; for single hits use allows or the baseline. `override:` gives a pack rule the repo's own `files` or `exclude`, so it can skip paths it shouldn't judge:
+
+```yaml
+override:
+  rust/no-unwrap: { exclude: '^build\.rs$' }
+```
+
+Every rule of an included pack is on unless `disable` names it; rules a repo opts into ship as their own pack.
 
 ## Narrowed runs
 

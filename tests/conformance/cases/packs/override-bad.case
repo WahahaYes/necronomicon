@@ -1,0 +1,22 @@
+# override takes only rules of an included pack that disable leaves on, and only files and exclude
+spec: Packs
+-- necro.yaml --
+version: 0
+include: [necro:rust]
+disable: [rust/lossy-cast]
+override:
+  banned-word: { exclude: x }
+  rust/no-such-rule: { exclude: x }
+  rust/lossy-cast: { exclude: x }
+  rust/no-unwrap: { message: x }
+rules:
+  banned-word:
+    command: necro grep '\bdonkey\b' -- 'src/*'
+    message: Banned word
+    why: Because.
+    fix: Say good.
+-- @config-error --
+necro.yaml:5:3: override.banned-word
+necro.yaml:6:3: override.rust/no-such-rule
+necro.yaml:7:3: override.rust/lossy-cast
+necro.yaml:8:21: override.rust/no-unwrap.message
