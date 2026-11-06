@@ -11,6 +11,14 @@ description = "Agent mind control for your codebase: house rules that teach. Pre
 license = "Apache-2.0"
 readme = "README.md"
 requires-python = ">=3.9"
+keywords = ["linter", "pre-commit", "static-analysis", "code-quality", "coding-agents", "rust"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Programming Language :: Rust",
+    "Topic :: Software Development :: Quality Assurance",
+]
 
 # Tools packs run, pinned exactly since necro reads their output:
 # `necronomicon[gdscript]` installs them beside necro (spec: Packs).
