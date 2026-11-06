@@ -1,6 +1,6 @@
 SHELL := /bin/bash
 .DEFAULT_GOAL := help
-PRE_COMMIT := uvx pre-commit@4.6.1 # same pin as CI
+PREK := uvx prek@0.5.9 # same pin as CI
 MATURIN := uvx maturin@1.15.0 # builds the PyPI wheel around the binary
 
 ##@ Build
@@ -43,8 +43,8 @@ format-check: ## Check Rust formatting without rewriting (CI)
 	cargo fmt --check
 
 .PHONY: check
-check: ## Every pre-commit hook on every file, as CI's precommit job runs them
-	$(PRE_COMMIT) run --all-files --show-diff-on-failure
+check: ## Every hook in .pre-commit-config.yaml on every file, as CI's precommit job runs them
+	$(PREK) run --all-files --show-diff-on-failure
 
 ##@ Cleanup
 
