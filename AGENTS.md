@@ -7,7 +7,7 @@
 - `src/main.rs` the CLI; `src/config.rs` loads and validates `necro.yaml`; `src/run.rs` runs rules, then allows, the baseline and fixes; `src/render/` prints.
 - `src/finders/` the commands necro bundles (`necro grep`, `necro clippy`, …); `src/packs/` the built-in packs, one YAML file each.
 - `src/necro.yaml` this repo's own house rules, rooted in `src/` so the allows that tests and examples quote stay outside it.
-- `spec/v0.md` the format and behavior; `tests/conformance/cases/<area>/*.case` one case per behavior; `examples/` small adopting repos, checked by CI; `docs/writing-rules.md` the adopter guide.
+- `spec/v0.md` the format and behavior; `tests/conformance/cases/<area>/*.case` one case per behavior; `examples/` small adopting repos, checked by CI; `docs/writing-rules.md` the adopter guide, and `docs/agents-and-rules.md` how rules and `AGENTS.md` cover a repo together.
 
 ## Build and test
 

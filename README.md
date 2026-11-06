@@ -8,7 +8,7 @@ A simple way to organize a repo's pre-commit hooks for progressive disclosure, s
 
 ## Why not AGENTS.md
 
-An instruction file is read every session, whether or not today's work touches it, and followed when the agent remembers to. A rule costs nothing until it's broken, and then it blocks the commit. Keep AGENTS.md for orientation and move its "never do X" lines into rules.
+An instruction file is read every session, whether or not today's work touches it, and followed when the agent remembers to. A rule costs nothing until it's broken, and then it blocks the commit. Use both: AGENTS.md for orientation and a one-line pointer to the rules that shape the code, rules for every "never do X" a command can check. [docs/agents-and-rules.md](https://github.com/WahahaYes/necronomicon/blob/main/docs/agents-and-rules.md) covers keeping the two in step.
 
 ## Agent mind control
 
