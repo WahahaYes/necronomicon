@@ -29,18 +29,13 @@ test-verbose: ## Run the tests with full output (CI)
 
 ##@ Linting
 
-.PHONY: lint
-lint: ## Run clippy and this repo's house rules (necro.yaml, current build)
-	@out=$$(cargo clippy --all-targets --quiet -- -D warnings 2>&1) || { echo "$$out"; exit 1; }
+.PHONY: necro
+necro: ## Check every file against necro.yaml with the current build: house rules, rustfmt, clippy's warnings and the rust packs (CI)
 	@cargo run -q --
 
-.PHONY: format
-format: ## Format the Rust sources
-	cargo fmt
-
-.PHONY: format-check
-format-check: ## Check Rust formatting without rewriting (CI)
-	cargo fmt --check
+.PHONY: necro-fix
+necro-fix: ## Fix what can be fixed (rustfmt among them) with the current build; reports what's left
+	@cargo run -q -- --fix
 
 .PHONY: check
 check: ## Every hook in .pre-commit-config.yaml on every file, as CI's precommit job runs them

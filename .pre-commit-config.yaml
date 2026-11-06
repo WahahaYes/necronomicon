@@ -24,26 +24,15 @@ repos:
     hooks:
       - id: gitleaks
         args: ['--config', '.gitleaks.toml']
-  # cargo fmt rewrites: the commit fails, and re-staging the fixed file lets it
-  # through. clippy only checks.
+  # necro, built from this checkout, runs the house rules and the rust packs:
+  # rustfmt (applied by --fix: the commit fails until the fixed files are
+  # re-staged), clippy's warnings and the rest.
   - repo: local
     # Non-login shells (IDEs, agents) often lack ~/.cargo/bin on PATH.
     hooks:
-      - id: cargo-fmt
-        name: cargo fmt
-        entry: sh -c 'PATH="$HOME/.cargo/bin:$PATH" exec cargo fmt'
-        language: system
-        types: [rust]
-        pass_filenames: false
-      - id: cargo-clippy
-        name: cargo clippy warnings
-        entry: sh -c 'PATH="$HOME/.cargo/bin:$PATH" exec cargo clippy --all-targets -- -D warnings'
-        language: system
-        types: [rust]
-        pass_filenames: false
       - id: necro
         name: necro (this repo's house rules, current build)
-        entry: sh -c 'PATH="$HOME/.cargo/bin:$PATH" exec cargo run -q -- "$@"' necro
+        entry: sh -c 'PATH="$HOME/.cargo/bin:$PATH" exec cargo run -q -- --fix "$@"' necro
         language: system
         always_run: true
         require_serial: true

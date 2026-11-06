@@ -1,5 +1,5 @@
 # Hooks (prek), tests, a Linux wheel and the crate. Every job step is one local
-# command (see Makefile): make check, make lint, make test-verbose, make wheel,
+# command (see Makefile): make check, make necro, make test-verbose, make wheel,
 # make package. Runs on pull requests and pushes to main. release.yml calls
 # this before its wheel matrix; it grants actions: write, which purge_caches
 # asks for.
@@ -53,8 +53,6 @@ jobs:
         with:
           fetch-depth: 0
       - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
-      - name: Rust toolchain (rustfmt, from rust-toolchain.toml)
-        run: rustup toolchain install
       # A version written into the source or docs goes stale at the next bump.
       - name: No hardcoded versions
         run: uv run --no-project scripts/release-meta.py stale
@@ -68,7 +66,7 @@ jobs:
         # gitleaks scans staged changes, which CI has none of; it runs below
         # over the pushed commits instead.
         env:
-          SKIP: gitleaks,cargo-clippy,necro
+          SKIP: gitleaks,necro
         run: make check
       - name: Prek environments cache save
         if: github.ref == 'refs/heads/main' && steps.prek-cache.outputs.cache-hit != 'true'
@@ -114,7 +112,7 @@ jobs:
         with:
           # Main seeds caches every PR reads; PR runs never write their own.
           save-if: ${{ github.ref == 'refs/heads/main' }}
-      - run: make lint
+      - run: make necro
       - run: make test-verbose
 
   # Proves the wheel builds and installs a working `necro`, the way pre-commit
