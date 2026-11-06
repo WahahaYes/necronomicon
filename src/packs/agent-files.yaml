@@ -1,0 +1,78 @@
+# The necro:agent-files pack (spec: Packs), built into the binary: the files
+# coding agents read, kept where every harness finds them. Rule names get the
+# `agent-files/` prefix. Its finder judges files in pairs, so each command
+# looks at the whole folder; files: keeps narrowed runs to the commits that
+# touch agent files.
+rules:
+  claude-md:
+    command: necro agent-files claude-md
+    files: '(^|/)(AGENTS|CLAUDE)\.md$'
+    message: an AGENTS.md without a CLAUDE.md that imports it
+    why: Claude Code reads CLAUDE.md and other harnesses read AGENTS.md; a CLAUDE.md of only @AGENTS.md gives both the same instructions from one file, so they can't drift.
+    fix: run `necro --fix` to create the missing CLAUDE.md; move anything else a CLAUDE.md holds into AGENTS.md and leave it as only `@AGENTS.md`.
+    details: |
+      Beside every AGENTS.md, a CLAUDE.md whose only content is `@AGENTS.md`,
+      or a symlink to AGENTS.md.
+  claude-md-alone:
+    command: necro agent-files claude-md-alone
+    files: '(^|/)(AGENTS|CLAUDE)\.md$'
+    message: a CLAUDE.md with no AGENTS.md beside it
+    why: instructions only Claude Code reads leave every other harness without them.
+    fix: move the content into an AGENTS.md in the same folder, and make the CLAUDE.md only `@AGENTS.md`.
+  skill-link:
+    command: necro agent-files skill-link
+    files: '(^|/)\.(agents|claude)/skills/'
+    message: a skill without its .claude/skills link
+    why: skills live once in .agents/skills, which Codex, Cursor, Gemini and Copilot read; Claude Code reads only .claude/skills, so each skill needs a link there.
+    fix: run `necro --fix` to create `.claude/skills/<name>`, a symlink to `../../.agents/skills/<name>`.
+  skill-misplaced:
+    command: necro agent-files skill-misplaced
+    files: '(^|/)\.(agents|claude)/skills/'
+    message: a skill in .claude/skills instead of .agents/skills
+    why: a skill kept only in .claude/skills is invisible to every other harness, and a link there to no skill is a dead end.
+    fix: move the folder to `.agents/skills/<name>` and `necro --fix` links it back; delete a link to a skill that's gone.
+  skill-frontmatter:
+    command: necro agent-files skill-frontmatter
+    files: '(^|/)SKILL\.md$'
+    message: a SKILL.md without the frontmatter harnesses read
+    why: harnesses load a skill by its name and decide when to use it from its description; a skill without them, or named apart from its folder, is never picked up.
+    fix: 'open the file with `---`, `name: <folder name>`, `description: <what it does and when to use it>`, `---`.'
+    details: |
+      The name is lowercase words joined by hyphens, up to 64 characters,
+      and matches the folder; the description is under 1024 characters.
+    examples:
+      bad: '# Releasing'
+      good: |
+        ---
+        name: release
+        description: Cut a release. Use when the owner names a version.
+        ---
+  other-instructions:
+    command: necro agent-files other-instructions
+    files: '(^|/)(\.cursorrules|\.windsurfrules|\.clinerules|GEMINI\.md|\.github/copilot-instructions\.md|AGENTS\.md)$'
+    message: instructions outside AGENTS.md
+    why: each harness-specific file is one more copy of the repo's instructions to keep in step; the ones that read AGENTS.md need none, and the rest can point to it.
+    fix: move the content into AGENTS.md, then delete the file, or leave a line in it pointing to AGENTS.md.
+    details: |
+      .cursorrules, .windsurfrules, .clinerules, GEMINI.md and
+      .github/copilot-instructions.md, when they hold text that doesn't
+      mention AGENTS.md.
+  rule-reference:
+    command: necro agent-files rule-reference
+    files: '(^|/)(AGENTS|CLAUDE|SKILL)\.md$|\.ya?ml$'
+    message: a rule named in agent instructions that this repo doesn't have
+    why: a pointer to a rule that was renamed, disabled or deleted sends the agent to `--explain` for nothing, and the convention it pointed at is no longer covered where the text says.
+    fix: point to the rule's current name, or, if the rule is gone on purpose, rewrite the line as prose or delete it.
+    details: |
+      Names after `necro --explain` or `necro --rule`, and backticked
+      `<pack>/<rule>` names, in AGENTS.md, CLAUDE.md and SKILL.md files,
+      checked against the rules necro.yaml turns on.
+  stale-skill:
+    command: necro agent-files stale-skill
+    files: '(^|/)SKILL\.md$'
+    message: a necro skill from another necro version
+    why: necro's skills describe the necro that installed them; after an upgrade they teach the old behavior.
+    fix: run `necro skills install` to rewrite them for this version.
+    details: |
+      A SKILL.md whose frontmatter `metadata: necro-version:` differs from
+      the running necro.
