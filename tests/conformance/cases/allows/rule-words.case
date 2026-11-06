@@ -1,0 +1,27 @@
+# the files rules are read from may quote the allow syntax: necro.yaml, its includes and {file: …} texts aren't searched for allows
+spec: Allows
+args: --format terse
+exit: 1
+-- necro.yaml --
+version: 0
+include: [necro/*.yaml]
+rules:
+  no-mule:
+    command: necro grep 'mule' -- src
+    message: Mule
+    why: Because.
+    fix: Say horse, or keep it with a necro-allow no-mule comment.
+-- necro/more.yaml --
+rules:
+  no-ox:
+    command: necro grep 'ox' -- src
+    message: Ox
+    why: Because.
+    fix: Say horse; necro-allow no-ox only with a reason.
+    details: { file: docs/no-ox.md }
+-- docs/no-ox.md --
+Write necro-allow no-ox: <why> above the line.
+-- src/a.ts --
+mule
+-- @stdout --
+src/a.ts:1:1: no-mule Mule

@@ -185,10 +185,11 @@ pub fn run_observed(
     }
 
     let mut found = match allows::find(root) {
-        // The top-level exclude's files hold no allows, only quoted text.
+        // The top-level exclude's files and the rule files hold no allows,
+        // only quoted text.
         Ok(a) => a
             .into_iter()
-            .filter(|a| !config.excludes(&a.file))
+            .filter(|a| !config.excludes(&a.file) && !config.rule_files.contains(&a.file))
             .collect(),
         Err(message) => {
             report.problems.push(Problem::Setup(message));
