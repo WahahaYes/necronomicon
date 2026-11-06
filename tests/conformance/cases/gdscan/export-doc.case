@@ -1,0 +1,13 @@
+# export-doc: an @export needs an own-line ## comment right above it; @export_range and the like count too, a plain # doesn't
+spec: Finders
+args: gdscan export-doc
+-- src/a.gd --
+extends Node
+## Speed, in turns per second.
+@export var speed: float = 1.0
+@export var bare: int = 1
+# a plain comment
+@export var plain: int = 2
+-- @stdout --
+src/a.gd:4:1-7
+src/a.gd:6:1-7

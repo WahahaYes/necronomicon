@@ -63,7 +63,7 @@ pub enum Fixer {
 }
 
 /// The finders a fix option makes fixable, and that option.
-const FIX_FINDERS: &[(&str, &str)] = &[("grep", "--replace")];
+const FIX_FINDERS: &[(&str, &str)] = &[("grep", "--replace"), ("gdtoolkit", "format")];
 
 /// The `autofix:` word that becomes the files to fix.
 pub const FILES_WORD: &str = "{files}";

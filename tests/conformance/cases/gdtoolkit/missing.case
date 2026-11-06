@@ -1,0 +1,9 @@
+# without gdtoolkit on PATH, the finder names the extra that installs it
+spec: Finders; Packs
+args: gdtoolkit lint
+env: PATH=/usr/bin:/bin
+exit: 2
+-- src/a.gd --
+extends Node
+-- @stderr --
+necro: gdtoolkit: gdlint isn't on PATH; install necronomicon[gdscript], which pins gdtoolkit beside necro

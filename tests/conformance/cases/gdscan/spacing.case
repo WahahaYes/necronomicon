@@ -1,0 +1,20 @@
+# spacing: a top-level func and its attached comments need two blank lines above, except the first; a func inside a triple-quoted string isn't one
+spec: Finders
+args: gdscan spacing
+-- src/a.gd --
+extends Node
+var t: String = """
+func not_code():
+"""
+
+func one() -> void:
+	pass
+
+# attached
+func two() -> void:
+	pass
+static func three() -> void:
+	pass
+-- @stdout --
+src/a.gd:9:1: 1 blank line; the previous block starts at line 6
+src/a.gd:12:1: 0 blank lines; the previous block starts at line 9

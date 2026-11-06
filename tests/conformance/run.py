@@ -1,10 +1,13 @@
 # /// script
 # requires-python = ">=3.11"
+# # gdtoolkit for the gdscript cases: the same pin as pyproject.toml's gdscript extra.
+# dependencies = ["gdtoolkit==4.5.0"]
 # ///
 """Run the conformance cases against an engine: run.py [-k TEXT] [-v] [--engine-version V] -- <engine argv>.
 
 Each case lays its files over base/ in a fresh temp dir and runs the engine
-there. Format and comparison rules: README.md. Stdlib only.
+there. Format and comparison rules: README.md. Stdlib only, plus gdtoolkit,
+which uv puts on PATH for the gdscript cases.
 """
 
 import os

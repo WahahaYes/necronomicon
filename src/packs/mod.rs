@@ -5,6 +5,8 @@
 const PACKS: &[(&str, &str)] = &[
     ("rust", include_str!("rust.yaml")),
     ("rust-style", include_str!("rust-style.yaml")),
+    ("gdscript", include_str!("gdscript.yaml")),
+    ("gdscript-style", include_str!("gdscript-style.yaml")),
 ];
 
 /// The pack named `name`, as (name, YAML).
