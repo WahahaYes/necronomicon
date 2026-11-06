@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- `necro grep --glob <glob>` picks files by glob, repeatable, with `!` to exclude; a glob without `/` matches the file name at any depth, and globs combine with pathspecs.
 - `necro grep` is several times faster on large repos with the same hits: `git grep -F` picks the files holding text every match must contain, and necro matches them on every core. On rust-lang/rust (64k files) a whole-tree search went from about 2 s to 0.4 s.
 
 ## 0.3.0 - 2026-11-01

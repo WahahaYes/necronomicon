@@ -5,12 +5,14 @@
 
 use std::sync::atomic::{AtomicUsize, Ordering};
 
+use globset::{GlobBuilder, GlobSet, GlobSetBuilder};
 use regex::Regex;
 use regex_syntax::hir::literal::{ExtractKind, Extractor};
 
 use super::{split_pathspecs, text_lines, tracked};
 
-const USAGE: &str = "necro grep [--skip-comments <marker>]… <regex> [-- <pathspec>…]";
+const USAGE: &str =
+    "necro grep [--skip-comments <marker>]… [--glob <glob>]… <regex> [-- <pathspec>…]";
 
 /// Most strings handed to `git grep -F`; past it, every file is searched.
 const MAX_LITERALS: usize = 64;
@@ -23,10 +25,11 @@ const FILES_PER_THREAD: usize = 64;
 pub fn run(args: &[String]) -> Result<Vec<String>, String> {
     let (opts, pathspecs) = split_pathspecs(args);
     let mut markers: Vec<String> = Vec::new();
+    let mut globs: Vec<String> = Vec::new();
     let mut pattern: Option<&String> = None;
     let mut it = opts.iter();
     while let Some(arg) = it.next() {
-        if let Some((name, list)) = [("--skip-comments", &mut markers)]
+        if let Some((name, list)) = [("--skip-comments", &mut markers), ("--glob", &mut globs)]
             .into_iter()
             .find(|(name, _)| arg == name || arg.starts_with(&format!("{name}=")))
         {
@@ -58,8 +61,88 @@ pub fn run(args: &[String]) -> Result<Vec<String>, String> {
         let last = last.strip_prefix("error: ").unwrap_or(last);
         format!("`{pattern}` isn't a valid regex ({last})")
     })?;
-    let files = tracked(pathspecs, required_text(pattern).as_deref())?;
+    let globs = Globs::new(&globs)?;
+    let mut specs = pathspecs.to_vec();
+    specs.extend(globs.pushdown(pathspecs.is_empty()));
+    let files: Vec<String> = tracked(&specs, required_text(pattern).as_deref())?
+        .into_iter()
+        .filter(|path| globs.keeps(path))
+        .collect();
     Ok(search(&files, &re, &markers))
+}
+
+/// The `--glob` filters. A glob without `/` matches the file name at any
+/// depth; `*` stays within one folder; a leading `!` excludes.
+struct Globs {
+    include: Vec<String>,
+    exclude: Vec<String>,
+    include_set: Option<GlobSet>,
+    exclude_set: GlobSet,
+}
+
+impl Globs {
+    fn new(globs: &[String]) -> Result<Globs, String> {
+        let (mut include, mut exclude) = (Vec::new(), Vec::new());
+        let (mut inc, mut exc) = (GlobSetBuilder::new(), GlobSetBuilder::new());
+        for raw in globs {
+            let (negated, body) = match raw.strip_prefix('!') {
+                Some(body) => (true, body),
+                None => (false, raw.as_str()),
+            };
+            let body = body.strip_prefix("./").unwrap_or(body);
+            let full = if body.contains('/') {
+                body.to_string()
+            } else {
+                format!("**/{body}")
+            };
+            let glob = GlobBuilder::new(&full)
+                .literal_separator(true)
+                .build()
+                .map_err(|e| format!("`{raw}` isn't a valid glob ({})", e.kind()))?;
+            if negated {
+                exc.add(glob);
+                exclude.push(full);
+            } else {
+                inc.add(glob);
+                include.push(full);
+            }
+        }
+        let built = |b: GlobSetBuilder| b.build().map_err(|e| e.to_string());
+        Ok(Globs {
+            include_set: if include.is_empty() {
+                None
+            } else {
+                Some(built(inc)?)
+            },
+            exclude_set: built(exc)?,
+            include,
+            exclude,
+        })
+    }
+
+    fn keeps(&self, path: &str) -> bool {
+        self.include_set.as_ref().is_none_or(|s| s.is_match(path))
+            && !self.exclude_set.is_match(path)
+    }
+
+    /// The globs as git pathspecs, so `git grep` skips what they rule out.
+    /// Only a narrowing: `keeps` still decides. Includes go only when there
+    /// are no pathspecs (git ORs pathspecs) and git reads every one the same
+    /// way (no braces, classes or escapes).
+    fn pushdown(&self, no_pathspecs: bool) -> Vec<String> {
+        let plain = |g: &String| !g.contains(['{', '}', '[', ']', '\\']);
+        let mut specs = Vec::new();
+        if no_pathspecs && !self.include.is_empty() && self.include.iter().all(plain) {
+            specs.extend(self.include.iter().map(|g| format!(":(glob){g}")));
+        }
+        specs.extend(
+            self.exclude
+                .iter()
+                .filter(|g| plain(g))
+                .map(|g| format!(":(exclude,glob){g}")),
+        );
+        specs
+    }
 }
 
 /// Strings one of which every match contains (the regex's prefix or suffix

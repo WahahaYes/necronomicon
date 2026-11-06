@@ -1,0 +1,16 @@
+# --glob and pathspecs both apply: a file must pass each
+spec: Finders
+args: grep --glob '*.{ts,rs}' donkey -- src ':!src/skip'
+-- src/a.ts --
+donkey
+-- src/b.rs --
+donkey
+-- src/c.gd --
+donkey
+-- src/skip/d.ts --
+donkey
+-- other/e.ts --
+donkey
+-- @stdout --
+src/a.ts:1:1-6: donkey
+src/b.rs:1:1-6: donkey
