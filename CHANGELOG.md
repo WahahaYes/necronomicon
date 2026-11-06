@@ -6,6 +6,7 @@
 - **`override:` changes a pack rule's paths.** `override: {rust/no-unwrap: {exclude: '^build\.rs$'}}` replaces the rule's `files:` or `exclude:` with the repo's; `--explain` marks them `(override)`.
 - **Parameters.** A rule's `params:` names values its command and words use as `{name}`, and `override:` sets them for a pack rule. `rust/weasel-type-names` takes `role-words`, the role words it looks for.
 - **`necro rust-docs`** finds doc-comment problems in tracked `.rs` files (`missing`, `module`, `length`) and, like `necro grep`, searches only the given files in a narrowed run.
+- **`necro cargo-manifest --edition <year>`** sets the edition members must be on; `rust/cargo-manifest` takes it as the `edition` parameter (default 2024).
 - **`necro --list`** prints every rule, where it comes from, and whether `necro.yaml` disables or overrides it.
 
 ## 0.4.0 - 2026-11-05

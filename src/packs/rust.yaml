@@ -105,11 +105,12 @@ rules:
       bad: 'let n = len as u32;'
       good: 'let n = u32::try_from(len)?;'
   cargo-manifest:
-    command: necro cargo-manifest
+    command: necro cargo-manifest --edition {edition}
     files: '(^|/)Cargo\.toml$'
+    params: { edition: 2024 }
     message: a crate manifest below the house baseline
     why: an older edition misses the current language defaults, and a publishable crate with no rust-version fails on an old toolchain with compile errors instead of a clear version message.
-    fix: set `edition = "2024"`, and `rust-version` to the oldest toolchain you test (the pinned one, if that's all CI runs).
+    fix: set `edition = "{edition}"`, and `rust-version` to the oldest toolchain you test (the pinned one, if that's all CI runs).
     details: |
       Every workspace member, read through `cargo metadata`, so
       `edition.workspace = true` counts. rust-version is only required where

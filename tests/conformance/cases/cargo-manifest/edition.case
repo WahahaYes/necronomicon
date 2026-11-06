@@ -1,0 +1,13 @@
+# --edition sets the edition a member must be on
+spec: Finders
+args: cargo-manifest --edition 2021
+-- Cargo.toml --
+[package]
+name = "old"
+version = "0.1.0"
+edition = "2018"
+publish = false
+-- src/lib.rs --
+pub fn f() {}
+-- @stdout --
+Cargo.toml:4:1: old is on edition 2018
