@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- `necro grep` is several times faster on large repos with the same hits: `git grep -F` picks the files holding text every match must contain, and necro matches them on every core. On rust-lang/rust (64k files) a whole-tree search went from about 2 s to 0.4 s.
+
 ## 0.3.0 - 2026-11-01
 
 - README lists `uv tool`, `pip` and `cargo` installs, and its pre-commit snippet no longer pins a version range.

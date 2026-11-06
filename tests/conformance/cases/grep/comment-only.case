@@ -1,0 +1,9 @@
+# a file whose only match is in a comment has no hits under --skip-comments
+spec: Finders
+args: grep --skip-comments '#' donkey -- 'src/*'
+-- src/a.gd --
+var a = 1  # donkey
+-- src/b.gd --
+var b = donkey
+-- @stdout --
+src/b.gd:1:9-14: donkey

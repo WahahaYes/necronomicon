@@ -75,6 +75,7 @@ dependencies = [
  "globset",
  "granit-parser",
  "regex",
+ "regex-syntax",
  "serde_json",
 ]
 
