@@ -1,0 +1,16 @@
+# rustfmt: a whole-file hit for each file under the working folder that cargo fmt --check would change
+spec: Finders
+args: rustfmt
+-- Cargo.toml --
+[package]
+name = "fmt"
+version = "0.1.0"
+edition = "2024"
+-- src/lib.rs --
+pub mod messy;
+
+pub fn tidy() {}
+-- src/messy.rs --
+pub fn messy(){let x=1;let _ = x;}
+-- @stdout --
+src/messy.rs: needs reformatting

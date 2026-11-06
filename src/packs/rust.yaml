@@ -99,3 +99,13 @@ rules:
       Every workspace member, read through `cargo metadata`, so
       `edition.workspace = true` counts. rust-version is only required where
       `publish` isn't false.
+  rustfmt:
+    command: necro rustfmt
+    files: '\.rs$|(^|/)\.?rustfmt\.toml$'
+    message: a file rustfmt would lay out differently
+    why: rustfmt is the layout Rust code shares, so a diff shows what changed rather than whose editor saved it.
+    fix: run `necro --fix`, or `cargo fmt`.
+    details: |
+      Each workspace is checked with `cargo fmt --all --check` from its own
+      folder, so its rustfmt.toml and toolchain pin apply. A repo that
+      doesn't use rustfmt turns it off with `disable: [rust/rustfmt]`.

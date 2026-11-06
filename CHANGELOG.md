@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- **`rust/rustfmt`**, a fixable rule in `necro:rust`: a file `cargo fmt --check` would change is a hit, and `necro --fix` runs rustfmt on it (allowed and baselined files stay as they are). Its finder is `necro rustfmt`. Repos can drop their own `cargo fmt` hook; one that doesn't use rustfmt adds `disable: [rust/rustfmt]`.
 - **`gdscript-style/spacing` is fixable.** `necro --fix` joins a top-level comment that blank lines keep from its function (gdformat would detach a `##` doc there), then makes two blank lines above the block; `necro gdscan spacing --write` does it directly. Repos can drop their own spacing fixer.
 - **`gdscript/inline-lambda` flags any lambda inside brackets**, including one in a one-line call (`x.filter(func(p): ...)`), since gdformat may wrap that call across lines and corrupt it; `necro gdtoolkit format --write` skips those files too. Name such a lambda first: `var keep: Callable = func(p): ...`.
 ## 0.5.0 - 2026-11-06

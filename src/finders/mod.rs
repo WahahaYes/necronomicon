@@ -14,6 +14,7 @@ mod gdtoolkit;
 mod grep;
 mod manifest;
 mod rust_docs;
+mod rustfmt;
 
 /// A finder: its arguments after the name, to its hits or a usage error.
 type Finder = fn(&[String]) -> Result<Vec<String>, String>;
@@ -27,6 +28,7 @@ const FINDERS: &[(&str, Finder)] = &[
     ("gdtoolkit", gdtoolkit::run),
     ("grep", grep::run),
     ("rust-docs", rust_docs::run),
+    ("rustfmt", rustfmt::run),
 ];
 
 /// Remove the Cargo finders' build folders: each as (folder, size).

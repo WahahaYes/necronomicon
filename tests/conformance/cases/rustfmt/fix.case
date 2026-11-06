@@ -1,0 +1,35 @@
+# --fix runs rustfmt on the files with hits, and leaves an allowed one alone
+spec: Finders; Fixes
+args: --fix --format terse
+exit: 1
+-- necro.yaml --
+version: 0
+rules:
+  rustfmt:
+    command: necro rustfmt
+    message: m
+    why: w
+    fix: f
+-- Cargo.toml --
+[package]
+name = "fmt"
+version = "0.1.0"
+edition = "2024"
+-- src/lib.rs --
+pub mod kept;
+pub mod messy;
+-- src/messy.rs --
+pub fn messy(){let x=1;let _ = x;}
+-- src/kept.rs --
+// necro-allow rustfmt: hand-aligned table
+pub const T:[u8;2]=[1,  2];
+-- @stdout --
+necro: fixed 1 hit in 1 file (rustfmt ×1); review and re-stage them. Why: necro --explain rustfmt
+-- @file src/messy.rs --
+pub fn messy() {
+    let x = 1;
+    let _ = x;
+}
+-- @file src/kept.rs --
+// necro-allow rustfmt: hand-aligned table
+pub const T:[u8;2]=[1,  2];

@@ -35,5 +35,6 @@ rust/lossy-cast               necro:rust  disabled
 rust/no-expect                necro:rust
 rust/no-stubs                 necro:rust
 rust/no-unwrap                necro:rust  override: files, exclude
+rust/rustfmt                  necro:rust
 rust/swallowed-error          necro:rust
 rust/unsafe-safety-comment    necro:rust
