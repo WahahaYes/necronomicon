@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- **`necro agent-files`** checks the files coding agents read: AGENTS.md and CLAUDE.md pairs, skills in `.agents/skills` and their `.claude/skills` links, skill frontmatter, other harnesses' instruction files, pointers to missing rules, and necro skills from another version; `--write` creates a missing CLAUDE.md or link.
+- A rule's hit may name a symlink, as a whole-file hit.
+
 - `necro --fix` counts every file a fix changed or created, not only the files with hits.
 
 - **Fixes.** `necro --fix` fixes the hits a run reports, then checks again and says what it changed and which hits it couldn't fix; it exits 1 when it changed a file, so a hook fails until the fixed files are re-staged. Allowed and baselined hits are left alone. The published hook and the README's now run `necro --fix`.

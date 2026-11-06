@@ -4,6 +4,7 @@
 
 use crate::render;
 
+mod agent_files;
 mod cargo;
 mod clippy;
 mod grep;
@@ -15,6 +16,7 @@ type Finder = fn(&[String]) -> Result<Vec<String>, String>;
 
 /// The finders by name, for dispatch from the CLI.
 const FINDERS: &[(&str, Finder)] = &[
+    ("agent-files", agent_files::run),
     ("cargo-manifest", manifest::run),
     ("clippy", clippy::run),
     ("grep", grep::run),

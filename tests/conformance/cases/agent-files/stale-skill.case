@@ -1,0 +1,17 @@
+# stale-skill: a skill stamped with another necro version
+spec: Finders
+args: agent-files stale-skill
+-- .agents/skills/old/SKILL.md --
+---
+name: old
+description: x
+metadata:
+  necro-version: "0.0.1"
+---
+-- .agents/skills/mine/SKILL.md --
+---
+name: mine
+description: x
+---
+-- @stdout --
+.agents/skills/old/SKILL.md:5:1: from necro 0.0.1; this is necro <version>

@@ -21,6 +21,7 @@ env: KEY=value …            # optional
 git: false                  # optional: leave it outside git
 -- src/a.ts --              # a file laid over base/; an empty body deletes it
 …
+-- .claude/skills/a -> ../../.agents/skills/a --  # a symlink to the target
 -- @stdout --               # expected stdout; absent means empty
 -- @stderr --               # expected stderr; absent means empty
 -- @config-error --         # instead of the two above: one `file:line:col: key.path` per line

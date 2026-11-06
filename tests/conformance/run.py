@@ -67,6 +67,11 @@ def normalise(text, root, version=None):
 def build_tree(root, files, git):
     shutil.copytree(HERE / "base", root, dirs_exist_ok=True)
     for rel, text in files.items():
+        if " -> " in rel:
+            link, to = rel.split(" -> ", 1)
+            (root / link).parent.mkdir(parents=True, exist_ok=True)
+            (root / link).symlink_to(to)
+            continue
         target = root / rel
         if not text:
             if target.exists():

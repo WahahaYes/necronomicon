@@ -62,8 +62,11 @@ pub enum Fixer {
     Command,
 }
 
-/// The finders a fix option makes fixable, and that option.
-const FIX_FINDERS: &[(&str, &str)] = &[("grep", "--replace")];
+/// The finders that can fix, and the words in a command that make it fixable.
+const FIX_FINDERS: &[(&str, &[&str])] = &[
+    ("grep", &["--replace"]),
+    ("agent-files", &["claude-md", "skill-link"]),
+];
 
 /// The `autofix:` word that becomes the files to fix.
 pub const FILES_WORD: &str = "{files}";
@@ -157,10 +160,14 @@ impl Rule {
         let finder = (words.first().map(String::as_str) == Some("necro"))
             .then(|| words.get(1))
             .flatten()?;
-        let (_, option) = FIX_FINDERS.iter().find(|(f, _)| f == finder)?;
+        let (_, options) = FIX_FINDERS.iter().find(|(f, _)| f == finder)?;
         let opts = words.iter().skip(2).take_while(|w| *w != "--");
         opts.into_iter()
-            .any(|w| w == option || w.starts_with(&format!("{option}=")))
+            .any(|w| {
+                options
+                    .iter()
+                    .any(|o| w == o || w.starts_with(&format!("{o}=")))
+            })
             .then_some(Fixer::Finder)
     }
 

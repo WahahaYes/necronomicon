@@ -338,7 +338,11 @@ fn read_hits(root: &Path, lines: &[String]) -> Result<Vec<command::Hit>, Failure
             let message = format!("can't read output line {}: {line}", i + 1);
             return Err(Failure::Check(message, vec![]));
         };
-        if !Path::new(&hit.path).is_relative() || !root.join(&hit.path).is_file() {
+        let at = root.join(&hit.path);
+        let is_link = at
+            .symlink_metadata()
+            .is_ok_and(|m| m.file_type().is_symlink());
+        if !Path::new(&hit.path).is_relative() || !(at.is_file() || is_link) {
             let message = format!("{} isn't a file", hit.path);
             return Err(Failure::Check(message, vec![]));
         }
