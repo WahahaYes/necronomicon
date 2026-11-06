@@ -4,6 +4,7 @@
 
 - **`necro:agent-files`**, a pack for the files coding agents read: `claude-md` (a `CLAUDE.md` of only `@AGENTS.md` beside each `AGENTS.md`, fixable), `claude-md-alone`, `skill-link` (each skill in `.agents/skills` linked from `.claude/skills`, fixable), `skill-misplaced`, `skill-frontmatter`, `other-instructions`, `rule-reference` (a rule named in agent instructions that the repo doesn't have) and `stale-skill`. Its finder is `necro agent-files`.
 - **Skills for coding agents.** `necro skills install` writes the `necro` skill (working with hits, allows and the baseline, reporting necro bugs) and `necro-rules` (writing rules, keeping `AGENTS.md` in step) into `.agents/skills`, stamped with this version and linked from `.claude/skills`; `agent-files/stale-skill` is fixable, so `necro --fix` refreshes them after an upgrade. `necro-adopt`, for setting necro up, installs with `npx skills add WahahaYes/necronomicon --skill necro-adopt`.
+- Issue forms for bugs and pack suggestions, which the skills point to.
 - **A top-level `exclude:`** leaves files out of the whole run: no rule's hits there, no allows read there, and a narrowed run drops them. For vendored code, fixtures, and files that quote allows as data.
 - A rule's hit may name a symlink, as a whole-file hit.
 - `necro --fix` counts every file a fix changed or created, not only the files with hits.

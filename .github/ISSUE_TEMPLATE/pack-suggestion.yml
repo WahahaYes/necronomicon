@@ -1,0 +1,26 @@
+name: Pack suggestion
+description: A rule any repo in a language would want, for a built-in pack.
+labels: [enhancement]
+body:
+  - type: input
+    id: language
+    attributes:
+      label: Language
+      placeholder: Rust, Python, GDScript, …
+    validations:
+      required: true
+  - type: textarea
+    id: rule
+    attributes:
+      label: The rule
+      description: Its YAML from necro.yaml, words included.
+      render: yaml
+    validations:
+      required: true
+  - type: textarea
+    id: hits
+    attributes:
+      label: Hits on a real repo
+      description: How many hits it found where you use it, and whether they were real. A public repo's name helps.
+    validations:
+      required: true

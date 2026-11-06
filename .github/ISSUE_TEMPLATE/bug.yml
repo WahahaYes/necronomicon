@@ -1,0 +1,33 @@
+name: Bug
+description: necro crashed, reported a wrong hit, missed one, or worded one confusingly.
+labels: [bug]
+body:
+  - type: input
+    id: version
+    attributes:
+      label: necro --version
+      placeholder: necro 0.4.0
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Minimal repro
+      description: A necro.yaml and the smallest files that show it, with no private code, and the command you ran.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual
+      description: necro's output, as printed.
+      render: text
+    validations:
+      required: true
