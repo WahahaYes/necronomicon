@@ -66,6 +66,7 @@ pub enum Fixer {
 const FIX_FINDERS: &[(&str, &[&str])] = &[
     ("grep", &["--replace"]),
     ("gdtoolkit", &["format"]),
+    ("gdscan", &["spacing"]),
     ("agent-files", crate::finders::AGENT_FILES_FIXABLE),
 ];
 

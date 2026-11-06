@@ -1,0 +1,45 @@
+# --fix makes two blank lines above each block, attached comments included, and first joins a top-level comment that blank lines keep from its function
+spec: Finders; Fixes
+args: --fix --format terse
+exit: 1
+-- necro.yaml --
+version: 0
+include: [necro:gdscript-style]
+-- src/a.gd --
+extends Node
+
+
+func one() -> void:
+	pass
+
+# attached
+func two() -> void:
+	pass
+static func three() -> void:
+	pass
+## Doc for four.
+
+func four() -> void:
+	pass
+-- @stdout --
+necro: fixed 3 hits in 1 file (gdscript-style/spacing ×3); review and re-stage them. Why: necro --explain gdscript-style/spacing
+-- @file src/a.gd --
+extends Node
+
+
+func one() -> void:
+	pass
+
+
+# attached
+func two() -> void:
+	pass
+
+
+static func three() -> void:
+	pass
+
+
+## Doc for four.
+func four() -> void:
+	pass
