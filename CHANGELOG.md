@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.5.0 - 2026-11-06
+
 - Finders print hits sorted by line and column as numbers; `necro gdtoolkit` sorted them as text, so line 325 came before line 74.
 - `necro gdtoolkit lint` reports `max-returns` at its function's `func` line instead of the last `return`, so baseline entries fingerprint the function.
 - A repeated hit's label follows a colon (`also at src/a.gd:2:1: (.shuffle()`) instead of parentheses, which read as unbalanced around a match ending in a bracket.
