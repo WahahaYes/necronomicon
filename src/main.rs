@@ -10,6 +10,7 @@ mod finders;
 mod packs;
 mod render;
 mod run;
+mod skills;
 mod yaml;
 
 use std::path::{Path, PathBuf};
@@ -91,6 +92,18 @@ fn main() -> ExitCode {
     if let Some(code) = finders::dispatch(&argv) {
         return ExitCode::from(code);
     }
+    if argv.first().is_some_and(|a| a == "skills") {
+        return match skills::run(&argv[1..]) {
+            Ok(lines) => {
+                render::lines(&lines);
+                ExitCode::SUCCESS
+            }
+            Err(message) => {
+                render::usage(&format!("skills: {message}"));
+                ExitCode::from(2)
+            }
+        };
+    }
     if argv.iter().any(|a| a == "--version") {
         render::line(&format!("necro {}", env!("CARGO_PKG_VERSION")));
         return ExitCode::SUCCESS;
@@ -157,12 +170,14 @@ fn main_with(args: Args) -> Result<u8, String> {
     if args.write_baseline {
         return write_baseline(&config, &root, args.rule.as_deref());
     }
-    // Given files: a narrowed run over the ones that exist, root-relative.
+    // Given files: a narrowed run over the ones that exist and the top-level
+    // exclude keeps, root-relative.
     let given: Option<Vec<String>> = (!args.files.is_empty()).then(|| {
         let mut given: Vec<String> = args
             .files
             .iter()
             .filter_map(|f| files::anchor(&cwd, &root, Path::new(f)))
+            .filter(|f| !config.excludes(f))
             .collect();
         given.sort();
         given.dedup();

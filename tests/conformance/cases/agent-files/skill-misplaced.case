@@ -1,0 +1,9 @@
+# skill-misplaced: a real folder in .claude/skills, or a link there to no skill
+spec: Finders
+args: agent-files skill-misplaced
+-- .claude/skills/real/SKILL.md --
+x
+-- .claude/skills/dangling -> ../../.agents/skills/gone --
+-- @stdout --
+.claude/skills/dangling: links to ../../.agents/skills/gone, which isn't a skill in .agents/skills
+.claude/skills/real/SKILL.md: a skill folder in .claude/skills; it belongs in .agents/skills

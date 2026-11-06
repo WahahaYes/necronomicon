@@ -1,0 +1,14 @@
+# skill-link: each skill in .agents/skills has a .claude/skills link to it, the hit on its SKILL.md
+spec: Finders
+args: agent-files skill-link
+-- .agents/skills/linked/SKILL.md --
+x
+-- .claude/skills/linked -> ../../.agents/skills/linked --
+-- .agents/skills/unlinked/SKILL.md --
+x
+-- .agents/skills/elsewhere/SKILL.md --
+x
+-- .claude/skills/elsewhere -> ../../.agents/skills/linked --
+-- @stdout --
+.agents/skills/elsewhere/SKILL.md: .claude/skills/elsewhere links to ../../.agents/skills/linked, not ../../.agents/skills/elsewhere
+.agents/skills/unlinked/SKILL.md: no .claude/skills/unlinked link

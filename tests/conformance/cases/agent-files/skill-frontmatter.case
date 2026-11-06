@@ -1,0 +1,18 @@
+# skill-frontmatter: frontmatter with the folder's name and a description
+spec: Finders
+args: agent-files skill-frontmatter
+-- .agents/skills/good/SKILL.md --
+---
+name: good
+description: Does a thing. Use when the thing is needed.
+---
+-- .agents/skills/bare/SKILL.md --
+# No frontmatter
+-- .agents/skills/renamed/SKILL.md --
+---
+name: other
+---
+-- @stdout --
+.agents/skills/bare/SKILL.md:1:1: no --- frontmatter
+.agents/skills/renamed/SKILL.md:2:1: name other isn't the folder's, renamed
+.agents/skills/renamed/SKILL.md:1:1: no description

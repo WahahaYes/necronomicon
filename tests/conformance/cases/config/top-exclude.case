@@ -1,0 +1,28 @@
+# a top-level exclude leaves files out of the whole run: no rule's hits there, and no allows read there
+spec: A rule
+args: --format terse
+exit: 1
+-- necro.yaml --
+version: 0
+exclude: {glob: "fixtures/**"}
+rules:
+  no-mule:
+    command: necro grep 'mule' -- src fixtures
+    message: Mule
+    why: Because.
+    fix: Say horse.
+  no-ox:
+    command: necro grep 'ox' -- src fixtures
+    exclude: ^src/legacy/
+    message: Ox
+    why: Because.
+    fix: Say horse.
+-- fixtures/quoted.case --
+mule # necro-allow no-mule
+ox # necro-allow made-up: not a rule
+-- src/legacy/a.ts --
+ox
+-- src/b.ts --
+mule
+-- @stdout --
+src/b.ts:1:1: no-mule Mule

@@ -4,6 +4,9 @@
 
 use crate::render;
 
+mod agent_files;
+
+pub use agent_files::FIXABLE as AGENT_FILES_FIXABLE;
 mod cargo;
 mod clippy;
 mod gdscan;
@@ -17,6 +20,7 @@ type Finder = fn(&[String]) -> Result<Vec<String>, String>;
 
 /// The finders by name, for dispatch from the CLI.
 const FINDERS: &[(&str, Finder)] = &[
+    ("agent-files", agent_files::run),
     ("cargo-manifest", manifest::run),
     ("clippy", clippy::run),
     ("gdscan", gdscan::run),

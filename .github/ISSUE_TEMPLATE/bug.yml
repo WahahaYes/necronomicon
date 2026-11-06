@@ -1,0 +1,25 @@
+name: Bug
+description: Something in necro isn't working the way you expected.
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you ran and what necro did. Its output helps, if you have it.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+  - type: input
+    id: version
+    attributes:
+      label: necro --version
+      placeholder: necro 0.4.0
+  - type: textarea
+    id: repro
+    attributes:
+      label: Repro
+      description: If you can share one, a necro.yaml and a file or two that show it. Leave out private code.

@@ -165,10 +165,10 @@ pub fn run_observed(
         match output.and_then(|lines| read_hits(root, &lines)) {
             Ok(hits) => {
                 ran.insert(&rule.name);
-                // An excluded file is outside the rule in every run.
+                // An excluded file is outside the rule, or the whole run, in every run.
                 raw.extend(
                     hits.into_iter()
-                        .filter(|hit| !rule.excludes(&hit.path))
+                        .filter(|hit| !rule.excludes(&hit.path) && !config.excludes(&hit.path))
                         .map(|hit| Raw { rule, hit }),
                 );
             }
@@ -185,7 +185,11 @@ pub fn run_observed(
     }
 
     let mut found = match allows::find(root) {
-        Ok(a) => a,
+        // The top-level exclude's files hold no allows, only quoted text.
+        Ok(a) => a
+            .into_iter()
+            .filter(|a| !config.excludes(&a.file))
+            .collect(),
         Err(message) => {
             report.problems.push(Problem::Setup(message));
             vec![]
@@ -338,7 +342,11 @@ fn read_hits(root: &Path, lines: &[String]) -> Result<Vec<command::Hit>, Failure
             let message = format!("can't read output line {}: {line}", i + 1);
             return Err(Failure::Check(message, vec![]));
         };
-        if !Path::new(&hit.path).is_relative() || !root.join(&hit.path).is_file() {
+        let at = root.join(&hit.path);
+        let is_link = at
+            .symlink_metadata()
+            .is_ok_and(|m| m.file_type().is_symlink());
+        if !Path::new(&hit.path).is_relative() || !(at.is_file() || is_link) {
             let message = format!("{} isn't a file", hit.path);
             return Err(Failure::Check(message, vec![]));
         }
@@ -430,6 +438,10 @@ pub fn fix(config: &Config, root: &Path, only: Option<&str>, given: Option<&[Str
     let before = run(config, root, only, given);
     let mut problems: Vec<Problem> = Vec::new();
     let mut changed: BTreeSet<String> = BTreeSet::new();
+    // What a fix changed: files git sees as modified or new, and the hit
+    // files, compared before and after every fix ran.
+    let hit_files: Vec<String> = before.diagnostics.iter().map(|d| d.file.clone()).collect();
+    let before_files = worktree_changes(root, &hit_files);
     let mut counts: Vec<(&Rule, usize)> = Vec::new();
     for rule in &config.rules {
         let Some(fixer) = rule.fixer() else { continue };
@@ -471,13 +483,6 @@ pub fn fix(config: &Config, root: &Path, only: Option<&str>, given: Option<&[Str
             }
             config::Fixer::Command => rule.autofix_words(&files),
         };
-        let snapshot = |files: &[String]| -> Vec<Option<Vec<u8>>> {
-            files
-                .iter()
-                .map(|f| std::fs::read(root.join(f)).ok())
-                .collect()
-        };
-        let old = snapshot(&files);
         match command::run(words, root) {
             Ok(_) => {}
             Err(Failure::Missing(program)) => problems.push(Problem::Setup(format!(
@@ -490,10 +495,11 @@ pub fn fix(config: &Config, root: &Path, only: Option<&str>, given: Option<&[Str
                 stderr,
             }),
         }
-        for (file, (a, b)) in files.iter().zip(old.iter().zip(snapshot(&files))) {
-            if *a != b {
-                changed.insert(file.clone());
-            }
+    }
+    let after = worktree_changes(root, &hit_files);
+    for (file, content) in &after {
+        if before_files.get(file) != Some(content) {
+            changed.insert(file.clone());
         }
     }
     let mut report = run(config, root, only, given);
@@ -528,4 +534,29 @@ pub fn fixable(config: &Config, diagnostics: &[Diagnostic]) -> usize {
                 .any(|r| r.name == d.rule && r.fixer().is_some())
         })
         .count()
+}
+
+/// The working tree's modified and untracked files, plus `extra`, each with
+/// its content (a symlink's target; `None` when it doesn't exist).
+fn worktree_changes(root: &Path, extra: &[String]) -> HashMap<String, Option<Vec<u8>>> {
+    let listed = crate::files::git()
+        .current_dir(root)
+        .args(["ls-files", "-z", "-m", "-o", "--exclude-standard"])
+        .output()
+        .map(|o| String::from_utf8_lossy(&o.stdout).into_owned())
+        .unwrap_or_default();
+    listed
+        .split('\0')
+        .filter(|p| !p.is_empty())
+        .map(String::from)
+        .chain(extra.iter().cloned())
+        .map(|p| {
+            let at = root.join(&p);
+            let content = match std::fs::read_link(&at) {
+                Ok(target) => Some(target.to_string_lossy().into_owned().into_bytes()),
+                Err(_) => std::fs::read(&at).ok(),
+            };
+            (p, content)
+        })
+        .collect()
 }

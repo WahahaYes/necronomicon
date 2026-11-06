@@ -1,0 +1,21 @@
+# rule-reference: a rule named in agent instructions that necro.yaml doesn't turn on
+spec: Finders
+args: agent-files rule-reference
+-- necro.yaml --
+version: 0
+include: [necro:rust-style]
+disable: [rust-style/comment-border]
+rules:
+  banned-word:
+    command: necro grep '\bdonkey\b' -- 'src/*'
+    message: Banned word
+    why: Because.
+    fix: Say good.
+-- AGENTS.md --
+Words: `necro --explain banned-word`. Docs: `rust-style/doc-missing`.
+Gone: necro --explain old-rule, `rust-style/comment-border`, `rust-style/nope`.
+Not rules: `src/lib.rs`, `a/b`.
+-- @stdout --
+AGENTS.md:2:23-30: old-rule
+AGENTS.md:2:34-58: rust-style/comment-border
+AGENTS.md:2:63-77: rust-style/nope

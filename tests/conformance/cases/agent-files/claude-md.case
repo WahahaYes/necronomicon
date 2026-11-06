@@ -1,0 +1,20 @@
+# claude-md: each AGENTS.md has a CLAUDE.md beside it that only imports it, or links to it
+spec: Finders
+args: agent-files claude-md
+-- AGENTS.md --
+# Top
+-- sub/AGENTS.md --
+# Sub
+-- sub/CLAUDE.md --
+@AGENTS.md
+Claude-only notes.
+-- ok/AGENTS.md --
+# Ok
+-- ok/CLAUDE.md --
+@AGENTS.md
+-- linked/AGENTS.md --
+# Linked
+-- linked/CLAUDE.md -> AGENTS.md --
+-- @stdout --
+AGENTS.md: no CLAUDE.md beside it
+sub/CLAUDE.md: holds more than @AGENTS.md

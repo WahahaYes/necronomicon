@@ -1,0 +1,12 @@
+# other-instructions: another harness's instruction file with text that doesn't point to AGENTS.md
+spec: Finders
+args: agent-files other-instructions
+-- .cursorrules --
+Use tabs.
+-- GEMINI.md --
+Read AGENTS.md.
+-- .github/copilot-instructions.md --
+Prefer small functions.
+-- @stdout --
+.cursorrules: instructions outside AGENTS.md
+.github/copilot-instructions.md: instructions outside AGENTS.md

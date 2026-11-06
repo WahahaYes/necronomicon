@@ -62,8 +62,12 @@ pub enum Fixer {
     Command,
 }
 
-/// The finders a fix option makes fixable, and that option.
-const FIX_FINDERS: &[(&str, &str)] = &[("grep", "--replace"), ("gdtoolkit", "format")];
+/// The finders that can fix, and the words in a command that make it fixable.
+const FIX_FINDERS: &[(&str, &[&str])] = &[
+    ("grep", &["--replace"]),
+    ("gdtoolkit", &["format"]),
+    ("agent-files", crate::finders::AGENT_FILES_FIXABLE),
+];
 
 /// The `autofix:` word that becomes the files to fix.
 pub const FILES_WORD: &str = "{files}";
@@ -157,10 +161,14 @@ impl Rule {
         let finder = (words.first().map(String::as_str) == Some("necro"))
             .then(|| words.get(1))
             .flatten()?;
-        let (_, option) = FIX_FINDERS.iter().find(|(f, _)| f == finder)?;
+        let (_, options) = FIX_FINDERS.iter().find(|(f, _)| f == finder)?;
         let opts = words.iter().skip(2).take_while(|w| *w != "--");
         opts.into_iter()
-            .any(|w| w == option || w.starts_with(&format!("{option}=")))
+            .any(|w| {
+                options
+                    .iter()
+                    .any(|o| w == o || w.starts_with(&format!("{o}=")))
+            })
             .then_some(Fixer::Finder)
     }
 
@@ -219,12 +227,19 @@ pub struct Config {
     pub disabled: Vec<Rule>,
     /// The snapshot's path, relative to the root; the default when absent.
     pub baseline: Option<String>,
+    /// The top-level `exclude:`: files the whole run leaves out.
+    pub exclude: Option<FileFilter>,
 }
 
 impl Config {
     /// The rule names, for unknown-rule errors.
     pub fn names(&self) -> Vec<&str> {
         self.rules.iter().map(|r| r.name.as_str()).collect()
+    }
+
+    /// Whether the top-level `exclude:` leaves `path` out of the run.
+    pub fn excludes(&self, path: &str) -> bool {
+        self.exclude.as_ref().is_some_and(|f| f.matches(path))
     }
 
     /// Where the snapshot lives: the `baseline:` pointer, else the default
@@ -352,7 +367,7 @@ pub fn valid_name(name: &str) -> bool {
 pub const DEFAULT_BASELINE: &str = "necro.baseline.yaml";
 
 const TOP_KEYS: &[&str] = &[
-    "version", "include", "disable", "override", "rules", "baseline",
+    "version", "include", "disable", "override", "rules", "baseline", "exclude",
 ];
 /// What `override:` may replace on a pack rule.
 const OVERRIDE_KEYS: &[&str] = &["files", "exclude", "params"];
@@ -433,6 +448,9 @@ pub fn load(root: &Path, files: &[String]) -> Result<Config, Vec<ConfigError>> {
     let baseline = m
         .get("baseline")
         .and_then(|(_, n)| string(&mut e, top_file, n, "baseline"));
+    let exclude = m
+        .get("exclude")
+        .and_then(|(_, n)| file_filter(&mut e, top_file, n, "exclude"));
 
     // (file, pack, node): the repo's include files, then the packs.
     let mut sources: Vec<(String, Option<&str>, Node)> = Vec::new();
@@ -535,6 +553,7 @@ pub fn load(root: &Path, files: &[String]) -> Result<Config, Vec<ConfigError>> {
         rules,
         disabled: off_rules,
         baseline,
+        exclude,
     })
 }
 

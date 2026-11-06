@@ -21,10 +21,14 @@ env: KEY=value …            # optional
 git: false                  # optional: leave it outside git
 -- src/a.ts --              # a file laid over base/; an empty body deletes it
 …
+-- .claude/skills/a -> ../../.agents/skills/a --  # a symlink to the target
 -- @stdout --               # expected stdout; absent means empty
 -- @stderr --               # expected stderr; absent means empty
 -- @config-error --         # instead of the two above: one `file:line:col: key.path` per line
+-- @file <path> --          # optional, repeatable: the path after the run
 ```
+
+An `@file` body is the file's text, `-> <target>` for a symlink, or empty for no file at all; a line of `…` matches any number of lines.
 
 Comparison drops `\r`, trailing whitespace and trailing blank lines, and writes the temp root as `<root>` and the engine's version (`--engine-version`) as `<version>`; nothing else is normalised. `@config-error` expects exit 2, empty stdout, and stderr lines `necro: config error: <file:line:col: key.path>: <any message>`, in order.
 

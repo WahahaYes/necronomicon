@@ -1,0 +1,6 @@
+# only claude-md and skill-link can write
+spec: Finders; Fixes
+args: agent-files --write stale-skill
+exit: 2
+-- @stderr --
+necro: agent-files: --write goes with claude-md and skill-link: necro agent-files [--write [--only-at <file>]] (claude-md|claude-md-alone|skill-link|skill-misplaced|skill-frontmatter|other-instructions|rule-reference|stale-skill)

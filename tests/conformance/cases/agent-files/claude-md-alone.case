@@ -1,0 +1,7 @@
+# claude-md-alone: a CLAUDE.md with no AGENTS.md beside it
+spec: Finders
+args: agent-files claude-md-alone
+-- CLAUDE.md --
+Only Claude reads this.
+-- @stdout --
+CLAUDE.md: no AGENTS.md beside it

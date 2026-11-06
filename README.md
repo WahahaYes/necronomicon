@@ -8,7 +8,7 @@ A simple way to organize a repo's pre-commit hooks for progressive disclosure, s
 
 ## Why not AGENTS.md
 
-An instruction file is read every session, whether or not today's work touches it, and followed when the agent remembers to. A rule costs nothing until it's broken, and then it blocks the commit. Keep AGENTS.md for orientation and move its "never do X" lines into rules.
+An instruction file is read every session, whether or not today's work touches it, and followed when the agent remembers to. A rule costs nothing until it's broken, and then it blocks the commit. Use both: AGENTS.md for orientation and a one-line pointer to the rules that shape the code, rules for every "never do X" a command can check. [docs/agents-and-rules.md](https://github.com/WahahaYes/necronomicon/blob/main/docs/agents-and-rules.md) covers keeping the two in step.
 
 ## Agent mind control
 
@@ -79,7 +79,7 @@ Command: necro grep '^\s*(from|import)\s+app\b' -- 'src/core/*.py'
 - **An organizer, not a parser.** A rule's `command` is anything that prints one `path[:line[:col]]` per violation: `necro grep` for a pattern, a short script for more, or a tool you already run. necro owns the wording, allows and output, so rules work in any language.
 - **A replacement for the lint script you'd write anyway.** Repos that work with agents tend to grow a `lint_style.py` that greps for house rules and prints one-line errors. necro keeps those rules as config and adds the why, the fix and `--explain`.
 - **Exceptions with reasons.** `necro-allow <rule>: <reason>` in a comment on the line or the one above. An allow without a reason, or one that suppresses nothing, fails the run.
-- **Packs for common languages.** `include: [necro:rust]` adds Rust rules that default clippy leaves off, like no `unwrap` or `expect` outside tests, and `necro:rust-style` adds doc and naming conventions; `necro:gdscript` and `necro:gdscript-style` do the same for Godot, with gdtoolkit from the `necronomicon[gdscript]` extra. Packs are versioned with necro; `disable:` turns one off, `override:` changes the paths it judges or its parameters, and `necro --list` shows what's on.
+- **Packs for common languages.** `include: [necro:rust]` adds Rust rules that default clippy leaves off, like no `unwrap` or `expect` outside tests, and `necro:rust-style` adds doc and naming conventions; `necro:gdscript` and `necro:gdscript-style` do the same for Godot, with gdtoolkit from the `necronomicon[gdscript]` extra; `necro:agent-files` keeps AGENTS.md, CLAUDE.md and skills where every coding agent finds them. Packs are versioned with necro; `disable:` turns one off, `override:` changes the paths it judges or its parameters, and `necro --list` shows what's on.
 - **Fixes, when a rule knows one.** `necro grep --replace` fixes a pattern in place, and `autofix:` names any other fixing command (a formatter, a script). `necro --fix` applies them, then says what it changed and which hits it couldn't fix.
 - **A ratchet for rollout.** Grandfather existing hits in a committed snapshot so new ones fail alone; refresh it deliberately as debt gets fixed. See [Baseline](https://github.com/WahahaYes/necronomicon/blob/main/spec/v0.md#baseline).
 
@@ -110,6 +110,10 @@ For `necro:gdscript`, install `necronomicon[gdscript]` instead, which pins gdtoo
 pre-commit passes the changed files, so a commit runs only the rules that concern them, and `--fix` applies the fixes rules carry, failing the commit until you re-stage, as a formatter does; in CI, `pre-commit run --from-ref origin/main --to-ref HEAD` does the same for a branch. `necro` with no files checks everything.
 
 Pin below the next 0.x: any 0.x may break the format.
+
+## Skills for agents
+
+`npx skills add WahahaYes/necronomicon --skill necro-adopt` gives a coding agent a skill for setting necro up in a repo. Its last step, `necro skills install`, adds two skills versioned with your necro: `necro`, for working with its hits, and `necro-rules`, for writing rules and keeping `AGENTS.md` in step. They go in `.agents/skills`, linked from `.claude/skills`; after an upgrade, `necro --fix` rewrites them.
 
 ## More
 

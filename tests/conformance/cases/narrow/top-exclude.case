@@ -1,0 +1,17 @@
+# a narrowed run drops given files the top-level exclude leaves out, so a rule they alone would trigger doesn't run
+spec: Narrowed runs
+args: --format terse fixtures/a.ts
+-- necro.yaml --
+version: 0
+exclude: ^fixtures/
+rules:
+  ts-mule:
+    command: necro grep 'mule' -- '*.ts'
+    files: {glob: "*.ts"}
+    message: Mule in TypeScript
+    why: Because.
+    fix: Say horse.
+-- fixtures/a.ts --
+mule
+-- src/b.ts --
+mule
