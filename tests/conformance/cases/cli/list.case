@@ -1,0 +1,34 @@
+# --list: every rule by name, where it comes from, and for a pack rule whether necro.yaml turns it off or overrides it
+spec: CLI; Packs
+args: --list
+-- necro.yaml --
+version: 0
+include: [necro/*.yaml, necro:rust]
+disable: [rust/lossy-cast]
+override:
+  rust/no-unwrap: { exclude: '^build\.rs$', files: '\.rs$' }
+rules:
+  banned-word:
+    command: necro grep '\bdonkey\b' -- 'src/*'
+    message: Banned word
+    why: Because.
+    fix: Say good.
+-- necro/layers.yaml --
+rules:
+  core-isolated:
+    command: necro grep 'app' -- 'src/core/*'
+    message: Core imports app
+    why: Because.
+    fix: Don't.
+-- @stdout --
+banned-word                 necro.yaml
+core-isolated               necro/layers.yaml
+rust/cargo-manifest         necro:rust
+rust/lint-override-reason   necro:rust
+rust/lossy-cast             necro:rust  disabled
+rust/no-expect              necro:rust
+rust/no-stubs               necro:rust
+rust/no-unwrap              necro:rust  override: files, exclude
+rust/swallowed-error        necro:rust
+rust/unsafe-safety-comment  necro:rust
+rust/weasel-type-names      necro:rust

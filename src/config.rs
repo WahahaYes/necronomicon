@@ -44,6 +44,8 @@ pub struct Rule {
     pub files: Option<FileFilter>,
     /// `exclude:`: files outside the rule, in every run.
     pub exclude: Option<FileFilter>,
+    /// Where it's defined: `necro.yaml`, an include file, or `necro:<pack>`.
+    pub source: String,
     /// The keys `override:` in necro.yaml replaced, in spec order.
     pub overridden: Vec<&'static str>,
 }
@@ -98,6 +100,8 @@ impl Rule {
 pub struct Config {
     /// The repo's rules, sorted by name.
     pub rules: Vec<Rule>,
+    /// Pack rules `disable:` turned off, sorted by name, for `--list`.
+    pub disabled: Vec<Rule>,
     /// The snapshot's path, relative to the root; the default when absent.
     pub baseline: Option<String>,
 }
@@ -385,6 +389,7 @@ pub fn load(root: &Path, files: &[String]) -> Result<Config, Vec<ConfigError>> {
             if let Some(mut rule) = load_rule(&mut e, root, file, key, value) {
                 rule.name = name;
                 rule.pack = pack.map(String::from);
+                rule.source = file.to_string();
                 rules.push(rule);
             }
         }
@@ -405,7 +410,12 @@ pub fn load(root: &Path, files: &[String]) -> Result<Config, Vec<ConfigError>> {
         return Err(list);
     }
     rules.sort_by(|a, b| a.name.cmp(&b.name));
-    Ok(Config { rules, baseline })
+    off_rules.sort_by(|a, b| a.name.cmp(&b.name));
+    Ok(Config {
+        rules,
+        disabled: off_rules,
+        baseline,
+    })
 }
 
 /// The packs `include` names as `necro:<pack>`, each with its rules' YAML.
@@ -622,6 +632,7 @@ fn load_rule(e: &mut Errors, root: &Path, file: &str, key: &Key, node: &Node) ->
         pack: None,
         files,
         exclude,
+        source: file.to_string(),
         overridden: Vec::new(),
     })
 }
@@ -709,6 +720,7 @@ pub fn builtins() -> [Rule; 2] {
         pack: None,
         files: None,
         exclude: None,
+        source: String::new(),
         overridden: Vec::new(),
     };
     [

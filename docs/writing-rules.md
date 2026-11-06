@@ -30,7 +30,7 @@ override:
   rust/no-unwrap: { exclude: '^build\.rs$' }
 ```
 
-Every rule of an included pack is on unless `disable` names it; rules a repo opts into ship as their own pack.
+Every rule of an included pack is on unless `disable` names it; rules a repo opts into ship as their own pack. `necro --list` shows each rule, where it comes from, and what `necro.yaml` changed.
 
 ## Narrowed runs
 
