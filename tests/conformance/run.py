@@ -85,6 +85,25 @@ def build_tree(root, files, git):
         subprocess.run(["git", "add", "-A"], **quiet)
 
 
+def file_after(root, rel, version):
+    """A path's state after the run: its text, `-> target` for a link, empty when absent."""
+    path = root / rel
+    if path.is_symlink():
+        return f"-> {os.readlink(path)}"
+    if not path.exists():
+        return ""
+    return normalise(path.read_text(encoding="utf-8"), root, version)
+
+
+def lines_match(want, got):
+    """Whether `got` matches `want`, where a line of `…` matches any number of lines."""
+    if not want:
+        return not got
+    if want[0] == "…":
+        return any(lines_match(want[1:], got[i:]) for i in range(len(got) + 1))
+    return bool(got) and want[0] == got[0] and lines_match(want[1:], got[1:])
+
+
 def check_config_errors(expected, stderr):
     """@config-error lists `file:line:col: key.path`, one per stderr line."""
     want = [w for w in expected.strip().split("\n") if w]
@@ -131,6 +150,14 @@ def run_case(path, engine, bin_dir, version):
                 want = normalise(expect.get(name, ""), root)
                 if got != want:
                     problems.append(diff(name, want, got))
+        for name, want in expect.items():
+            if not name.startswith("@file "):
+                continue
+            rel = name[len("@file "):]
+            got = file_after(root, rel, version)
+            want = normalise(want, root)
+            if not lines_match(want.split("\n") if want else [], got.split("\n") if got else []):
+                problems.append(diff(name, want, got))
         if proc.returncode != want_exit:
             problems.append(f"exit {proc.returncode}, want {want_exit}" + (f"\nstderr:\n{err}" if err else ""))
         return problems
