@@ -276,6 +276,11 @@ fn lambda_spans(src: &Source) -> Vec<(usize, usize, usize)> {
     out
 }
 
+/// Whether a file holds a lambda that gdformat would corrupt.
+pub(super) fn has_inline_lambda(path: &str) -> bool {
+    scan(path).is_some_and(|src| !lambda_spans(&src).is_empty())
+}
+
 /// `doc-length`: a run of own-line `##` comments over `item` lines, or
 /// `header` for the first one right after the preamble.
 fn doc_length(path: &str, src: &Source, header: usize, item: usize, hits: &mut Vec<String>) {

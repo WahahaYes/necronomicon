@@ -1,0 +1,11 @@
+# parse: a file gdtoolkit can't parse, at the position it gives; lint and format leave it to this check
+spec: Finders
+args: gdtoolkit parse
+-- src/a.gd --
+extends Node
+
+
+func f( -> void:
+	pass
+-- @stdout --
+src/a.gd:4:9: Unexpected token Token('__ANON_0', '->')

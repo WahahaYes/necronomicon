@@ -7,6 +7,7 @@ use crate::render;
 mod cargo;
 mod clippy;
 mod gdscan;
+mod gdtoolkit;
 mod grep;
 mod manifest;
 mod rust_docs;
@@ -19,6 +20,7 @@ const FINDERS: &[(&str, Finder)] = &[
     ("cargo-manifest", manifest::run),
     ("clippy", clippy::run),
     ("gdscan", gdscan::run),
+    ("gdtoolkit", gdtoolkit::run),
     ("grep", grep::run),
     ("rust-docs", rust_docs::run),
 ];

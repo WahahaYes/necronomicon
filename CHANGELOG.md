@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- **`necro gdtoolkit`** runs gdformat and gdlint from `PATH` over tracked `.gd` files (`format`, `lint`, `parse`); `format --write` reformats, skipping a file with a lambda gdformat corrupts. `necronomicon[gdscript]` installs gdtoolkit 4.5.0 beside necro.
 - **`necro gdscan`** checks GDScript layout line by line (`spacing`, `inline-lambda`, `doc-length`, `export-doc`, `uid`); like `necro grep`, it searches only the given files in a narrowed run.
 
 - **Fixes.** `necro --fix` fixes the hits a run reports, then checks again and says what it changed and which hits it couldn't fix; it exits 1 when it changed a file, so a hook fails until the fixed files are re-staged. Allowed and baselined hits are left alone. The published hook and the README's now run `necro --fix`.
