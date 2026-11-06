@@ -9,7 +9,7 @@ rules:
     params: { line-length: 100 }
     message: a GDScript file gdformat would change
     why: gdformat is the one layout every GDScript file shares; a file it would change makes the next formatted diff noisy and hides real edits.
-    fix: run `necro --fix`, which runs gdformat on it, or `gdformat <file>`; a file holding a lambda inside a multi-line bracket needs that lambda named first (gdscript/inline-lambda).
+    fix: run `necro --fix`, which runs gdformat on it, or `gdformat <file>`; a file holding a lambda inside brackets needs that lambda named first (gdscript/inline-lambda).
     details: |
       gdformat runs with --line-length {line-length}. --fix reformats the
       whole file, and skips a file with a lambda inside brackets opened on an
@@ -29,12 +29,13 @@ rules:
   inline-lambda:
     command: necro gdscan inline-lambda -- '*.gd'
     files: '\.gd$'
-    message: a lambda inside a multi-line bracket
-    why: gdformat corrupts a file with a lambda inside a call, array or dictionary that spans lines, so the formatter can't run on it.
+    message: a lambda inside brackets
+    why: gdformat corrupts a lambda inside a call, array or dictionary that spans lines, and it may wrap a one-line call to make it span them, so the formatter can't run safely on the file.
     fix: 'define the lambda first, `var on_done: Callable = func() -> void: ...`, then pass `on_done`.'
     details: |
-      A `func(` on a line inside brackets opened on an earlier line. A
-      lambda within one line, `items.filter(func(x): return x > 0)`, is fine.
+      A `func(` lambda inside an open bracket, on its own line or one that
+      opened earlier: `items.filter(func(x): return x > 0)` counts too, since
+      gdformat may wrap that call. A lambda assigned outside brackets is fine.
     examples:
       bad: |
         var hooks: Array = [

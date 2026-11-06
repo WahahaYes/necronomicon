@@ -20,4 +20,4 @@ func f() -> void:
 	pass
 -- @stdout --
 src/fmt.gd: needs reformatting
-src/lambda.gd: needs reformatting; --fix skips it, as gdformat corrupts a lambda inside a multi-line bracket
+src/lambda.gd: needs reformatting; --fix skips it, as gdformat corrupts a lambda inside brackets

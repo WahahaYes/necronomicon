@@ -91,7 +91,7 @@ pub fn run(args: &[String]) -> Result<Vec<String>, String> {
                 .map(|f| {
                     if has_inline_lambda(f) {
                         format!(
-                            "{f}: needs reformatting; --fix skips it, as gdformat corrupts a lambda inside a multi-line bracket"
+                            "{f}: needs reformatting; --fix skips it, as gdformat corrupts a lambda inside brackets"
                         )
                     } else {
                         format!("{f}: needs reformatting")

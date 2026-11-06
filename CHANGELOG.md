@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- **`gdscript/inline-lambda` flags any lambda inside brackets**, including one in a one-line call (`x.filter(func(p): ...)`), since gdformat may wrap that call across lines and corrupt it; `necro gdtoolkit format --write` skips those files too. Name such a lambda first: `var keep: Callable = func(p): ...`.
 ## 0.5.0 - 2026-11-06
 
 - Finders print hits sorted by line and column as numbers; `necro gdtoolkit` sorted them as text, so line 325 came before line 74.
