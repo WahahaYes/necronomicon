@@ -3,8 +3,7 @@
 
 use std::collections::HashSet;
 
-use regex::Regex;
-
+use super::gdscript::{self, Kind, Source};
 use super::grep::read_list;
 use super::{split_pathspecs, tracked};
 
@@ -17,24 +16,6 @@ const ITEM: usize = 6;
 
 /// Lines that may come before a file's header doc.
 const PREAMBLE: &[&str] = &["@tool", "@icon", "class_name ", "extends "];
-
-/// One comment: its line and column (0-based, in chars), marker, and
-/// whether it's the first thing on its line.
-struct Comment {
-    line: usize,
-    col: usize,
-    doc: bool,
-    own_line: bool,
-}
-
-/// A file's lines, the same lines with comments blanked (strings kept), and its comments.
-struct Source {
-    lines: Vec<String>,
-    code: Vec<String>,
-    comments: Vec<Comment>,
-    /// Lines that start inside a triple-quoted string: text, not code.
-    in_string: Vec<bool>,
-}
 
 /// The `gdscan` finder.
 pub fn run(args: &[String]) -> Result<Vec<String>, String> {
@@ -82,9 +63,10 @@ pub fn run(args: &[String]) -> Result<Vec<String>, String> {
         "export-doc" => export_doc,
         other => return Err(format!("unknown check {other}: {USAGE}")),
     };
+    let markers = ["#".to_string()];
     let mut hits = Vec::new();
     for path in gd_files(pathspecs, only.as_ref())? {
-        if let Some(src) = scan(&path) {
+        if let Some(src) = gdscript::scan_file(&path, &markers) {
             run(&path, &src, header, item, &mut hits);
         }
     }
@@ -175,123 +157,6 @@ pub(super) fn gd_files(
         .collect())
 }
 
-/// Read a file into lines, code and comments; `None` if it can't be read.
-fn scan(path: &str) -> Option<Source> {
-    let bytes = std::fs::read(path).ok()?;
-    let text = String::from_utf8_lossy(&bytes);
-    let mut lines: Vec<String> = text
-        .split('\n')
-        .map(|l| l.strip_suffix('\r').unwrap_or(l).to_string())
-        .collect();
-    if lines.last().is_some_and(String::is_empty) {
-        lines.pop();
-    }
-    let mut code = Vec::with_capacity(lines.len());
-    let mut comments = Vec::new();
-    let mut quote: Option<&str> = None;
-    let mut in_string = Vec::with_capacity(lines.len());
-    for (n, line) in lines.iter().enumerate() {
-        in_string.push(quote.is_some());
-        let chars: Vec<char> = line.chars().collect();
-        let mut out = chars.clone();
-        let first = chars.iter().take_while(|c| c.is_whitespace()).count();
-        let at = |i: usize, s: &str| {
-            s.chars()
-                .enumerate()
-                .all(|(k, c)| chars.get(i + k) == Some(&c))
-        };
-        let mut i = 0;
-        while i < chars.len() {
-            if let Some(q) = quote {
-                if chars[i] == '\\' {
-                    i += 2;
-                } else if at(i, q) {
-                    i += q.chars().count();
-                    quote = None;
-                } else {
-                    i += 1;
-                }
-                continue;
-            }
-            if chars[i] == '#' {
-                comments.push(Comment {
-                    line: n,
-                    col: i,
-                    doc: at(i, "##"),
-                    own_line: i == first,
-                });
-                for c in &mut out[i..] {
-                    *c = ' ';
-                }
-                break;
-            }
-            quote = ["\"\"\"", "\"", "'"].into_iter().find(|q| at(i, q));
-            i += quote.map_or(1, |q| q.chars().count());
-        }
-        // Only a triple-quoted string runs on past its line.
-        if quote != Some("\"\"\"") {
-            quote = None;
-        }
-        code.push(out.into_iter().collect());
-    }
-    Some(Source {
-        lines,
-        code,
-        comments,
-        in_string,
-    })
-}
-
-/// The bracket depth at the start of each line, outside strings and comments.
-fn depths(lines: &[String]) -> Vec<usize> {
-    let mut depth = 0usize;
-    let mut out = Vec::with_capacity(lines.len());
-    let mut quote: Option<&str> = None;
-    for raw in lines {
-        out.push(depth);
-        let chars: Vec<char> = raw.chars().collect();
-        let at = |i: usize, s: &str| {
-            s.chars()
-                .enumerate()
-                .all(|(k, c)| chars.get(i + k) == Some(&c))
-        };
-        let mut i = 0;
-        while i < chars.len() {
-            if let Some(q) = quote {
-                if chars[i] == '\\' {
-                    i += 2;
-                } else if at(i, q) {
-                    i += q.chars().count();
-                    quote = None;
-                } else {
-                    i += 1;
-                }
-                continue;
-            }
-            if chars[i] == '#' {
-                break;
-            }
-            if let Some(q) = ["\"\"\"", "\"", "'"].into_iter().find(|q| at(i, q)) {
-                quote = Some(q);
-                i += q.chars().count();
-            } else if "([{".contains(chars[i]) {
-                depth += 1;
-                i += 1;
-            } else if ")]}".contains(chars[i]) {
-                depth = depth.saturating_sub(1);
-                i += 1;
-            } else {
-                i += 1;
-            }
-        }
-        // Only a triple-quoted string runs on past its line.
-        if quote != Some("\"\"\"") {
-            quote = None;
-        }
-    }
-    out
-}
-
 /// Leading lines that may come before the header doc: blanks, `#!`, `@tool`, `extends`, ….
 fn preamble_len(lines: &[String]) -> usize {
     lines
@@ -310,7 +175,7 @@ fn preamble_len(lines: &[String]) -> usize {
 fn spacing(path: &str, src: &Source, _: usize, _: usize, hits: &mut Vec<String>) {
     let lines = &src.lines;
     let mut previous: Option<usize> = None;
-    for (i, depth) in depths(lines).into_iter().enumerate() {
+    for (i, &depth) in src.depth.iter().enumerate() {
         let raw = &lines[i];
         if depth > 0
             || src.in_string[i]
@@ -350,64 +215,55 @@ fn inline_lambda(path: &str, src: &Source, _: usize, _: usize, hits: &mut Vec<St
 /// Each lambda literal inside an open bracket, whether it opened on this line
 /// or an earlier one: (line, col, endcol), 1-based. Strings and comments skip.
 fn lambda_spans(src: &Source) -> Vec<(usize, usize, usize)> {
-    let Ok(re) = Regex::new(r"^func\s*\(") else {
-        return vec![];
-    };
     let mut out = Vec::new();
-    for (n, (raw, start)) in src.lines.iter().zip(depths(&src.lines)).enumerate() {
+    for (n, line) in src.lines.iter().enumerate() {
         if src.in_string[n] {
             continue;
         }
-        let mut depth = start;
-        let mut quote: Option<&str> = None;
+        let mut depth = src.depth[n];
         let mut prev_word = false;
-        let mut chars = raw.char_indices().enumerate();
-        while let Some((col, (at, c))) = chars.next() {
-            if let Some(q) = quote {
-                if c == '\\' {
-                    chars.next();
-                } else if raw[at..].starts_with(q) {
-                    for _ in 1..q.chars().count() {
-                        chars.next();
+        for span in &src.spans[n] {
+            match span.kind {
+                Kind::Comment => break,
+                Kind::String => prev_word = false,
+                Kind::Code => {
+                    let code = &line[span.start..span.end];
+                    let base = line[..span.start].chars().count();
+                    for (i, (at, c)) in code.char_indices().enumerate() {
+                        let col = base + i;
+                        if "([{".contains(c) {
+                            depth += 1;
+                        } else if ")]}".contains(c) {
+                            depth = depth.saturating_sub(1);
+                        } else if depth > 0
+                            && !prev_word
+                            && let Some(len) = lambda_len(&code[at..])
+                        {
+                            out.push((n + 1, col + 1, col + len));
+                        }
+                        prev_word = c.is_alphanumeric() || c == '_';
                     }
-                    quote = None;
                 }
-                prev_word = false;
-                continue;
             }
-            if c == '#' {
-                break;
-            }
-            if let Some(q) = ["\"\"\"", "\"", "'"]
-                .into_iter()
-                .find(|q| raw[at..].starts_with(q))
-            {
-                quote = Some(q);
-                for _ in 1..q.chars().count() {
-                    chars.next();
-                }
-                prev_word = false;
-                continue;
-            }
-            if "([{".contains(c) {
-                depth += 1;
-            } else if ")]}".contains(c) {
-                depth = depth.saturating_sub(1);
-            } else if depth > 0
-                && !prev_word
-                && let Some(m) = re.find(&raw[at..])
-            {
-                out.push((n + 1, col + 1, col + m.as_str().chars().count()));
-            }
-            prev_word = c.is_alphanumeric() || c == '_';
         }
     }
     out
 }
 
+/// The length in chars of a lambda's `func` and `(`, with any space between.
+fn lambda_len(rest: &str) -> Option<usize> {
+    let tail = rest.strip_prefix("func")?;
+    let args = tail.trim_start();
+    if !args.starts_with('(') {
+        return None;
+    }
+    Some("func".len() + tail[..tail.len() - args.len()].chars().count() + 1)
+}
+
 /// Whether a file holds a lambda that gdformat would corrupt.
 pub(super) fn has_inline_lambda(path: &str) -> bool {
-    scan(path).is_some_and(|src| !lambda_spans(&src).is_empty())
+    let markers = ["#".to_string()];
+    gdscript::scan_file(path, &markers).is_some_and(|src| !lambda_spans(&src).is_empty())
 }
 
 /// `doc-length`: a run of own-line `##` comments over `item` lines, or

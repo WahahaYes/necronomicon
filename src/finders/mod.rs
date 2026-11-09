@@ -10,6 +10,7 @@ pub use agent_files::FIXABLE as AGENT_FILES_FIXABLE;
 mod cargo;
 mod clippy;
 mod gdscan;
+mod gdscript;
 mod gdtoolkit;
 mod grep;
 mod manifest;

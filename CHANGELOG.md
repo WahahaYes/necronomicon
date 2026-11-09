@@ -3,6 +3,7 @@
 ## Unreleased
 
 - **`gdscan`** no longer loses its place after a bracket inside a triple-quoted string, so `spacing` and `inline-lambda` keep finding later hits.
+- **`necro grep --skip-comments`** keeps a comment marker inside a `"""` string, even one spanning lines, so a `#` in GDScript text isn't read as a comment.
 
 ## 0.5.1 - 2026-11-06
 
