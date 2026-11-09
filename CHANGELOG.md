@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **`gdscan`** no longer loses its place after a bracket inside a triple-quoted string, so `spacing` and `inline-lambda` keep finding later hits.
+
 ## 0.5.1 - 2026-11-06
 
 - **`rust/clippy`** in `necro:rust`: every other warning rustc and clippy give, tests included, labelled with its lint, from the clippy build the other rules already share. Its `skip` parameter drops lints by name; lints the crate's `[lints]` tables turn on show up too. Repos can drop a `cargo clippy -- -D warnings` hook and its second build. `necro clippy --others [--except=…]` is its finder mode, and necro's clippy run now caps lint levels at warn, so a denied lint is a hit rather than a check error.

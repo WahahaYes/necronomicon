@@ -246,23 +246,47 @@ fn scan(path: &str) -> Option<Source> {
 fn depths(lines: &[String]) -> Vec<usize> {
     let mut depth = 0usize;
     let mut out = Vec::with_capacity(lines.len());
+    let mut quote: Option<&str> = None;
     for raw in lines {
         out.push(depth);
-        let mut quote: Option<char> = None;
-        let mut chars = raw.chars();
-        while let Some(c) = chars.next() {
-            match quote {
-                Some(_) if c == '\\' => {
-                    chars.next();
+        let chars: Vec<char> = raw.chars().collect();
+        let at = |i: usize, s: &str| {
+            s.chars()
+                .enumerate()
+                .all(|(k, c)| chars.get(i + k) == Some(&c))
+        };
+        let mut i = 0;
+        while i < chars.len() {
+            if let Some(q) = quote {
+                if chars[i] == '\\' {
+                    i += 2;
+                } else if at(i, q) {
+                    i += q.chars().count();
+                    quote = None;
+                } else {
+                    i += 1;
                 }
-                Some(q) if c == q => quote = None,
-                Some(_) => {}
-                None if c == '\'' || c == '"' => quote = Some(c),
-                None if c == '#' => break,
-                None if "([{".contains(c) => depth += 1,
-                None if ")]}".contains(c) => depth = depth.saturating_sub(1),
-                None => {}
+                continue;
             }
+            if chars[i] == '#' {
+                break;
+            }
+            if let Some(q) = ["\"\"\"", "\"", "'"].into_iter().find(|q| at(i, q)) {
+                quote = Some(q);
+                i += q.chars().count();
+            } else if "([{".contains(chars[i]) {
+                depth += 1;
+                i += 1;
+            } else if ")]}".contains(chars[i]) {
+                depth = depth.saturating_sub(1);
+                i += 1;
+            } else {
+                i += 1;
+            }
+        }
+        // Only a triple-quoted string runs on past its line.
+        if quote != Some("\"\"\"") {
+            quote = None;
         }
     }
     out
@@ -335,26 +359,45 @@ fn lambda_spans(src: &Source) -> Vec<(usize, usize, usize)> {
             continue;
         }
         let mut depth = start;
-        let mut quote: Option<char> = None;
+        let mut quote: Option<&str> = None;
         let mut prev_word = false;
         let mut chars = raw.char_indices().enumerate();
         while let Some((col, (at, c))) = chars.next() {
-            match quote {
-                Some(_) if c == '\\' => {
+            if let Some(q) = quote {
+                if c == '\\' {
+                    chars.next();
+                } else if raw[at..].starts_with(q) {
+                    for _ in 1..q.chars().count() {
+                        chars.next();
+                    }
+                    quote = None;
+                }
+                prev_word = false;
+                continue;
+            }
+            if c == '#' {
+                break;
+            }
+            if let Some(q) = ["\"\"\"", "\"", "'"]
+                .into_iter()
+                .find(|q| raw[at..].starts_with(q))
+            {
+                quote = Some(q);
+                for _ in 1..q.chars().count() {
                     chars.next();
                 }
-                Some(q) if c == q => quote = None,
-                Some(_) => {}
-                None if c == '\'' || c == '"' => quote = Some(c),
-                None if c == '#' => break,
-                None if "([{".contains(c) => depth += 1,
-                None if ")]}".contains(c) => depth = depth.saturating_sub(1),
-                None if depth > 0 && !prev_word => {
-                    if let Some(m) = re.find(&raw[at..]) {
-                        out.push((n + 1, col + 1, col + m.as_str().chars().count()));
-                    }
-                }
-                None => {}
+                prev_word = false;
+                continue;
+            }
+            if "([{".contains(c) {
+                depth += 1;
+            } else if ")]}".contains(c) {
+                depth = depth.saturating_sub(1);
+            } else if depth > 0
+                && !prev_word
+                && let Some(m) = re.find(&raw[at..])
+            {
+                out.push((n + 1, col + 1, col + m.as_str().chars().count()));
             }
             prev_word = c.is_alphanumeric() || c == '_';
         }
