@@ -20,7 +20,7 @@ path = "src/main.rs"
 
 [dependencies]
 # serde-saphyr's own parser: YAML events with positions for config errors.
-granit-parser = { version = "=2.0.0", default-features = false, features = ["std", "error_messages"] }
+granit-parser = { version = "=2.1.0", default-features = false, features = ["std", "error_messages"] }
 globset = "0.4.16"
 regex = "1.12"
 # The regex's required text, for `git grep -F` to pick the files necro grep reads.
