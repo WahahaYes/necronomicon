@@ -7,10 +7,20 @@ use super::gdscript::{self, Kind, Source};
 use crate::command::Hit;
 
 use super::grep::read_list;
-use super::{split_pathspecs, tracked};
+use super::tracked;
+use crate::args::{self, Spec};
 
 const USAGE: &str = "necro gdscan [--files-from <file>] [--header <n>] [--item <n>] \
                      [--write [--only-at <file>]] (spacing|inline-lambda|doc-length|export-doc|uid) [-- <pathspec>…]";
+
+/// The checks `gdscan` knows.
+const CHECKS: &[&str] = &[
+    "spacing",
+    "inline-lambda",
+    "doc-length",
+    "export-doc",
+    "uid",
+];
 
 /// What `doc-length` allows when `--header` or `--item` isn't given.
 const HEADER: usize = 10;
@@ -21,53 +31,44 @@ const PREAMBLE: &[&str] = &["@tool", "@icon", "class_name ", "extends "];
 
 /// The `gdscan` finder.
 pub fn run(args: &[String]) -> Result<Vec<Hit>, String> {
-    let (opts, pathspecs) = split_pathspecs(args);
-    let (mut header, mut item) = (HEADER, ITEM);
-    let mut list: Option<String> = None;
-    let mut only_at: Option<String> = None;
-    let mut write = false;
-    let mut check: Option<&str> = None;
-    let mut it = opts.iter();
-    while let Some(arg) = it.next() {
-        let (flag, inline) = match arg.split_once('=') {
-            Some((f, v)) if arg.starts_with("--") => (f, Some(v.to_string())),
-            _ => (arg.as_str(), None),
-        };
-        let mut value = || -> Result<String, String> {
-            inline
-                .clone()
-                .or_else(|| it.next().cloned())
-                .ok_or(format!("{flag} needs a value: {USAGE}"))
-        };
-        match flag {
-            "--files-from" => list = Some(value()?),
-            "--only-at" => only_at = Some(value()?),
-            "--write" => write = true,
-            "--header" => header = lines_arg(flag, &value()?)?,
-            "--item" => item = lines_arg(flag, &value()?)?,
-            f if f.starts_with('-') => return Err(format!("unknown option {f}: {USAGE}")),
-            c if check.is_none() => check = Some(c),
-            other => return Err(format!("unexpected argument {other}: {USAGE}")),
-        }
-    }
-    let check = check.ok_or(format!("name a check: {USAGE}"))?;
+    let parsed = args::parse(
+        args,
+        &Spec {
+            values: &["--files-from", "--only-at", "--header", "--item"],
+            flags: &["--write"],
+            pathspecs: true,
+        },
+    )
+    .map_err(|e| e.with_usage(USAGE))?;
+    let header = match parsed.value("--header") {
+        Some(value) => lines_arg("--header", value)?,
+        None => HEADER,
+    };
+    let item = match parsed.value("--item") {
+        Some(value) => lines_arg("--item", value)?,
+        None => ITEM,
+    };
+    let list = parsed.value("--files-from");
+    let only_at = parsed.value("--only-at");
+    let write = parsed.flag("--write");
+    let check = args::check(&parsed.positional, CHECKS, USAGE)?;
     if (write || only_at.is_some()) && check != "spacing" {
         return Err(format!("--write goes with spacing: {USAGE}"));
     }
-    let only = list.as_deref().map(read_list).transpose()?;
+    let only = list.map(read_list).transpose()?;
     if check == "uid" {
-        return uid(pathspecs, only.as_ref());
+        return uid(&parsed.pathspecs, only.as_ref());
     }
     let run: fn(&str, &Source, usize, usize, &mut Vec<Hit>) = match check {
         "spacing" => spacing,
         "inline-lambda" => inline_lambda,
         "doc-length" => doc_length,
         "export-doc" => export_doc,
-        other => return Err(format!("unknown check {other}: {USAGE}")),
+        _ => unreachable!("args::check accepted {check}"),
     };
     let markers = ["#".to_string()];
     let mut hits = Vec::new();
-    for path in gd_files(pathspecs, only.as_ref())? {
+    for path in gd_files(&parsed.pathspecs, only.as_ref())? {
         if let Some(src) = gdscript::scan_file(&path, &markers) {
             run(&path, &src, header, item, &mut hits);
         }
@@ -75,7 +76,7 @@ pub fn run(args: &[String]) -> Result<Vec<Hit>, String> {
     if !write {
         return Ok(hits);
     }
-    let at: Option<HashSet<String>> = only_at.as_deref().map(read_list).transpose()?.map(|l| {
+    let at: Option<HashSet<String>> = only_at.map(read_list).transpose()?.map(|l| {
         l.iter()
             .map(|h| h.splitn(3, ':').take(2).collect::<Vec<_>>().join(":"))
             .collect()

@@ -5,13 +5,14 @@
 
 use std::sync::atomic::{AtomicUsize, Ordering};
 
+use crate::args::{self, Spec};
 use crate::command::Hit;
 use fancy_regex::Regex;
 use globset::{GlobBuilder, GlobSet, GlobSetBuilder};
 use regex_syntax::hir::literal::{ExtractKind, Extractor};
 
 use super::gdscript;
-use super::{regex_error, split_pathspecs, text_lines, tracked};
+use super::{regex_error, text_lines, tracked};
 
 const USAGE: &str = "necro grep [--skip-comments <marker>]… [--glob <glob>]… \
      [--files-from <file>] [--replace <text> [--write] [--only-at <file>]] <regex> \
@@ -34,52 +35,42 @@ const FILES_PER_THREAD: usize = 64;
 
 /// The `grep` finder: every regex match in the tracked files.
 pub fn run(args: &[String]) -> Result<Vec<Hit>, String> {
-    let (opts, pathspecs) = split_pathspecs(args);
-    let mut markers: Vec<String> = Vec::new();
-    let mut globs: Vec<String> = Vec::new();
-    let mut lists: Vec<String> = Vec::new();
-    let mut replaces: Vec<String> = Vec::new();
-    let mut only_at: Vec<String> = Vec::new();
-    let mut write = false;
-    let mut pattern: Option<&String> = None;
-    let mut it = opts.iter();
-    while let Some(arg) = it.next() {
-        if let Some((name, list)) = [
-            ("--skip-comments", &mut markers),
-            ("--glob", &mut globs),
-            ("--files-from", &mut lists),
-            ("--replace", &mut replaces),
-            ("--only-at", &mut only_at),
-        ]
+    let parsed = args::parse(
+        args,
+        &Spec {
+            values: &[
+                "--skip-comments",
+                "--glob",
+                "--files-from",
+                "--replace",
+                "--only-at",
+            ],
+            flags: &["--write"],
+            pathspecs: true,
+        },
+    )
+    .map_err(|e| e.with_usage(USAGE))?;
+    let markers: Vec<String> = parsed
+        .values("--skip-comments")
         .into_iter()
-        .find(|(name, _)| arg == name || arg.starts_with(&format!("{name}=")))
-        {
-            let value = match arg.strip_prefix(&format!("{name}=")) {
-                Some(v) => v.to_string(),
-                None => it
-                    .next()
-                    .ok_or(format!("{name} needs a value: {USAGE}"))?
-                    .clone(),
-            };
-            list.push(value);
-        } else if arg == "--write" && pattern.is_none() {
-            write = true;
-        } else if arg.starts_with('-') && arg.len() > 1 && pattern.is_none() {
-            return Err(format!("unknown option {arg}: {USAGE}"));
-        } else if pattern.is_none() {
-            pattern = Some(arg);
-        } else {
-            return Err(format!(
-                "unexpected argument {arg}; pathspecs go after --: {USAGE}"
-            ));
-        }
-    }
+        .map(String::from)
+        .collect();
     if markers.iter().any(String::is_empty) {
         return Err("--skip-comments needs a non-empty marker".into());
     }
-    let pattern = pattern.ok_or(format!("give a regex: {USAGE}"))?;
+    let Some(pattern) = parsed.positional.first() else {
+        return Err(format!("give a regex: {USAGE}"));
+    };
+    if let Some(extra) = parsed.positional.get(1) {
+        return Err(format!(
+            "unexpected argument {extra}; pathspecs go after --: {USAGE}"
+        ));
+    }
     let re = Regex::new(pattern)
         .map_err(|e| format!("`{pattern}` isn't a valid regex ({})", regex_error(&e)))?;
+    let mut replaces = parsed.values("--replace");
+    let only_at = parsed.values("--only-at");
+    let write = parsed.flag("--write");
     if replaces.len() > 1 || only_at.len() > 1 {
         return Err(format!("give --replace and --only-at once each: {USAGE}"));
     }
@@ -87,18 +78,24 @@ pub fn run(args: &[String]) -> Result<Vec<Hit>, String> {
         return Err(format!("--write and --only-at need --replace: {USAGE}"));
     }
     let fix = Fix {
-        replace: replaces.pop(),
+        replace: replaces.pop().map(String::from),
         write,
         only: only_at.first().map(|l| read_list(l)).transpose()?,
     };
+    let globs: Vec<String> = parsed
+        .values("--glob")
+        .into_iter()
+        .map(String::from)
+        .collect();
     let globs = Globs::new(&globs)?;
+    let lists = parsed.values("--files-from");
     let only = match lists.as_slice() {
         [] => None,
         [list] => Some(read_list(list)?),
         _ => return Err(format!("give --files-from once: {USAGE}")),
     };
-    let mut specs = pathspecs.to_vec();
-    specs.extend(globs.pushdown(pathspecs.is_empty()));
+    let mut specs = parsed.pathspecs.clone();
+    specs.extend(globs.pushdown(parsed.pathspecs.is_empty()));
     let files: Vec<String> = tracked(&specs, required_text(pattern).as_deref())?
         .into_iter()
         .filter(|path| globs.keeps(path))
