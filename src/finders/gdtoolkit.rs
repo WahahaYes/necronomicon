@@ -5,63 +5,48 @@
 use std::collections::HashSet;
 use std::process::Command;
 
+use crate::args::{self, Spec};
 use crate::command::Hit;
 use regex::Regex;
 
 use super::gdscan::{gd_files, has_inline_lambda};
 use super::grep::read_list;
-use super::split_pathspecs;
 
 const USAGE: &str = "necro gdtoolkit [--files-from <file>] [--line-length <n>] \
                      [--write [--only-at <file>]] (format|lint|parse) [-- <pathspec>…]";
+
+/// The checks `gdtoolkit` knows.
+const CHECKS: &[&str] = &["format", "lint", "parse"];
 
 /// Files per tool run, so a large repo stays under the argument limit.
 const CHUNK: usize = 400;
 
 /// The `gdtoolkit` finder.
 pub fn run(args: &[String]) -> Result<Vec<Hit>, String> {
-    let (opts, pathspecs) = split_pathspecs(args);
-    let mut list: Option<String> = None;
-    let mut only_at: Option<String> = None;
-    let mut line_length: Option<String> = None;
-    let mut write = false;
-    let mut check: Option<&str> = None;
-    let mut it = opts.iter();
-    while let Some(arg) = it.next() {
-        let (flag, inline) = match arg.split_once('=') {
-            Some((f, v)) if arg.starts_with("--") => (f, Some(v.to_string())),
-            _ => (arg.as_str(), None),
-        };
-        let mut value = || -> Result<String, String> {
-            inline
-                .clone()
-                .or_else(|| it.next().cloned())
-                .ok_or(format!("{flag} needs a value: {USAGE}"))
-        };
-        match flag {
-            "--files-from" => list = Some(value()?),
-            "--only-at" => only_at = Some(value()?),
-            "--line-length" => {
-                let v = value()?;
-                if v.parse::<usize>().map_or(true, |n| n == 0) {
-                    return Err(format!("--line-length takes a whole number, got {v}"));
-                }
-                line_length = Some(v);
-            }
-            "--write" => write = true,
-            f if f.starts_with('-') => return Err(format!("unknown option {f}: {USAGE}")),
-            c if check.is_none() => check = Some(c),
-            other => return Err(format!("unexpected argument {other}: {USAGE}")),
+    let parsed = args::parse(
+        args,
+        &Spec {
+            values: &["--files-from", "--only-at", "--line-length"],
+            flags: &["--write"],
+            pathspecs: true,
+        },
+    )
+    .map_err(|e| e.with_usage(USAGE))?;
+    let list = parsed.value("--files-from");
+    let only_at = parsed.value("--only-at");
+    let mut line_length = None;
+    for v in parsed.values("--line-length") {
+        if v.parse::<usize>().map_or(true, |n| n == 0) {
+            return Err(format!("--line-length takes a whole number, got {v}"));
         }
+        line_length = Some(v);
     }
-    let check = check.ok_or(format!("name a check: {USAGE}"))?;
-    if !["format", "lint", "parse"].contains(&check) {
-        return Err(format!("unknown check {check}: {USAGE}"));
-    }
+    let write = parsed.flag("--write");
+    let check = args::check(&parsed.positional, CHECKS, USAGE)?;
     if (write || only_at.is_some()) && check != "format" {
         return Err(format!("--write and --only-at go with format: {USAGE}"));
     }
-    let mut only = list.as_deref().map(read_list).transpose()?;
+    let mut only = list.map(read_list).transpose()?;
     if let Some(at) = &only_at {
         // `path:line:col` lines; a whole-file hit is just `path`.
         let files: HashSet<String> = read_list(at)?
@@ -73,12 +58,12 @@ pub fn run(args: &[String]) -> Result<Vec<Hit>, String> {
             None => files,
         });
     }
-    let files = gd_files(pathspecs, only.as_ref())?;
+    let files = gd_files(&parsed.pathspecs, only.as_ref())?;
     if files.is_empty() {
         return Ok(vec![]);
     }
     let length: Vec<String> = line_length
-        .map(|n| vec!["--line-length".to_string(), n])
+        .map(|n| vec!["--line-length".to_string(), n.to_string()])
         .unwrap_or_default();
     match check {
         "lint" => lint(&files),
