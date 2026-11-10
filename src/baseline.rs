@@ -12,8 +12,6 @@ use crate::yaml::{self, Value};
 /// The snapshot layout this necro reads and writes.
 pub const VERSION: i64 = 1;
 
-const ALLOW: &str = "necro-allow";
-
 /// One known hit. `line` is a hint for humans; matching ignores it.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Entry {
@@ -348,14 +346,13 @@ fn read_entry(file: &str, i: usize, node: &yaml::Node) -> Result<Entry, LoadErro
 }
 
 /// The fingerprint of a source line: the text before the first valid
-/// allow, trimmed. Validity reuses the allows rule (whitespace after
-/// `necro-allow`, then a rule in `[a-z0-9-/]`), so multi-allow lines cut
-/// at the first valid one. No tab expansion, no closer handling.
+/// allow, trimmed. Validity is `allows::parse_line`'s, so multi-allow
+/// lines cut at the first valid one. No tab expansion, no closer handling.
 pub fn fingerprint(source: Option<&str>) -> String {
     match source {
         None => String::new(),
-        Some(line) => match first_valid_allow_start(line) {
-            Some(i) => line[..i].trim().to_string(),
+        Some(line) => match crate::allows::parse_line(line).first() {
+            Some(found) => line[..found.start].trim().to_string(),
             None => line.trim().to_string(),
         },
     }
@@ -369,28 +366,6 @@ pub fn fingerprint_for(d: &Diagnostic) -> String {
     } else {
         fingerprint(d.source.as_deref())
     }
-}
-
-fn first_valid_allow_start(line: &str) -> Option<usize> {
-    let mut from = 0;
-    while let Some(rel) = line[from..].find(ALLOW) {
-        let start = from + rel;
-        let body = &line[start + ALLOW.len()..];
-        if body.starts_with(char::is_whitespace) {
-            let rule: String = body
-                .trim_start()
-                .chars()
-                .take_while(|c| {
-                    c.is_ascii_lowercase() || c.is_ascii_digit() || *c == '-' || *c == '/'
-                })
-                .collect();
-            if !rule.is_empty() {
-                return Some(start);
-            }
-        }
-        from = start + ALLOW.len();
-    }
-    None
 }
 
 /// A double-quoted YAML string with the standard escapes.

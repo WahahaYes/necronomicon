@@ -17,6 +17,17 @@ pub struct Allow {
     pub shebang: bool,
 }
 
+/// One valid `necro-allow` found on a line, before it's tied to a file.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Found {
+    /// Where `necro-allow` starts, in bytes.
+    pub start: usize,
+    /// Where it starts, in code points.
+    pub col: usize,
+    pub rule: String,
+    pub reason: Option<String>,
+}
+
 /// Every allow in the tracked files under `root`.
 pub fn find(root: &Path) -> Result<Vec<Allow>, String> {
     let out = crate::files::git()
@@ -41,13 +52,13 @@ pub fn find(root: &Path) -> Result<Vec<Allow>, String> {
         let text = String::from_utf8_lossy(&bytes);
         let shebang = text.starts_with("#!");
         for (i, line) in text.lines().enumerate() {
-            for (col, rule, reason) in parse_line(line) {
+            for found in parse_line(line) {
                 allows.push(Allow {
                     file: file.to_string(),
                     line: i + 1,
-                    col,
-                    rule,
-                    reason,
+                    col: found.col,
+                    rule: found.rule,
+                    reason: found.reason,
                     shebang,
                 });
             }
@@ -56,9 +67,9 @@ pub fn find(root: &Path) -> Result<Vec<Allow>, String> {
     Ok(allows)
 }
 
-/// The allows on one line: (column, rule, reason). Each reason runs to the
-/// line's end or the next allow, with a trailing `*/`, `-->` or `;` dropped.
-fn parse_line(line: &str) -> Vec<(usize, String, Option<String>)> {
+/// The allows on one line, in order. Each reason runs to the line's end or
+/// the next allow, with a trailing `*/`, `-->` or `;` dropped.
+pub fn parse_line(line: &str) -> Vec<Found> {
     let starts: Vec<usize> = line.match_indices(ALLOW).map(|(i, _)| i).collect();
     let mut out = Vec::new();
     for (k, &start) in starts.iter().enumerate() {
@@ -76,7 +87,12 @@ fn parse_line(line: &str) -> Vec<(usize, String, Option<String>)> {
             .strip_prefix(':')
             .map(trim_reason)
             .filter(|r| !r.is_empty());
-        out.push((line[..start].chars().count() + 1, rule, reason));
+        out.push(Found {
+            start,
+            col: line[..start].chars().count() + 1,
+            rule,
+            reason,
+        });
     }
     out
 }

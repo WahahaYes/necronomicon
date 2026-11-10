@@ -8,6 +8,8 @@ use std::path::Path;
 
 use regex::Regex;
 
+use crate::yaml::{self, Value};
+
 use super::grep::read_list;
 
 const USAGE: &str = "necro agent-files [--write [--only-at <file>]] \
@@ -266,27 +268,83 @@ fn skill_misplaced(index: &BTreeMap<String, Entry>) -> Vec<String> {
     hits
 }
 
-/// The frontmatter lines of a SKILL.md, with their 1-based numbers, or `None` without one.
-fn frontmatter(path: &str) -> Option<Vec<(usize, String)>> {
-    let text = std::fs::read_to_string(path).ok()?;
-    let mut lines = text.lines().enumerate();
-    if lines.next()?.1.trim() != "---" {
-        return None;
-    }
-    Some(
-        lines
-            .take_while(|(_, l)| l.trim() != "---")
-            .map(|(i, l)| (i + 1, l.to_string()))
-            .collect(),
-    )
+/// A SKILL.md's frontmatter, from between its two `---` lines.
+enum Frontmatter {
+    /// The file doesn't open with a `---` line.
+    Missing,
+    /// The text between the `---` lines isn't one YAML mapping.
+    Invalid(yaml::Pos, String),
+    /// The parsed mapping, positions counted from the file's line 1.
+    Parsed(yaml::Node),
 }
 
-/// A frontmatter key's value at the top level, unquoted, with its line.
-fn key<'a>(fm: &'a [(usize, String)], name: &str) -> Option<(usize, &'a str)> {
-    fm.iter().find_map(|(n, l)| {
-        let v = l.strip_prefix(name)?.strip_prefix(':')?;
-        Some((*n, v.trim().trim_matches(|c| c == '"' || c == '\'')))
-    })
+/// Read a SKILL.md's frontmatter, parsing it as YAML and shifting its
+/// positions from the body (which starts on line 2) to the file.
+fn frontmatter(path: &str) -> Frontmatter {
+    let Ok(text) = std::fs::read_to_string(path) else {
+        return Frontmatter::Missing;
+    };
+    let mut lines = text.lines();
+    if lines.next().map(str::trim) != Some("---") {
+        return Frontmatter::Missing;
+    }
+    let body: Vec<&str> = lines.take_while(|l| l.trim() != "---").collect();
+    match yaml::parse(&body.join("\n")) {
+        Ok(mut node) => {
+            shift(&mut node, 1);
+            if matches!(node.value, Value::Map(_) | Value::Null) {
+                Frontmatter::Parsed(node)
+            } else {
+                let message = format!("expected a mapping, got {}", node.kind());
+                Frontmatter::Invalid(node.pos, message)
+            }
+        }
+        Err((pos, message)) => Frontmatter::Invalid(
+            yaml::Pos {
+                line: pos.line + 1,
+                col: pos.col,
+            },
+            message,
+        ),
+    }
+}
+
+/// Move every position in the tree down by `lines`.
+fn shift(node: &mut yaml::Node, lines: usize) {
+    node.pos.line += lines;
+    match &mut node.value {
+        Value::Map(items) => {
+            for (key, value) in items {
+                key.pos.line += lines;
+                shift(value, lines);
+            }
+        }
+        Value::Seq(items) => {
+            for item in items {
+                shift(item, lines);
+            }
+        }
+        Value::Str(_) | Value::Plain(_) | Value::Null => {}
+    }
+}
+
+/// A mapping key's value and its line, from a parsed mapping.
+fn field<'a>(node: &'a yaml::Node, name: &str) -> Option<(&'a yaml::Node, usize)> {
+    let Value::Map(items) = &node.value else {
+        return None;
+    };
+    items
+        .iter()
+        .find(|(key, _)| key.name == name)
+        .map(|(key, value)| (value, key.pos.line))
+}
+
+/// A scalar's text, whether YAML read it as a string or a plain scalar.
+fn scalar(node: &yaml::Node) -> Option<&str> {
+    match &node.value {
+        Value::Str(s) | Value::Plain(s) => Some(s),
+        _ => None,
+    }
 }
 
 /// `skill-frontmatter`: each SKILL.md opens with frontmatter naming its folder and saying what it's for.
@@ -294,25 +352,38 @@ fn skill_frontmatter(index: &BTreeMap<String, Entry>) -> Vec<String> {
     let mut hits = Vec::new();
     for path in index.keys().filter(|p| base(p) == "SKILL.md") {
         let folder = base(dir_of(path).trim_end_matches('/'));
-        let Some(fm) = frontmatter(path) else {
-            hits.push(format!("{path}:1:1: no --- frontmatter"));
-            continue;
-        };
-        match key(&fm, "name") {
-            None => hits.push(format!("{path}:1:1: no name")),
-            Some((n, v)) if v != folder => hits.push(format!("{path}:{n}:1: name {v} isn't the folder's, {folder}")),
-            Some((n, v)) if !crate::config::valid_name(v) || v.len() > 64 => {
-                hits.push(format!("{path}:{n}:1: name {v} isn't lowercase words joined by hyphens, up to 64 characters"))
+        let node = match frontmatter(path) {
+            Frontmatter::Missing => {
+                hits.push(format!("{path}:1:1: no --- frontmatter"));
+                continue;
             }
-            Some(_) => {}
+            Frontmatter::Invalid(pos, message) => {
+                hits.push(format!("{path}:{}:{}: {message}", pos.line, pos.col));
+                continue;
+            }
+            Frontmatter::Parsed(node) => node,
+        };
+        match field(&node, "name") {
+            None => hits.push(format!("{path}:1:1: no name")),
+            Some((value, line)) => {
+                let name = scalar(value).unwrap_or_default();
+                if name != folder {
+                    hits.push(format!(
+                        "{path}:{line}:1: name {name} isn't the folder's, {folder}"
+                    ));
+                } else if !crate::config::valid_name(name) || name.len() > 64 {
+                    hits.push(format!("{path}:{line}:1: name {name} isn't lowercase words joined by hyphens, up to 64 characters"));
+                }
+            }
         }
-        match key(&fm, "description") {
-            Some((_, v)) if !v.is_empty() && v.len() <= 1024 => {}
-            Some((n, v)) if !v.is_empty() => hits.push(format!(
-                "{path}:{n}:1: description over 1024 characters ({})",
-                v.len()
+        match field(&node, "description").and_then(|(value, line)| scalar(value).map(|d| (d, line)))
+        {
+            None | Some(("", _)) => hits.push(format!("{path}:1:1: no description")),
+            Some((description, line)) if description.len() > 1024 => hits.push(format!(
+                "{path}:{line}:1: description over 1024 characters ({})",
+                description.len()
             )),
-            _ => hits.push(format!("{path}:1:1: no description")),
+            Some(_) => {}
         }
     }
     hits
@@ -387,19 +458,10 @@ fn rule_reference(index: &BTreeMap<String, Entry>) -> Result<Vec<String>, String
 }
 
 /// The version an installed necro skill was written by, from `metadata: necro-version:`.
-fn stamped_version(path: &str) -> Option<(usize, String)> {
-    let fm = frontmatter(path)?;
-    let start = fm.iter().position(|(_, l)| l.trim_end() == "metadata:")?;
-    fm[start + 1..]
-        .iter()
-        .take_while(|(_, l)| l.starts_with(' '))
-        .find_map(|(n, l)| {
-            let v = l.trim().strip_prefix("necro-version:")?;
-            Some((
-                *n,
-                v.trim().trim_matches(|c| c == '"' || c == '\'').to_string(),
-            ))
-        })
+fn stamped_version(node: &yaml::Node) -> Option<(usize, String)> {
+    let (metadata, _) = field(node, "metadata")?;
+    let (version, line) = field(metadata, "necro-version")?;
+    Some((line, scalar(version)?.to_string()))
 }
 
 /// `stale-skill`: a skill `necro skills install` wrote for another necro version.
@@ -409,7 +471,10 @@ fn stale_skill(index: &BTreeMap<String, Entry>) -> Vec<String> {
         .keys()
         .filter(|p| base(p) == "SKILL.md" && !index.get(*p).is_some_and(|e| e.link))
         .filter_map(|p| {
-            let (n, v) = stamped_version(p)?;
+            let Frontmatter::Parsed(node) = frontmatter(p) else {
+                return None;
+            };
+            let (n, v) = stamped_version(&node)?;
             (v != current).then(|| format!("{p}:{n}:1: from necro {v}; this is necro {current}"))
         })
         .collect()
