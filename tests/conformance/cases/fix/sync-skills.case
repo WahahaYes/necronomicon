@@ -1,0 +1,57 @@
+# a checker command plus autofix re-copies a drifted skill copy; {files} are the hit files
+spec: Fixes
+args: --fix --format terse
+exit: 1
+-- necro.yaml --
+version: 0
+rules:
+  plugin-skills-sync:
+    command: uv run --script scripts/sync.py --check
+    files: '(^|/)(necro|necro-rules|necro-adopt)/SKILL\.md$'
+    autofix: uv run --script scripts/sync.py --fix {files}
+    message: a plugin skill copy that differs from its canonical skill
+    why: Because.
+    fix: Finish it.
+-- scripts/sync.py --
+# A small stand-in for release-meta.py sync-skills: same `path: label`
+# protocol, but plain byte-identity (the real one adds a derivation header).
+import sys
+from pathlib import Path
+
+CANONICAL = Path(".agents/skills/necro/SKILL.md")
+COPY = Path("plugins/p/skills/necro/SKILL.md")
+
+
+def drifted():
+    return not COPY.exists() or COPY.read_bytes() != CANONICAL.read_bytes()
+
+
+if sys.argv[1] == "--check":
+    if drifted():
+        print(f"{COPY}: differs from {CANONICAL}")
+elif sys.argv[1] == "--fix":
+    COPY.parent.mkdir(parents=True, exist_ok=True)
+    COPY.write_bytes(CANONICAL.read_bytes())
+-- .agents/skills/necro/SKILL.md --
+---
+name: necro
+description: Canary.
+---
+
+Canonical.
+-- plugins/p/skills/necro/SKILL.md --
+---
+name: necro
+description: Canary.
+---
+
+Drifted.
+-- @stdout --
+necro: fixed 1 hit in 1 file (plugin-skills-sync ×1); review and re-stage them. Why: necro --explain plugin-skills-sync
+-- @file plugins/p/skills/necro/SKILL.md --
+---
+name: necro
+description: Canary.
+---
+
+Canonical.

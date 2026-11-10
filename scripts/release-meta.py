@@ -8,6 +8,13 @@
                                 and re-copy .agents/skills into every harness
                                 plugin skills/ dir; same commit as the Cargo
                                 bump in release.sh open_pr
+  release-meta.py sync-skills [--check] [FILE…]
+                                re-copy .agents/skills into every harness
+                                plugin skills/ dir (--check prints each
+                                drifted copy instead, for the
+                                plugin-skills-sync rule; extra files, from
+                                an autofix {files} expansion, are ignored:
+                                the re-copy is total)
   release-meta.py notes X.Y.Z   print the CHANGELOG.md section for X.Y.Z;
                                 exit 1 when there is none
   release-meta.py changelog X.Y.Z DATE [NOTES_FILE]
@@ -93,16 +100,14 @@ def derived(name):
     return "\n".join(lines[: end + 1] + ["", header, ""] + rest)
 
 
-def stamp(ver):
-    for rel in STAMP_FILES:
-        target = ROOT / rel
-        try:
-            data = json.loads(target.read_text())
-        except (OSError, ValueError) as e:
-            print("release-meta: can't stamp %s: %s" % (rel, e), file=sys.stderr)
-            return 1
-        data["version"] = ver
-        target.write_text(json.dumps(data, indent=2) + "\n")
+def sync_skills(*args):
+    """Re-copy .agents/skills into every harness plugin skills/ dir. With
+    --check, print each drifted copy, `path: label`, instead of writing
+    (the plugin-skills-sync rule's command). Any other arguments are an
+    autofix {files} expansion and are ignored: the re-copy is total and
+    idempotent."""
+    if args[:1] == ("--check",):
+        return check_skills()
     for folder in STAMP_SKILL_DIRS:
         for name in STAMP_SKILLS:
             try:
@@ -113,6 +118,40 @@ def stamp(ver):
             (ROOT / folder / name).mkdir(parents=True, exist_ok=True)
             (ROOT / folder / name / "SKILL.md").write_text(text)
     return 0
+
+
+def check_skills():
+    """Print each plugin skill copy that differs from its canonical skill.
+    A missing copy is reported on its canonical skill, since a hit's path
+    must name a file that exists."""
+    for name in STAMP_SKILLS:
+        try:
+            want = derived(name)
+        except ValueError as e:
+            print("release-meta: %s" % e, file=sys.stderr)
+            return 2
+        canonical = (ROOT / ".agents/skills" / name / "SKILL.md").relative_to(ROOT).as_posix()
+        for folder in STAMP_SKILL_DIRS:
+            copy = ROOT / folder / name / "SKILL.md"
+            rel = copy.relative_to(ROOT).as_posix()
+            if not copy.exists():
+                print("%s: plugin copy %s is missing" % (canonical, rel))
+            elif copy.read_text() != want:
+                print("%s: differs from %s" % (rel, canonical))
+    return 0
+
+
+def stamp(ver):
+    for rel in STAMP_FILES:
+        target = ROOT / rel
+        try:
+            data = json.loads(target.read_text())
+        except (OSError, ValueError) as e:
+            print("release-meta: can't stamp %s: %s" % (rel, e), file=sys.stderr)
+            return 1
+        data["version"] = ver
+        target.write_text(json.dumps(data, indent=2) + "\n")
+    return sync_skills()
 
 
 def section(text, heading):
@@ -199,7 +238,8 @@ def stale():
 
 
 if __name__ == "__main__":
-    cmds = {"check": (check, 1), "stamp": (stamp, 1), "notes": (notes, 1), "changelog": (changelog, 2, 3), "stale": (stale, 0)}
+    cmds = {"check": (check, 1), "stamp": (stamp, 1), "sync-skills": (sync_skills, 0, float("inf")),
+            "notes": (notes, 1), "changelog": (changelog, 2, 3), "stale": (stale, 0)}
     args = sys.argv[2:]
     spec = cmds.get(sys.argv[1] if len(sys.argv) > 1 else "")
     if not spec or not (spec[1] <= len(args) <= spec[-1]):
