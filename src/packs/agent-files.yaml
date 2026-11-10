@@ -40,6 +40,7 @@ rules:
     details: |
       The name is lowercase words joined by hyphens, up to 64 characters,
       and matches the folder; the description is under 1024 characters.
+      Frontmatter is YAML, and must be one mapping.
     examples:
       bad: '# Releasing'
       good: |

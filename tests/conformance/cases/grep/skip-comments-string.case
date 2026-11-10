@@ -1,0 +1,11 @@
+# --skip-comments keeps a marker inside a triple-quoted string, even when the string opened on an earlier line
+spec: Finders
+args: grep --skip-comments '#' donkey -- 'src/*'
+-- src/a.gd --
+var text = """
+# donkey
+"""
+var a = donkey # donkey
+-- @stdout --
+src/a.gd:2:3-8: donkey
+src/a.gd:4:9-14: donkey

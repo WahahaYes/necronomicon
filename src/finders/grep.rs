@@ -5,11 +5,14 @@
 
 use std::sync::atomic::{AtomicUsize, Ordering};
 
+use crate::args::{self, Spec};
+use crate::command::Hit;
 use fancy_regex::Regex;
 use globset::{GlobBuilder, GlobSet, GlobSetBuilder};
 use regex_syntax::hir::literal::{ExtractKind, Extractor};
 
-use super::{regex_error, split_pathspecs, text_lines, tracked};
+use super::gdscript;
+use super::{regex_error, text_lines, tracked};
 
 const USAGE: &str = "necro grep [--skip-comments <marker>]… [--glob <glob>]… \
      [--files-from <file>] [--replace <text> [--write] [--only-at <file>]] <regex> \
@@ -31,53 +34,43 @@ const MAX_LITERALS: usize = 64;
 const FILES_PER_THREAD: usize = 64;
 
 /// The `grep` finder: every regex match in the tracked files.
-pub fn run(args: &[String]) -> Result<Vec<String>, String> {
-    let (opts, pathspecs) = split_pathspecs(args);
-    let mut markers: Vec<String> = Vec::new();
-    let mut globs: Vec<String> = Vec::new();
-    let mut lists: Vec<String> = Vec::new();
-    let mut replaces: Vec<String> = Vec::new();
-    let mut only_at: Vec<String> = Vec::new();
-    let mut write = false;
-    let mut pattern: Option<&String> = None;
-    let mut it = opts.iter();
-    while let Some(arg) = it.next() {
-        if let Some((name, list)) = [
-            ("--skip-comments", &mut markers),
-            ("--glob", &mut globs),
-            ("--files-from", &mut lists),
-            ("--replace", &mut replaces),
-            ("--only-at", &mut only_at),
-        ]
+pub fn run(args: &[String]) -> Result<Vec<Hit>, String> {
+    let parsed = args::parse(
+        args,
+        &Spec {
+            values: &[
+                "--skip-comments",
+                "--glob",
+                "--files-from",
+                "--replace",
+                "--only-at",
+            ],
+            flags: &["--write"],
+            pathspecs: true,
+        },
+    )
+    .map_err(|e| e.with_usage(USAGE))?;
+    let markers: Vec<String> = parsed
+        .values("--skip-comments")
         .into_iter()
-        .find(|(name, _)| arg == name || arg.starts_with(&format!("{name}=")))
-        {
-            let value = match arg.strip_prefix(&format!("{name}=")) {
-                Some(v) => v.to_string(),
-                None => it
-                    .next()
-                    .ok_or(format!("{name} needs a value: {USAGE}"))?
-                    .clone(),
-            };
-            list.push(value);
-        } else if arg == "--write" && pattern.is_none() {
-            write = true;
-        } else if arg.starts_with('-') && arg.len() > 1 && pattern.is_none() {
-            return Err(format!("unknown option {arg}: {USAGE}"));
-        } else if pattern.is_none() {
-            pattern = Some(arg);
-        } else {
-            return Err(format!(
-                "unexpected argument {arg}; pathspecs go after --: {USAGE}"
-            ));
-        }
-    }
+        .map(String::from)
+        .collect();
     if markers.iter().any(String::is_empty) {
         return Err("--skip-comments needs a non-empty marker".into());
     }
-    let pattern = pattern.ok_or(format!("give a regex: {USAGE}"))?;
+    let Some(pattern) = parsed.positional.first() else {
+        return Err(format!("give a regex: {USAGE}"));
+    };
+    if let Some(extra) = parsed.positional.get(1) {
+        return Err(format!(
+            "unexpected argument {extra}; pathspecs go after --: {USAGE}"
+        ));
+    }
     let re = Regex::new(pattern)
         .map_err(|e| format!("`{pattern}` isn't a valid regex ({})", regex_error(&e)))?;
+    let mut replaces = parsed.values("--replace");
+    let only_at = parsed.values("--only-at");
+    let write = parsed.flag("--write");
     if replaces.len() > 1 || only_at.len() > 1 {
         return Err(format!("give --replace and --only-at once each: {USAGE}"));
     }
@@ -85,18 +78,24 @@ pub fn run(args: &[String]) -> Result<Vec<String>, String> {
         return Err(format!("--write and --only-at need --replace: {USAGE}"));
     }
     let fix = Fix {
-        replace: replaces.pop(),
+        replace: replaces.pop().map(String::from),
         write,
         only: only_at.first().map(|l| read_list(l)).transpose()?,
     };
+    let globs: Vec<String> = parsed
+        .values("--glob")
+        .into_iter()
+        .map(String::from)
+        .collect();
     let globs = Globs::new(&globs)?;
+    let lists = parsed.values("--files-from");
     let only = match lists.as_slice() {
         [] => None,
         [list] => Some(read_list(list)?),
         _ => return Err(format!("give --files-from once: {USAGE}")),
     };
-    let mut specs = pathspecs.to_vec();
-    specs.extend(globs.pushdown(pathspecs.is_empty()));
+    let mut specs = parsed.pathspecs.clone();
+    specs.extend(globs.pushdown(parsed.pathspecs.is_empty()));
     let files: Vec<String> = tracked(&specs, required_text(pattern).as_deref())?
         .into_iter()
         .filter(|path| globs.keeps(path))
@@ -213,18 +212,13 @@ fn required_text(pattern: &str) -> Option<Vec<String>> {
 }
 
 /// Every hit in the files, on all cores, in the files' order.
-fn search(
-    files: &[String],
-    re: &Regex,
-    markers: &[String],
-    fix: &Fix,
-) -> Result<Vec<String>, String> {
+fn search(files: &[String], re: &Regex, markers: &[String], fix: &Fix) -> Result<Vec<Hit>, String> {
     let threads = std::thread::available_parallelism()
         .map_or(1, |n| n.get())
         .min(files.len().div_ceil(FILES_PER_THREAD))
         .max(1);
     let next = AtomicUsize::new(0);
-    let found: Vec<(usize, Vec<String>)> = std::thread::scope(|s| {
+    let found: Vec<(usize, Vec<Hit>)> = std::thread::scope(|s| {
         let workers: Vec<_> = (0..threads)
             .map(|_| {
                 s.spawn(|| {
@@ -252,11 +246,10 @@ fn search(
     Ok(found.into_iter().flat_map(|(_, hits)| hits).collect())
 }
 
-/// One file's hits, `path:line:col-endcol: <match>` (or, with `--replace`,
-/// `replace with "<text>"`); with `--write`, the file rewritten and the hits
+/// One file's hits as `command::Hit`; with `--write`, the file rewritten and the hits
 /// it replaced. An error when the regex gives up on a line (fancy_regex's
 /// backtracking limit).
-fn file_hits(path: &str, re: &Regex, markers: &[String], fix: &Fix) -> Result<Vec<String>, String> {
+fn file_hits(path: &str, re: &Regex, markers: &[String], fix: &Fix) -> Result<Vec<Hit>, String> {
     if fix
         .only
         .as_ref()
@@ -280,12 +273,16 @@ fn file_hits(path: &str, re: &Regex, markers: &[String], fix: &Fix) -> Result<Ve
             None => return Ok(Vec::new()),
         }
     };
+    let source = (!markers.is_empty()).then(|| gdscript::scan(&text, markers));
     let mut hits = Vec::new();
     let mut out = String::with_capacity(text.len());
     for (n, raw) in text.split_inclusive('\n').enumerate() {
         let body = raw.trim_end_matches('\n').trim_end_matches('\r');
         let ending = &raw[body.len()..];
-        let code = &body[..code_end(body, markers)];
+        let end = source
+            .as_ref()
+            .map_or(body.len(), |source| source.code_end(n));
+        let code = &body[..end];
         let mut last = 0;
         if fix.replace.is_none() {
             for m in re.find_iter(code) {
@@ -295,7 +292,13 @@ fn file_hits(path: &str, re: &Regex, markers: &[String], fix: &Fix) -> Result<Ve
                 }
                 let col = code[..m.start()].chars().count() + 1;
                 let end = col + m.as_str().chars().count() - 1;
-                hits.push(format!("{path}:{}:{col}-{end}: {}", n + 1, m.as_str()));
+                hits.push(Hit {
+                    path: path.to_string(),
+                    line: n + 1,
+                    col,
+                    endcol: Some(end),
+                    label: m.as_str().to_string(),
+                });
             }
             continue;
         }
@@ -317,7 +320,13 @@ fn file_hits(path: &str, re: &Regex, markers: &[String], fix: &Fix) -> Result<Ve
                 out.push_str(&with);
                 last = m.end();
             }
-            hits.push(format!("{at}-{end}: replace with \"{with}\""));
+            hits.push(Hit {
+                path: path.to_string(),
+                line: n + 1,
+                col,
+                endcol: Some(end),
+                label: format!("replace with \"{with}\""),
+            });
         }
         out.push_str(&body[last..]);
         out.push_str(ending);
@@ -326,27 +335,4 @@ fn file_hits(path: &str, re: &Regex, markers: &[String], fix: &Fix) -> Result<Ve
         std::fs::write(path, out).map_err(|e| format!("can't write {path}: {e}"))?;
     }
     Ok(hits)
-}
-
-/// The byte offset where a line's comment starts: the first marker outside a
-/// `"…"` or `'…'` string, or the line's end.
-fn code_end(line: &str, markers: &[String]) -> usize {
-    if markers.is_empty() {
-        return line.len();
-    }
-    let mut quote: Option<char> = None;
-    let mut chars = line.char_indices();
-    while let Some((i, c)) = chars.next() {
-        match quote {
-            Some(_) if c == '\\' => {
-                chars.next();
-            }
-            Some(q) if c == q => quote = None,
-            Some(_) => {}
-            None if c == '"' || c == '\'' => quote = Some(c),
-            None if markers.iter().any(|m| line[i..].starts_with(m.as_str())) => return i,
-            None => {}
-        }
-    }
-    line.len()
 }

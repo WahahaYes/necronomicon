@@ -1,6 +1,8 @@
 //! `necro clippy` (spec: Finders): clippy lints as hits, one cached run per
 //! workspace for every rule that uses it.
 
+use crate::args::{self, Spec};
+use crate::command::Hit;
 use std::collections::BTreeMap;
 use std::process::Command;
 
@@ -39,67 +41,76 @@ struct Options {
 }
 
 fn parse(args: &[String]) -> Result<Options, String> {
-    let mut o = Options {
-        tests: false,
-        keep: None,
-        drop: None,
-        lints: Vec::new(),
-        others: false,
-        except: Vec::new(),
-    };
-    let mut it = args.iter();
-    while let Some(arg) = it.next() {
-        match arg.as_str() {
-            "--tests" => o.tests = true,
-            "--others" => o.others = true,
-            a if a == "--except" || a.starts_with("--except=") => {
-                let list = match a.strip_prefix("--except=") {
-                    Some(v) => v.to_string(),
-                    None => it
-                        .next()
-                        .ok_or(format!("--except needs lints: {USAGE}"))?
-                        .clone(),
-                };
-                o.except.extend(
-                    list.split(',')
-                        .map(|l| l.trim().trim_start_matches("clippy::").to_string())
-                        .filter(|l| !l.is_empty()),
-                );
-            }
-            "--match" | "--skip" => {
-                let pattern = it.next().ok_or(format!("{arg} needs a regex: {USAGE}"))?;
-                let re =
-                    Regex::new(pattern).map_err(|_| format!("`{pattern}` isn't a valid regex"))?;
-                if arg == "--match" {
-                    o.keep = Some(re);
-                } else {
-                    o.drop = Some(re);
-                }
-            }
-            a if a.starts_with('-') => return Err(format!("unknown option {a}: {USAGE}")),
-            lint if LINTS.contains(&lint) => o.lints.push(lint.to_string()),
-            lint => {
-                return Err(format!(
+    let parsed = args::parse(
+        args,
+        &Spec {
+            values: &["--match", "--skip", "--except"],
+            flags: &["--tests", "--others"],
+            pathspecs: false,
+        },
+    )
+    .map_err(|e| e.with_usage(USAGE))?;
+
+    let tests = parsed.flag("--tests");
+    let others = parsed.flag("--others");
+
+    let keep = parsed
+        .value("--match")
+        .map(|pattern| Regex::new(pattern).map_err(|_| format!("`{pattern}` isn't a valid regex")))
+        .transpose()?;
+
+    let drop = parsed
+        .value("--skip")
+        .map(|pattern| Regex::new(pattern).map_err(|_| format!("`{pattern}` isn't a valid regex")))
+        .transpose()?;
+
+    let except: Vec<String> = parsed
+        .values("--except")
+        .into_iter()
+        .flat_map(|list| {
+            list.split(',')
+                .map(|l| l.trim().trim_start_matches("clippy::").to_string())
+                .filter(|l| !l.is_empty())
+        })
+        .collect();
+
+    let lints: Vec<String> = parsed
+        .positional
+        .iter()
+        .map(|lint| {
+            if LINTS.contains(&lint.as_str()) {
+                Ok(lint.clone())
+            } else {
+                Err(format!(
                     "{lint} isn't one of necro clippy's lints: {}",
                     LINTS.join(", ")
-                ));
+                ))
             }
-        }
-    }
-    if o.others && !o.lints.is_empty() {
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+
+    if others && !lints.is_empty() {
         return Err(format!("--others takes no lints: {USAGE}"));
     }
-    if !o.others && !o.except.is_empty() {
+    if !others && !except.is_empty() {
         return Err(format!("--except goes with --others: {USAGE}"));
     }
-    if !o.others && o.lints.is_empty() {
+    if !others && lints.is_empty() {
         return Err(format!("give at least one lint: {USAGE}"));
     }
-    Ok(o)
+
+    Ok(Options {
+        tests,
+        keep,
+        drop,
+        lints,
+        others,
+        except,
+    })
 }
 
 /// The `clippy` finder: the given lints' hits in every workspace.
-pub fn run(args: &[String]) -> Result<Vec<String>, String> {
+pub fn run(args: &[String]) -> Result<Vec<Hit>, String> {
     let o = parse(args)?;
     let wanted: Vec<String> = o.lints.iter().map(|l| format!("clippy::{l}")).collect();
     // (path, line) -> (column, location, message): one hit per line.
@@ -109,7 +120,20 @@ pub fn run(args: &[String]) -> Result<Vec<String>, String> {
     }
     Ok(hits
         .into_iter()
-        .map(|((path, line), (_, col, message))| format!("{path}:{line}:{col}: {message}"))
+        .map(|((path, line), (start, col, message))| {
+            let endcol = if col.contains('-') {
+                col.split_once('-').and_then(|(_, e)| e.parse().ok())
+            } else {
+                None
+            };
+            Hit {
+                path,
+                line,
+                col: start,
+                endcol,
+                label: message,
+            }
+        })
         .collect())
 }
 

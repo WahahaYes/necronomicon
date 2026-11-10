@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- **Options parse the same way in the CLI and every finder.** A value option takes `--name=value` as well as `--name value` (`agent-files` and `rustfmt` rejected `--only-at=…`, `clippy` rejected `--match=…`), options may come anywhere before `--` (`grep` took `--write` only before its regex), and an option a command doesn't know is always `unknown option`.
+- **`agent-files/skill-frontmatter`** reads a `SKILL.md`'s frontmatter as YAML and reports frontmatter that doesn't parse or isn't one mapping, rather than half-reading it line by line.
+- **`gdscan`** no longer loses its place after a bracket inside a triple-quoted string, so `spacing` and `inline-lambda` keep finding later hits.
+- **`necro grep --skip-comments`** keeps a comment marker inside a `"""` string, even one spanning lines, so a `#` in GDScript text isn't read as a comment.
+- **`necro rust-docs`** uses a single stateful scanner that tracks block comments, strings, raw strings and character literals across lines, so brackets inside them no longer skew the `cfg(test)` module depth.
+
 ## 0.5.1 - 2026-11-06
 
 - **`rust/clippy`** in `necro:rust`: every other warning rustc and clippy give, tests included, labelled with its lint, from the clippy build the other rules already share. Its `skip` parameter drops lints by name; lints the crate's `[lints]` tables turn on show up too. Repos can drop a `cargo clippy -- -D warnings` hook and its second build. `necro clippy --others [--except=…]` is its finder mode, and necro's clippy run now caps lint levels at warn, so a denied lint is a hit rather than a check error.

@@ -5,62 +5,48 @@
 use std::collections::HashSet;
 use std::process::Command;
 
+use crate::args::{self, Spec};
+use crate::command::Hit;
 use regex::Regex;
 
 use super::gdscan::{gd_files, has_inline_lambda};
 use super::grep::read_list;
-use super::split_pathspecs;
 
 const USAGE: &str = "necro gdtoolkit [--files-from <file>] [--line-length <n>] \
                      [--write [--only-at <file>]] (format|lint|parse) [-- <pathspec>…]";
+
+/// The checks `gdtoolkit` knows.
+const CHECKS: &[&str] = &["format", "lint", "parse"];
 
 /// Files per tool run, so a large repo stays under the argument limit.
 const CHUNK: usize = 400;
 
 /// The `gdtoolkit` finder.
-pub fn run(args: &[String]) -> Result<Vec<String>, String> {
-    let (opts, pathspecs) = split_pathspecs(args);
-    let mut list: Option<String> = None;
-    let mut only_at: Option<String> = None;
-    let mut line_length: Option<String> = None;
-    let mut write = false;
-    let mut check: Option<&str> = None;
-    let mut it = opts.iter();
-    while let Some(arg) = it.next() {
-        let (flag, inline) = match arg.split_once('=') {
-            Some((f, v)) if arg.starts_with("--") => (f, Some(v.to_string())),
-            _ => (arg.as_str(), None),
-        };
-        let mut value = || -> Result<String, String> {
-            inline
-                .clone()
-                .or_else(|| it.next().cloned())
-                .ok_or(format!("{flag} needs a value: {USAGE}"))
-        };
-        match flag {
-            "--files-from" => list = Some(value()?),
-            "--only-at" => only_at = Some(value()?),
-            "--line-length" => {
-                let v = value()?;
-                if v.parse::<usize>().map_or(true, |n| n == 0) {
-                    return Err(format!("--line-length takes a whole number, got {v}"));
-                }
-                line_length = Some(v);
-            }
-            "--write" => write = true,
-            f if f.starts_with('-') => return Err(format!("unknown option {f}: {USAGE}")),
-            c if check.is_none() => check = Some(c),
-            other => return Err(format!("unexpected argument {other}: {USAGE}")),
+pub fn run(args: &[String]) -> Result<Vec<Hit>, String> {
+    let parsed = args::parse(
+        args,
+        &Spec {
+            values: &["--files-from", "--only-at", "--line-length"],
+            flags: &["--write"],
+            pathspecs: true,
+        },
+    )
+    .map_err(|e| e.with_usage(USAGE))?;
+    let list = parsed.value("--files-from");
+    let only_at = parsed.value("--only-at");
+    let mut line_length = None;
+    for v in parsed.values("--line-length") {
+        if v.parse::<usize>().map_or(true, |n| n == 0) {
+            return Err(format!("--line-length takes a whole number, got {v}"));
         }
+        line_length = Some(v);
     }
-    let check = check.ok_or(format!("name a check: {USAGE}"))?;
-    if !["format", "lint", "parse"].contains(&check) {
-        return Err(format!("unknown check {check}: {USAGE}"));
-    }
+    let write = parsed.flag("--write");
+    let check = args::check(&parsed.positional, CHECKS, USAGE)?;
     if (write || only_at.is_some()) && check != "format" {
         return Err(format!("--write and --only-at go with format: {USAGE}"));
     }
-    let mut only = list.as_deref().map(read_list).transpose()?;
+    let mut only = list.map(read_list).transpose()?;
     if let Some(at) = &only_at {
         // `path:line:col` lines; a whole-file hit is just `path`.
         let files: HashSet<String> = read_list(at)?
@@ -72,16 +58,19 @@ pub fn run(args: &[String]) -> Result<Vec<String>, String> {
             None => files,
         });
     }
-    let files = gd_files(pathspecs, only.as_ref())?;
+    let files = gd_files(&parsed.pathspecs, only.as_ref())?;
     if files.is_empty() {
         return Ok(vec![]);
     }
     let length: Vec<String> = line_length
-        .map(|n| vec!["--line-length".to_string(), n])
+        .map(|n| vec!["--line-length".to_string(), n.to_string()])
         .unwrap_or_default();
     match check {
         "lint" => lint(&files),
-        "parse" => Ok(gdformat_check(&files, &length)?.parse_errors),
+        "parse" => {
+            let check = gdformat_check(&files, &length)?;
+            Ok(check.parse_errors)
+        }
         _ if write => format_write(&files, &length),
         _ => {
             let found = gdformat_check(&files, &length)?;
@@ -90,11 +79,21 @@ pub fn run(args: &[String]) -> Result<Vec<String>, String> {
                 .iter()
                 .map(|f| {
                     if has_inline_lambda(f) {
-                        format!(
-                            "{f}: needs reformatting; --fix skips it, as gdformat corrupts a lambda inside brackets"
-                        )
+                        Hit {
+                            path: f.to_string(),
+                            line: 0,
+                            col: 0,
+                            endcol: None,
+                            label: "needs reformatting; --fix skips it, as gdformat corrupts a lambda inside brackets".to_string(),
+                        }
                     } else {
-                        format!("{f}: needs reformatting")
+                        Hit {
+                            path: f.to_string(),
+                            line: 0,
+                            col: 0,
+                            endcol: None,
+                            label: "needs reformatting".to_string(),
+                        }
                     }
                 })
                 .collect())
@@ -105,7 +104,7 @@ pub fn run(args: &[String]) -> Result<Vec<String>, String> {
 /// What `gdformat --check` found.
 struct Check {
     reformat: Vec<String>,
-    parse_errors: Vec<String>,
+    parse_errors: Vec<Hit>,
 }
 
 /// Run a gdtoolkit program over the files in chunks: (exit code, stdout and stderr) per chunk.
@@ -132,7 +131,7 @@ fn tool(program: &str, args: &[String], files: &[String]) -> Result<Vec<(i32, St
 /// Parse-error blocks in a tool's output: `path:` alone on a line, then
 /// the code, then a message with `at line N, column M` (or `col M`).
 /// Returns hits and the lines that were part of no block.
-fn parse_blocks(text: &str, files: &HashSet<&str>) -> (Vec<String>, Vec<String>) {
+fn parse_blocks(text: &str, files: &HashSet<&str>) -> (Vec<Hit>, Vec<String>) {
     let Ok(pos) = Regex::new(r"line (\d+),? col(?:umn)? (\d+)") else {
         return (vec![], vec![]);
     };
@@ -143,7 +142,13 @@ fn parse_blocks(text: &str, files: &HashSet<&str>) -> (Vec<String>, Vec<String>)
         let t = line.trim();
         if let Some(f) = t.strip_suffix(':').filter(|f| files.contains(f)) {
             if let Some(prev) = open {
-                hits.push(format!("{prev}: can't parse"));
+                hits.push(Hit {
+                    path: prev.to_string(),
+                    line: 0,
+                    col: 0,
+                    endcol: None,
+                    label: "can't parse".to_string(),
+                });
             }
             open = Some(f);
             continue;
@@ -151,7 +156,13 @@ fn parse_blocks(text: &str, files: &HashSet<&str>) -> (Vec<String>, Vec<String>)
         if let Some(f) = open {
             if let Some(c) = pos.captures(t) {
                 let message = t.split(" at line").next().unwrap_or(t);
-                hits.push(format!("{f}:{}:{}: {message}", &c[1], &c[2]));
+                hits.push(Hit {
+                    path: f.to_string(),
+                    line: c[1].parse().unwrap_or(0),
+                    col: c[2].parse().unwrap_or(0),
+                    endcol: None,
+                    label: message.to_string(),
+                });
                 open = None;
             }
             continue;
@@ -159,7 +170,13 @@ fn parse_blocks(text: &str, files: &HashSet<&str>) -> (Vec<String>, Vec<String>)
         rest.push(line.to_string());
     }
     if let Some(f) = open {
-        hits.push(format!("{f}: can't parse"));
+        hits.push(Hit {
+            path: f.to_string(),
+            line: 0,
+            col: 0,
+            endcol: None,
+            label: "can't parse".to_string(),
+        });
     }
     (hits, rest)
 }
@@ -211,31 +228,39 @@ fn gdformat_check(files: &[String], length: &[String]) -> Result<Check, String> 
 }
 
 /// `gdlint`: `path:line: Error: <message> (<check>)`, parse errors left to `parse`.
-fn lint(files: &[String]) -> Result<Vec<String>, String> {
+fn lint(files: &[String]) -> Result<Vec<Hit>, String> {
     let known: HashSet<&str> = files.iter().map(String::as_str).collect();
     let Ok(hit) = Regex::new(r"^(.+?):(\d+): Error: (.*)$") else {
         return Ok(vec![]);
     };
     let mut hits = Vec::new();
     for (code, text) in tool("gdlint", &[], files)? {
-        let (errors, rest) = parse_blocks(&text, &known);
+        let (_errors, rest) = parse_blocks(&text, &known);
         let mut strange = Vec::new();
         let before = hits.len();
         for line in rest {
             match hit.captures(line.trim()) {
                 Some(c) => {
                     let line = func_line(&c[1], &c[2], &c[3]).unwrap_or_else(|| c[2].to_string());
-                    hits.push(format!("{}:{line}: {}", &c[1], &c[3]));
+                    let line_num: usize = line.parse().unwrap_or(0);
+                    hits.push(Hit {
+                        path: c[1].to_string(),
+                        line: line_num,
+                        col: 0,
+                        endcol: None,
+                        label: c[3].to_string(),
+                    });
                 }
                 None if chatter(&line) => {}
                 None => strange.push(line),
             }
         }
-        if code > 1 || (code == 1 && hits.len() == before && errors.is_empty()) {
+        // Don't include parse errors in lint results - they belong to the "parse" check
+        if code > 1 || (code == 1 && hits.len() == before) {
             return Err(unexpected("gdlint", code, &strange));
         }
     }
-    hits.sort();
+    hits.sort_by(|a, b| a.path.cmp(&b.path).then(a.line.cmp(&b.line)));
     Ok(hits)
 }
 
@@ -265,7 +290,7 @@ fn func_line(path: &str, line: &str, message: &str) -> Option<String> {
 
 /// `format --write`: reformat the files gdformat would change, except those
 /// holding a lambda it would corrupt; the hits for the files it reformatted.
-fn format_write(files: &[String], length: &[String]) -> Result<Vec<String>, String> {
+fn format_write(files: &[String], length: &[String]) -> Result<Vec<Hit>, String> {
     let found = gdformat_check(files, length)?;
     let safe: Vec<String> = found
         .reformat
@@ -283,7 +308,13 @@ fn format_write(files: &[String], length: &[String]) -> Result<Vec<String>, Stri
     }
     Ok(safe
         .into_iter()
-        .map(|f| format!("{f}: reformatted"))
+        .map(|f| Hit {
+            path: f.to_string(),
+            line: 0,
+            col: 0,
+            endcol: None,
+            label: "reformatted".to_string(),
+        })
         .collect())
 }
 

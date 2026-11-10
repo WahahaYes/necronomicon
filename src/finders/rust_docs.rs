@@ -5,10 +5,14 @@
 use std::path::Path;
 
 use super::grep::read_list;
-use super::{split_pathspecs, text_lines, tracked};
+use super::{text_lines, tracked};
+use crate::args::{self, Spec};
+use crate::command::Hit;
 
 const USAGE: &str = "necro rust-docs [--files-from <file>] [--header <n>] [--item <n>] \
-                     (missing|module|length) [-- <pathspec>…]";
+                      (missing|module|length) [-- <pathspec>…]";
+
+const CHECKS: &[&str] = &["missing", "module", "length"];
 
 /// What `length` allows when `--header` or `--item` isn't given.
 const HEADER: usize = 10;
@@ -23,38 +27,33 @@ const QUALIFIERS: &[&str] = &["unsafe", "async", "const"];
 const TYPE_KINDS: &[&str] = &["struct", "enum", "trait", "union", "impl"];
 
 /// The `rust-docs` finder.
-pub fn run(args: &[String]) -> Result<Vec<String>, String> {
-    let (opts, pathspecs) = split_pathspecs(args);
-    let (mut header, mut item) = (HEADER, ITEM);
-    let mut list: Option<String> = None;
-    let mut check: Option<&str> = None;
-    let mut it = opts.iter();
-    while let Some(arg) = it.next() {
-        let (flag, inline) = match arg.split_once('=') {
-            Some((f, v)) if arg.starts_with("--") => (f, Some(v.to_string())),
-            _ => (arg.as_str(), None),
-        };
-        let mut value = || -> Result<String, String> {
-            inline
-                .clone()
-                .or_else(|| it.next().cloned())
-                .ok_or(format!("{flag} needs a value: {USAGE}"))
-        };
-        match flag {
-            "--files-from" => list = Some(value()?),
-            "--header" => header = count(flag, &value()?)?,
-            "--item" => item = count(flag, &value()?)?,
-            f if f.starts_with('-') => return Err(format!("unknown option {f}: {USAGE}")),
-            c if check.is_none() => check = Some(c),
-            other => return Err(format!("unexpected argument {other}: {USAGE}")),
-        }
-    }
-    let check = check.ok_or(format!("name a check: {USAGE}"))?;
-    if !["missing", "module", "length"].contains(&check) {
-        return Err(format!("unknown check {check}: {USAGE}"));
-    }
+pub fn run(args: &[String]) -> Result<Vec<Hit>, String> {
+    let parsed = args::parse(
+        args,
+        &Spec {
+            values: &["--files-from", "--header", "--item"],
+            flags: &[],
+            pathspecs: true,
+        },
+    )
+    .map_err(|e| e.with_usage(USAGE))?;
+
+    let check = args::check(&parsed.positional, CHECKS, USAGE)?;
+
+    let list = parsed.value("--files-from").map(String::from);
+    let header = parsed
+        .value("--header")
+        .map(|v| count("--header", v))
+        .transpose()?
+        .unwrap_or(HEADER);
+    let item = parsed
+        .value("--item")
+        .map(|v| count("--item", v))
+        .transpose()?
+        .unwrap_or(ITEM);
+
     let only = list.as_deref().map(read_list).transpose()?;
-    let mut specs = pathspecs.to_vec();
+    let mut specs = parsed.pathspecs.clone();
     if specs.is_empty() {
         specs.push("*.rs".into());
     }
@@ -83,68 +82,174 @@ fn count(flag: &str, value: &str) -> Result<usize, String> {
     }
 }
 
-/// The line without its `//` comment, strings kept; `'` opens a char only
-/// when it closes within two characters (else it's a lifetime).
-fn code_part(line: &str) -> String {
-    let chars: Vec<char> = line.chars().collect();
-    let mut out = String::new();
-    let mut quote: Option<char> = None;
-    let mut i = 0;
-    while i < chars.len() {
-        let c = chars[i];
-        if let Some(q) = quote {
-            out.push(c);
-            if c == '\\' {
-                if let Some(next) = chars.get(i + 1) {
-                    out.push(*next);
+/// An open literal.
+enum Open {
+    /// `"…"` or `'…'`; a `\` holds one character.
+    Quoted(char),
+    /// `r#"…"#`, closed by `"` and as many `#` as opened it; no escapes.
+    Raw(u32),
+}
+
+/// What one file's lexing carries from line to line: nested `/* */`
+/// comments, which may hold braces, and strings, which do.
+#[derive(Default)]
+struct Scanner {
+    /// How many `/* */` comments are open, 0 for none.
+    block: u32,
+    /// The literal the scan sits inside.
+    string: Option<Open>,
+}
+
+impl Scanner {
+    /// Strip the comments from one line, its strings kept, and the change
+    /// in bracket depth outside them.
+    fn feed(&mut self, line: &str) -> (String, i64) {
+        let chars: Vec<char> = line.chars().collect();
+        let mut code = String::new();
+        let mut delta: i64 = 0;
+        let mut i = 0;
+        while i < chars.len() {
+            let c = chars[i];
+            if self.block > 0 {
+                if c == '*' && chars.get(i + 1) == Some(&'/') {
+                    self.block -= 1;
+                    code.push(' ');
+                    i += 2;
+                } else if c == '/' && chars.get(i + 1) == Some(&'*') {
+                    self.block += 1;
+                    i += 2;
+                } else {
                     i += 1;
                 }
-            } else if c == q {
-                quote = None;
+                continue;
             }
-        } else if c == '"' {
-            quote = Some(c);
-            out.push(c);
-        } else if c == '\'' {
-            let closes = chars.get(i + 2) == Some(&'\'')
-                || (chars.get(i + 1) == Some(&'\\') && chars.get(i + 3) == Some(&'\''));
-            if closes {
-                quote = Some(c);
+            if let Some(Open::Raw(hashes)) = self.string {
+                if c == '"' && closes_raw(&chars[i..], hashes) {
+                    for _ in 0..=hashes {
+                        code.push('"');
+                        code.push('#');
+                    }
+                    i += hashes as usize + 1;
+                    self.string = None;
+                } else {
+                    code.push(c);
+                    i += 1;
+                }
+                continue;
             }
-            out.push(c);
-        } else if c == '/' && chars.get(i + 1) == Some(&'/') {
-            break;
-        } else {
-            out.push(c);
+            if let Some(Open::Quoted(q)) = self.string {
+                code.push(c);
+                if c == '\\' {
+                    if let Some(next) = chars.get(i + 1) {
+                        code.push(*next);
+                        i += 1;
+                    }
+                } else if c == q {
+                    self.string = None;
+                }
+                i += 1;
+                continue;
+            }
+            if c == '/' {
+                if chars.get(i + 1) == Some(&'/') {
+                    break; // a line comment holds the rest
+                }
+                if chars.get(i + 1) == Some(&'*') {
+                    self.block += 1;
+                    code.push(' ');
+                    i += 2;
+                    continue;
+                }
+            }
+            if let Some(hashes) = raw_start(&chars[i..]) {
+                self.string = Some(Open::Raw(hashes));
+                code.push('r');
+                for _ in 0..=hashes {
+                    code.push('#');
+                }
+                code.push('"');
+                i += hashes as usize + 2;
+                continue;
+            }
+            if c == '"' {
+                self.string = Some(Open::Quoted('"'));
+                code.push(c);
+                i += 1;
+                continue;
+            }
+            if c == '\'' && opens_char(&chars[i..]) {
+                self.string = Some(Open::Quoted('\''));
+                code.push(c);
+                i += 1;
+                continue;
+            }
+            delta += match c {
+                '{' | '[' | '(' => 1,
+                '}' | ']' | ')' => -1,
+                _ => 0,
+            };
+            code.push(c);
+            i += 1;
         }
-        i += 1;
+        (code, delta)
     }
-    out
 }
 
-/// Bracket depth change on a comment-stripped line.
-fn depth_delta(code: &str) -> i64 {
-    code.chars()
-        .map(|c| match c {
-            '{' | '[' | '(' => 1,
-            '}' | ']' | ')' => -1,
-            _ => 0,
-        })
-        .sum()
+/// A raw string opener at the front of `rest`: `r"`, or `r` and any run of
+/// `#` before `"`. Without the quote it's a word like `r#async`.
+fn raw_start(rest: &[char]) -> Option<u32> {
+    if rest.first() != Some(&'r') {
+        return None;
+    }
+    let hashes = rest[1..].iter().take_while(|&&c| c == '#').count();
+    // The number of `#` in a raw string is bounded by the line length;
+    // a u32 is more than enough.
+    #[expect(clippy::cast_possible_truncation, reason = "bounded by line length")]
+    (rest.get(hashes + 1) == Some(&'"')).then_some(hashes as u32)
 }
 
-/// Which lines belong to an attribute (`#[…]`, `#![…]`), multi-line ones included.
-fn attribute_lines(lines: &[String]) -> Vec<bool> {
-    let mut out = vec![false; lines.len()];
-    let mut open = 0;
-    for (i, line) in lines.iter().enumerate() {
-        let t = line.trim_start();
-        if open > 0 || t.starts_with("#[") || t.starts_with("#![") {
-            out[i] = true;
-            open = (open + depth_delta(&code_part(line))).max(0);
+/// Whether the `"` at the front of `rest` closes a raw string of `hashes`.
+fn closes_raw(rest: &[char], hashes: u32) -> bool {
+    rest[1..].iter().take_while(|&&c| c == '#').count() == hashes as usize
+}
+
+/// A `'` opens a char literal only when it closes within two characters
+/// (else it's a lifetime, which cannot span lines).
+fn opens_char(rest: &[char]) -> bool {
+    rest.get(2) == Some(&'\'') || (rest.get(1) == Some(&'\\') && rest.get(3) == Some(&'\''))
+}
+
+/// One file lexed once, its scanner state carried from line to line.
+struct Lexed {
+    /// Each line without its comments, its strings kept.
+    code: Vec<String>,
+    /// The bracket delta of each line outside strings and comments.
+    delta: Vec<i64>,
+    /// Which lines belong to an attribute (`#[…]`, `#![…]`), multi-line ones included.
+    attr: Vec<bool>,
+}
+
+impl Lexed {
+    fn new(lines: &[String]) -> Lexed {
+        let mut scanner = Scanner::default();
+        let mut code = Vec::with_capacity(lines.len());
+        let mut delta = Vec::with_capacity(lines.len());
+        for line in lines {
+            let (line_code, line_delta) = scanner.feed(line);
+            code.push(line_code);
+            delta.push(line_delta);
         }
+        let mut attr = vec![false; lines.len()];
+        let mut open = 0;
+        for i in 0..lines.len() {
+            let t = lines[i].trim_start();
+            if open > 0 || t.starts_with("#[") || t.starts_with("#![") {
+                attr[i] = true;
+                open = (open + delta[i]).max(0);
+            }
+        }
+        Lexed { code, delta, attr }
     }
-    out
 }
 
 /// A public item on this line: (column of `pub`, kind, name).
@@ -177,18 +282,18 @@ fn public_item(line: &str) -> Option<(usize, &str, &str)> {
 }
 
 /// `missing`: public items with no `///` above them.
-fn missing(path: &str, lines: &[String], hits: &mut Vec<String>) {
-    let attr = attribute_lines(lines);
+fn missing(path: &str, lines: &[String], hits: &mut Vec<Hit>) {
+    let lex = Lexed::new(lines);
     // (depth inside the module's braces, whether it's a test module)
     let mut modules: Vec<(i64, bool)> = Vec::new();
     let mut depth: i64 = 0;
     let mut pending_test = false;
     for (i, line) in lines.iter().enumerate() {
         let t = line.trim();
-        if let Some((col, kind, name)) = public_item(line).filter(|_| !attr[i]) {
+        if let Some((col, kind, name)) = public_item(line).filter(|_| !lex.attr[i]) {
             let mut j = i;
             let mut guarded = modules.iter().any(|(_, test)| *test);
-            while j > 0 && (lines[j - 1].trim().is_empty() || attr[j - 1]) {
+            while j > 0 && (lines[j - 1].trim().is_empty() || lex.attr[j - 1]) {
                 j -= 1;
                 let a = lines[j].trim();
                 if a.contains("cfg(test)") || a == "#[test]" {
@@ -204,21 +309,27 @@ fn missing(path: &str, lines: &[String], hits: &mut Vec<String>) {
                 } else {
                     format!("{kind} {name}")
                 };
-                hits.push(format!("{path}:{}:{col}: {label}", i + 1));
+                hits.push(Hit {
+                    path: path.to_string(),
+                    line: i + 1,
+                    col,
+                    endcol: None,
+                    label,
+                });
             }
         }
-        let code = code_part(line);
-        if attr[i] {
+        let code = &lex.code[i];
+        if lex.attr[i] {
             if t.contains("cfg(test)") {
                 pending_test = true;
             }
         } else if !t.is_empty() {
-            if opens_module(&code) {
-                modules.push((depth + depth_delta(&code), pending_test));
+            if opens_module(code) {
+                modules.push((depth + lex.delta[i], pending_test));
             }
             pending_test = false;
         }
-        depth += depth_delta(&code);
+        depth += lex.delta[i];
         while modules.last().is_some_and(|(d, _)| depth < *d) {
             modules.pop();
         }
@@ -266,19 +377,21 @@ fn module_file_has_doc(path: &str, name: &str) -> bool {
     ]
     .iter()
     .filter_map(|p| p.to_str().and_then(text_lines))
-    .any(|lines| first_content(&lines).is_some_and(|l| l.trim_start().starts_with("//!")))
+    .any(|lines| {
+        let lex = Lexed::new(&lines);
+        first_content(&lex, &lines).is_some_and(|l| l.trim_start().starts_with("//!"))
+    })
 }
 
 /// The first line that isn't blank or an inner attribute.
-fn first_content(lines: &[String]) -> Option<&String> {
-    let attr = attribute_lines(lines);
+fn first_content<'a>(lex: &Lexed, lines: &'a [String]) -> Option<&'a String> {
     lines
         .iter()
         .enumerate()
         .find(|(i, l)| {
             !l.trim().is_empty()
-                && !(attr[*i] && l.trim_start().starts_with("#!"))
-                && !inner_attr_tail(lines, &attr, *i)
+                && !(lex.attr[*i] && l.trim_start().starts_with("#!"))
+                && !inner_attr_tail(lines, &lex.attr, *i)
         })
         .map(|(_, l)| l)
 }
@@ -296,17 +409,24 @@ fn inner_attr_tail(lines: &[String], attr: &[bool], i: usize) -> bool {
 }
 
 /// `module`: a file that doesn't open with `//!`.
-fn module(path: &str, lines: &[String], hits: &mut Vec<String>) {
-    if let Some(first) = first_content(lines)
+fn module(path: &str, lines: &[String], hits: &mut Vec<Hit>) {
+    let lex = Lexed::new(lines);
+    if let Some(first) = first_content(&lex, lines)
         && !first.trim_start().starts_with("//!")
     {
-        hits.push(format!("{path}:1:1: no //! module doc"));
+        hits.push(Hit {
+            path: path.to_string(),
+            line: 1,
+            col: 1,
+            endcol: None,
+            label: "no //! module doc".to_string(),
+        });
     }
 }
 
 /// `length`: doc runs over their limit.
-fn length(path: &str, lines: &[String], header: usize, item: usize, hits: &mut Vec<String>) {
-    let attr = attribute_lines(lines);
+fn length(path: &str, lines: &[String], header: usize, item: usize, hits: &mut Vec<Hit>) {
+    let lex = Lexed::new(lines);
     let mut i = 0;
     while i < lines.len() {
         if !is_doc(&lines[i]) {
@@ -319,18 +439,20 @@ fn length(path: &str, lines: &[String], header: usize, item: usize, hits: &mut V
         }
         let run = &lines[start..i];
         let mut next = i;
-        while next < lines.len() && attr[next] {
+        while next < lines.len() && lex.attr[next] {
             next += 1;
         }
         let is_header = run.iter().any(|l| l.trim_start().starts_with("//!"))
             || lines.get(next).is_some_and(|l| declares_type(l));
         let limit = if is_header { header } else { item };
         if run.len() > limit {
-            hits.push(format!(
-                "{path}:{}:1: doc block is {} lines (limit {limit})",
-                start + 1,
-                run.len()
-            ));
+            hits.push(Hit {
+                path: path.to_string(),
+                line: start + 1,
+                col: 1,
+                endcol: None,
+                label: format!("doc block is {} lines (limit {limit})", run.len()),
+            });
         }
     }
 }

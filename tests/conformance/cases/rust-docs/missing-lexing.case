@@ -1,0 +1,46 @@
+# missing: brackets in strings, raw strings, block comments and char literals don't skew the cfg(test) module depth
+spec: Finders
+args: rust-docs missing
+-- src/lib.rs --
+//! The crate.
+
+#[cfg(test)]
+mod a {
+    pub fn helper() {}
+
+    const T: &str = "
+    }";
+
+    pub fn helper2() {}
+}
+
+#[cfg(test)]
+mod b {
+    pub fn helper() {}
+
+    const RAW: &str = r#"}"#;
+
+    pub fn helper2() {}
+}
+
+#[cfg(test)]
+mod c {
+    pub fn helper() {}
+
+    /* one extra { */
+
+    pub fn helper2() {}
+}
+
+#[cfg(test)]
+mod d {
+    pub fn helper() {}
+
+    const CHAR: char = '}';
+
+    pub fn helper2() {}
+}
+
+pub struct Bare;
+-- @stdout --
+src/lib.rs:40:1: struct Bare

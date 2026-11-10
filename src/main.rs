@@ -1,6 +1,7 @@
 //! `necro`: checks a repo against its house rules (spec/v0.md).
 
 mod allows;
+mod args;
 #[expect(dead_code, reason = "entries() serves the status lane; no caller yet")]
 mod baseline;
 mod command;
@@ -16,7 +17,6 @@ mod yaml;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
-#[derive(Default)]
 struct Args {
     dir: Option<PathBuf>,
     format: Option<String>,
@@ -31,34 +31,31 @@ struct Args {
 }
 
 fn parse(argv: Vec<String>) -> Result<Args, String> {
-    let mut a = Args::default();
-    let mut it = argv.into_iter();
-    while let Some(arg) = it.next() {
-        let mut value = |name: &str, inline: Option<&str>| -> Result<String, String> {
-            inline
-                .map(String::from)
-                .or_else(|| it.next())
-                .ok_or(format!("{name} needs a value"))
-        };
-        let (flag, inline) = match arg.split_once('=') {
-            Some((f, v)) if arg.starts_with("--") => (f.to_string(), Some(v.to_string())),
-            _ => (arg.clone(), None),
-        };
-        match flag.as_str() {
-            "-C" => a.dir = Some(PathBuf::from(value("-C", None)?)),
-            "--format" => a.format = Some(value("--format", inline.as_deref())?),
-            "--rule" => a.rule = Some(value("--rule", inline.as_deref())?),
-            "--explain" => a.explain = Some(value("--explain", inline.as_deref())?),
-            "--list" => a.list = true,
-            "--fix" => a.fix = true,
-            "--write-baseline" => a.write_baseline = true,
-            "--clean-cache" => a.clean_cache = true,
-            f if f.starts_with('-') && f.len() > 1 => {
-                return Err(format!("unknown option {f} (see necro --help)"));
-            }
-            _ => a.files.push(arg),
+    let parsed = args::parse(
+        &argv,
+        &args::Spec {
+            values: &["-C", "--format", "--rule", "--explain"],
+            flags: &["--list", "--fix", "--write-baseline", "--clean-cache"],
+            pathspecs: false,
+        },
+    )
+    .map_err(|error| match error {
+        args::ArgError::MissingValue(name) => format!("{name} needs a value"),
+        args::ArgError::UnknownOption(word) => {
+            format!("unknown option {word} (see necro --help)")
         }
-    }
+    })?;
+    let a = Args {
+        dir: parsed.value("-C").map(PathBuf::from),
+        format: parsed.value("--format").map(String::from),
+        rule: parsed.value("--rule").map(String::from),
+        explain: parsed.value("--explain").map(String::from),
+        list: parsed.flag("--list"),
+        fix: parsed.flag("--fix"),
+        write_baseline: parsed.flag("--write-baseline"),
+        clean_cache: parsed.flag("--clean-cache"),
+        files: parsed.positional,
+    };
     if a.fix {
         let refuses = [
             (a.write_baseline, "--write-baseline"),

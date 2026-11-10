@@ -1,0 +1,15 @@
+# skill-frontmatter: frontmatter that isn't one YAML mapping says why
+spec: Finders
+args: agent-files skill-frontmatter
+-- .agents/skills/bad/SKILL.md --
+---
+name: bad
+description: [not closed
+---
+-- .agents/skills/broken/SKILL.md --
+---
+- name: broken
+---
+-- @stdout --
+.agents/skills/bad/SKILL.md:3:14: unclosed bracket '['
+.agents/skills/broken/SKILL.md:2:1: expected a mapping, got a list

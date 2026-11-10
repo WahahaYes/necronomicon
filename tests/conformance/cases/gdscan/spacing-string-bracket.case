@@ -1,0 +1,15 @@
+# spacing: a bracket inside a triple-quoted string doesn't leave the depth open, so a later top-level func still needs two blank lines
+spec: Finders
+args: gdscan spacing
+-- src/a.gd --
+extends Node
+var s = """
+open ( paren
+"""
+
+func a():
+	pass
+func b():
+	pass
+-- @stdout --
+src/a.gd:8:1: 0 blank lines; the previous block starts at line 6

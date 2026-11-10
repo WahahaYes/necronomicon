@@ -6,13 +6,29 @@
 use std::collections::{BTreeMap, HashSet};
 use std::path::Path;
 
+use crate::command::Hit;
 use regex::Regex;
 
+use crate::yaml::{self, Value};
+
 use super::grep::read_list;
+use crate::args::{self, Spec};
 
 const USAGE: &str = "necro agent-files [--write [--only-at <file>]] \
      (claude-md|claude-md-alone|skill-link|skill-misplaced|skill-frontmatter|\
      other-instructions|rule-reference|stale-skill)";
+
+/// The checks `agent-files` knows.
+const CHECKS: &[&str] = &[
+    "claude-md",
+    "claude-md-alone",
+    "skill-link",
+    "skill-misplaced",
+    "skill-frontmatter",
+    "other-instructions",
+    "rule-reference",
+    "stale-skill",
+];
 
 /// What a CLAUDE.md holds when AGENTS.md has the content.
 const IMPORT: &str = "@AGENTS.md";
@@ -31,37 +47,21 @@ struct Entry {
     link: bool,
 }
 
-/// The checks `--write` fixes.
-pub const FIXABLE: &[&str] = &["claude-md", "skill-link"];
-
 /// The `agent-files` finder.
-pub fn run(args: &[String]) -> Result<Vec<String>, String> {
-    let mut write = false;
-    let mut only_at: Option<String> = None;
-    let mut check: Option<&str> = None;
-    let mut it = args.iter();
-    while let Some(arg) = it.next() {
-        match arg.as_str() {
-            "--write" => write = true,
-            "--only-at" => {
-                only_at = Some(
-                    it.next()
-                        .ok_or(format!("--only-at needs a value: {USAGE}"))?
-                        .clone(),
-                )
-            }
-            a if a.starts_with("--only-at=") => only_at = Some(a["--only-at=".len()..].to_string()),
-            // A narrowed run's list: these checks look at pairs, so the whole folder.
-            "--files-from" => {
-                it.next();
-            }
-            f if f.starts_with('-') => return Err(format!("unknown option {f}: {USAGE}")),
-            c if check.is_none() => check = Some(c),
-            other => return Err(format!("unexpected argument {other}: {USAGE}")),
-        }
-    }
-    let check = check.ok_or(format!("name a check: {USAGE}"))?;
-    if (write || only_at.is_some()) && !FIXABLE.contains(&check) {
+pub fn run(args: &[String]) -> Result<Vec<Hit>, String> {
+    let parsed = args::parse(
+        args,
+        &Spec {
+            values: &["--only-at", "--files-from"],
+            flags: &["--write"],
+            pathspecs: false,
+        },
+    )
+    .map_err(|e| e.with_usage(USAGE))?;
+    let write = parsed.flag("--write");
+    let only_at = parsed.value("--only-at");
+    let check = args::check(&parsed.positional, CHECKS, USAGE)?;
+    if (write || only_at.is_some()) && !["claude-md", "skill-link"].contains(&check) {
         return Err(format!(
             "--write goes with claude-md and skill-link: {USAGE}"
         ));
@@ -76,24 +76,30 @@ pub fn run(args: &[String]) -> Result<Vec<String>, String> {
         "other-instructions" => other_instructions(&index),
         "rule-reference" => rule_reference(&index)?,
         "stale-skill" => stale_skill(&index),
-        other => return Err(format!("unknown check {other}: {USAGE}")),
+        _ => unreachable!("args::check accepted {check}"),
     };
     if !write {
         return Ok(hits);
     }
-    let only: Option<HashSet<String>> = only_at.as_deref().map(read_list).transpose()?.map(|l| {
+    let only: Option<HashSet<String>> = only_at.map(read_list).transpose()?.map(|l| {
         l.into_iter()
             .map(|a| a.split(':').next().unwrap_or_default().to_string())
             .collect()
     });
     let mut fixed = Vec::new();
     for hit in hits {
-        let path = hit.split(':').next().unwrap_or_default().to_string();
-        if only.as_ref().is_some_and(|o| !o.contains(&path)) {
+        let path = &hit.path;
+        if only.as_ref().is_some_and(|o| !o.contains(path)) {
             continue;
         }
-        if fix(check, &path)? {
-            fixed.push(format!("{path}: fixed"));
+        if fix(check, path)? {
+            fixed.push(Hit {
+                path: path.to_string(),
+                line: 0,
+                col: 0,
+                endcol: None,
+                label: "fixed".to_string(),
+            });
         }
     }
     Ok(fixed)
@@ -163,24 +169,40 @@ fn base(path: &str) -> &str {
 }
 
 /// `claude-md`: each AGENTS.md has a CLAUDE.md beside it holding only `@AGENTS.md` (or linking to it).
-fn claude_md(index: &BTreeMap<String, Entry>) -> Vec<String> {
+fn claude_md(index: &BTreeMap<String, Entry>) -> Vec<Hit> {
     let mut hits = Vec::new();
     for path in index.keys().filter(|p| base(p) == "AGENTS.md") {
         let claude = format!("{}CLAUDE.md", dir_of(path));
         match index.get(&claude) {
-            None => hits.push(format!("{path}: no CLAUDE.md beside it")),
+            None => hits.push(Hit {
+                path: path.to_string(),
+                line: 0,
+                col: 0,
+                endcol: None,
+                label: "no CLAUDE.md beside it".to_string(),
+            }),
             Some(e) if e.link => {
                 if target(&claude) != "AGENTS.md" {
-                    hits.push(format!(
-                        "{claude}: links to {}, not AGENTS.md",
-                        target(&claude)
-                    ));
+                    let target = target(&claude);
+                    hits.push(Hit {
+                        path: claude.clone(),
+                        line: 0,
+                        col: 0,
+                        endcol: None,
+                        label: format!("links to {}, not AGENTS.md", target),
+                    });
                 }
             }
             Some(_) => {
                 let text = std::fs::read_to_string(&claude).unwrap_or_default();
                 if text.trim() != IMPORT {
-                    hits.push(format!("{claude}: holds more than {IMPORT}"));
+                    hits.push(Hit {
+                        path: claude,
+                        line: 0,
+                        col: 0,
+                        endcol: None,
+                        label: format!("holds more than {IMPORT}"),
+                    });
                 }
             }
         }
@@ -189,13 +211,19 @@ fn claude_md(index: &BTreeMap<String, Entry>) -> Vec<String> {
 }
 
 /// `claude-md-alone`: a CLAUDE.md with no AGENTS.md beside it.
-fn claude_md_alone(index: &BTreeMap<String, Entry>) -> Vec<String> {
+fn claude_md_alone(index: &BTreeMap<String, Entry>) -> Vec<Hit> {
     index
         .keys()
         .filter(|p| {
             base(p) == "CLAUDE.md" && !index.contains_key(&format!("{}AGENTS.md", dir_of(p)))
         })
-        .map(|p| format!("{p}: no AGENTS.md beside it"))
+        .map(|p| Hit {
+            path: p.to_string(),
+            line: 0,
+            col: 0,
+            endcol: None,
+            label: "no AGENTS.md beside it".to_string(),
+        })
         .collect()
 }
 
@@ -211,7 +239,7 @@ fn agent_skills(index: &BTreeMap<String, Entry>) -> Vec<(String, String)> {
 }
 
 /// `skill-link`: each skill in `.agents/skills` has a `.claude/skills/<name>` link to it.
-fn skill_link(index: &BTreeMap<String, Entry>) -> Vec<String> {
+fn skill_link(index: &BTreeMap<String, Entry>) -> Vec<Hit> {
     let mut hits = Vec::new();
     for (prefix, name) in agent_skills(index) {
         let skill = format!("{prefix}.agents/skills/{name}/SKILL.md");
@@ -219,20 +247,29 @@ fn skill_link(index: &BTreeMap<String, Entry>) -> Vec<String> {
         let want = format!("../../.agents/skills/{name}");
         match index.get(&link) {
             Some(e) if e.link && target(&link) == want => {}
-            Some(e) if e.link => hits.push(format!(
-                "{skill}: {link} links to {}, not {want}",
-                target(&link)
-            )),
+            Some(e) if e.link => hits.push(Hit {
+                path: skill,
+                line: 0,
+                col: 0,
+                endcol: None,
+                label: format!("{link} links to {}, not {want}", target(&link)),
+            }),
             // A real folder there is skill-misplaced's to report.
             _ if index.keys().any(|p| p.starts_with(&format!("{link}/"))) => {}
-            _ => hits.push(format!("{skill}: no {link} link")),
+            _ => hits.push(Hit {
+                path: skill,
+                line: 0,
+                col: 0,
+                endcol: None,
+                label: format!("no {link} link"),
+            }),
         }
     }
     hits
 }
 
 /// `skill-misplaced`: a real skill folder in `.claude/skills`, or a link there to no skill.
-fn skill_misplaced(index: &BTreeMap<String, Entry>) -> Vec<String> {
+fn skill_misplaced(index: &BTreeMap<String, Entry>) -> Vec<Hit> {
     let Ok(re) = Regex::new(r"^(.*?)\.claude/skills/([^/]+)(/.*)?$") else {
         return vec![];
     };
@@ -250,76 +287,194 @@ fn skill_misplaced(index: &BTreeMap<String, Entry>) -> Vec<String> {
                 .into_iter()
                 .find(|f| index.contains_key(f))
                 .unwrap_or_default();
-            hits.push(format!(
-                "{file}: a skill folder in .claude/skills; it belongs in .agents/skills"
-            ));
+            hits.push(Hit {
+                path: file,
+                line: 0,
+                col: 0,
+                endcol: None,
+                label: "a skill folder in .claude/skills; it belongs in .agents/skills".to_string(),
+            });
         } else if entry.link {
             let skill = format!("{prefix}.agents/skills/{name}/SKILL.md");
             if !index.contains_key(&skill) {
-                hits.push(format!(
-                    "{path}: links to {}, which isn't a skill in .agents/skills",
-                    target(path)
-                ));
+                hits.push(Hit {
+                    path: path.to_string(),
+                    line: 0,
+                    col: 0,
+                    endcol: None,
+                    label: format!(
+                        "links to {}, which isn't a skill in .agents/skills",
+                        target(path)
+                    ),
+                });
             }
         }
     }
     hits
 }
 
-/// The frontmatter lines of a SKILL.md, with their 1-based numbers, or `None` without one.
-fn frontmatter(path: &str) -> Option<Vec<(usize, String)>> {
-    let text = std::fs::read_to_string(path).ok()?;
-    let mut lines = text.lines().enumerate();
-    if lines.next()?.1.trim() != "---" {
-        return None;
-    }
-    Some(
-        lines
-            .take_while(|(_, l)| l.trim() != "---")
-            .map(|(i, l)| (i + 1, l.to_string()))
-            .collect(),
-    )
+/// A SKILL.md's frontmatter, from between its two `---` lines.
+enum Frontmatter {
+    /// The file doesn't open with a `---` line.
+    Missing,
+    /// The text between the `---` lines isn't one YAML mapping.
+    Invalid(yaml::Pos, String),
+    /// The parsed mapping, positions counted from the file's line 1.
+    Parsed(yaml::Node),
 }
 
-/// A frontmatter key's value at the top level, unquoted, with its line.
-fn key<'a>(fm: &'a [(usize, String)], name: &str) -> Option<(usize, &'a str)> {
-    fm.iter().find_map(|(n, l)| {
-        let v = l.strip_prefix(name)?.strip_prefix(':')?;
-        Some((*n, v.trim().trim_matches(|c| c == '"' || c == '\'')))
-    })
+/// Read a SKILL.md's frontmatter, parsing it as YAML and shifting its
+/// positions from the body (which starts on line 2) to the file.
+fn frontmatter(path: &str) -> Frontmatter {
+    let Ok(text) = std::fs::read_to_string(path) else {
+        return Frontmatter::Missing;
+    };
+    let mut lines = text.lines();
+    if lines.next().map(str::trim) != Some("---") {
+        return Frontmatter::Missing;
+    }
+    let body: Vec<&str> = lines.take_while(|l| l.trim() != "---").collect();
+    match yaml::parse(&body.join("\n")) {
+        Ok(mut node) => {
+            shift(&mut node, 1);
+            if matches!(node.value, Value::Map(_) | Value::Null) {
+                Frontmatter::Parsed(node)
+            } else {
+                let message = format!("expected a mapping, got {}", node.kind());
+                Frontmatter::Invalid(node.pos, message)
+            }
+        }
+        Err((pos, message)) => Frontmatter::Invalid(
+            yaml::Pos {
+                line: pos.line + 1,
+                col: pos.col,
+            },
+            message,
+        ),
+    }
+}
+
+/// Move every position in the tree down by `lines`.
+fn shift(node: &mut yaml::Node, lines: usize) {
+    node.pos.line += lines;
+    match &mut node.value {
+        Value::Map(items) => {
+            for (key, value) in items {
+                key.pos.line += lines;
+                shift(value, lines);
+            }
+        }
+        Value::Seq(items) => {
+            for item in items {
+                shift(item, lines);
+            }
+        }
+        Value::Str(_) | Value::Plain(_) | Value::Null => {}
+    }
+}
+
+/// A mapping key's value and its line, from a parsed mapping.
+fn field<'a>(node: &'a yaml::Node, name: &str) -> Option<(&'a yaml::Node, usize)> {
+    let Value::Map(items) = &node.value else {
+        return None;
+    };
+    items
+        .iter()
+        .find(|(key, _)| key.name == name)
+        .map(|(key, value)| (value, key.pos.line))
+}
+
+/// A scalar's text, whether YAML read it as a string or a plain scalar.
+fn scalar(node: &yaml::Node) -> Option<&str> {
+    match &node.value {
+        Value::Str(s) | Value::Plain(s) => Some(s),
+        _ => None,
+    }
 }
 
 /// `skill-frontmatter`: each SKILL.md opens with frontmatter naming its folder and saying what it's for.
-fn skill_frontmatter(index: &BTreeMap<String, Entry>) -> Vec<String> {
+fn skill_frontmatter(index: &BTreeMap<String, Entry>) -> Vec<Hit> {
     let mut hits = Vec::new();
     for path in index.keys().filter(|p| base(p) == "SKILL.md") {
         let folder = base(dir_of(path).trim_end_matches('/'));
-        let Some(fm) = frontmatter(path) else {
-            hits.push(format!("{path}:1:1: no --- frontmatter"));
-            continue;
-        };
-        match key(&fm, "name") {
-            None => hits.push(format!("{path}:1:1: no name")),
-            Some((n, v)) if v != folder => hits.push(format!("{path}:{n}:1: name {v} isn't the folder's, {folder}")),
-            Some((n, v)) if !crate::config::valid_name(v) || v.len() > 64 => {
-                hits.push(format!("{path}:{n}:1: name {v} isn't lowercase words joined by hyphens, up to 64 characters"))
+        let node = match frontmatter(path) {
+            Frontmatter::Missing => {
+                hits.push(Hit {
+                    path: path.to_string(),
+                    line: 1,
+                    col: 1,
+                    endcol: None,
+                    label: "no --- frontmatter".to_string(),
+                });
+                continue;
             }
-            Some(_) => {}
+            Frontmatter::Invalid(pos, message) => {
+                hits.push(Hit {
+                    path: path.to_string(),
+                    line: pos.line,
+                    col: pos.col,
+                    endcol: None,
+                    label: message,
+                });
+                continue;
+            }
+            Frontmatter::Parsed(node) => node,
+        };
+        match field(&node, "name") {
+            None => hits.push(Hit {
+                path: path.to_string(),
+                line: 1,
+                col: 1,
+                endcol: None,
+                label: "no name".to_string(),
+            }),
+            Some((value, line)) => {
+                let name = scalar(value).unwrap_or_default();
+                if name != folder {
+                    hits.push(Hit {
+                        path: path.to_string(),
+                        line,
+                        col: 1,
+                        endcol: None,
+                        label: format!("name {name} isn't the folder's, {folder}"),
+                    });
+                } else if !crate::config::valid_name(name) || name.len() > 64 {
+                    hits.push(Hit {
+                        path: path.to_string(),
+                        line,
+                        col: 1,
+                        endcol: None,
+                        label: format!(
+                            "name {name} isn't lowercase words joined by hyphens, up to 64 characters"
+                        ),
+                    });
+                }
+            }
         }
-        match key(&fm, "description") {
-            Some((_, v)) if !v.is_empty() && v.len() <= 1024 => {}
-            Some((n, v)) if !v.is_empty() => hits.push(format!(
-                "{path}:{n}:1: description over 1024 characters ({})",
-                v.len()
-            )),
-            _ => hits.push(format!("{path}:1:1: no description")),
+        match field(&node, "description").and_then(|(value, line)| scalar(value).map(|d| (d, line)))
+        {
+            None | Some(("", _)) => hits.push(Hit {
+                path: path.to_string(),
+                line: 1,
+                col: 1,
+                endcol: None,
+                label: "no description".to_string(),
+            }),
+            Some((description, line)) if description.len() > 1024 => hits.push(Hit {
+                path: path.to_string(),
+                line,
+                col: 1,
+                endcol: None,
+                label: format!("description over 1024 characters ({})", description.len()),
+            }),
+            Some(_) => {}
         }
     }
     hits
 }
 
 /// `other-instructions`: another harness's instruction file with content that doesn't point to AGENTS.md.
-fn other_instructions(index: &BTreeMap<String, Entry>) -> Vec<String> {
+fn other_instructions(index: &BTreeMap<String, Entry>) -> Vec<Hit> {
     index
         .keys()
         .filter(|p| {
@@ -331,12 +486,18 @@ fn other_instructions(index: &BTreeMap<String, Entry>) -> Vec<String> {
             let text = std::fs::read_to_string(p).unwrap_or_default();
             !text.trim().is_empty() && !text.contains("AGENTS.md")
         })
-        .map(|p| format!("{p}: instructions outside AGENTS.md"))
+        .map(|p| Hit {
+            path: p.to_string(),
+            line: 0,
+            col: 0,
+            endcol: None,
+            label: "instructions outside AGENTS.md".to_string(),
+        })
         .collect()
 }
 
 /// `rule-reference`: a rule named in AGENTS.md, CLAUDE.md or a SKILL.md that the config here doesn't have.
-fn rule_reference(index: &BTreeMap<String, Entry>) -> Result<Vec<String>, String> {
+fn rule_reference(index: &BTreeMap<String, Entry>) -> Result<Vec<Hit>, String> {
     let cwd = std::env::current_dir().map_err(|e| format!("can't read the current folder: {e}"))?;
     let root = crate::files::find_root(&cwd).ok_or("no necro.yaml here or above")?;
     let config = crate::config::load(&root, &crate::files::list(&root))
@@ -375,11 +536,13 @@ fn rule_reference(index: &BTreeMap<String, Entry>) -> Result<Vec<String>, String
                     continue;
                 }
                 let col = line[..m.start()].chars().count() + 1;
-                hits.push(format!(
-                    "{path}:{}:{col}-{}: {name}",
-                    n + 1,
-                    col + name.chars().count() - 1
-                ));
+                hits.push(Hit {
+                    path: path.to_string(),
+                    line: n + 1,
+                    col,
+                    endcol: Some(col + name.chars().count() - 1),
+                    label: name.to_string(),
+                });
             }
         }
     }
@@ -387,30 +550,30 @@ fn rule_reference(index: &BTreeMap<String, Entry>) -> Result<Vec<String>, String
 }
 
 /// The version an installed necro skill was written by, from `metadata: necro-version:`.
-fn stamped_version(path: &str) -> Option<(usize, String)> {
-    let fm = frontmatter(path)?;
-    let start = fm.iter().position(|(_, l)| l.trim_end() == "metadata:")?;
-    fm[start + 1..]
-        .iter()
-        .take_while(|(_, l)| l.starts_with(' '))
-        .find_map(|(n, l)| {
-            let v = l.trim().strip_prefix("necro-version:")?;
-            Some((
-                *n,
-                v.trim().trim_matches(|c| c == '"' || c == '\'').to_string(),
-            ))
-        })
+fn stamped_version(node: &yaml::Node) -> Option<(usize, String)> {
+    let (metadata, _) = field(node, "metadata")?;
+    let (version, line) = field(metadata, "necro-version")?;
+    Some((line, scalar(version)?.to_string()))
 }
 
 /// `stale-skill`: a skill `necro skills install` wrote for another necro version.
-fn stale_skill(index: &BTreeMap<String, Entry>) -> Vec<String> {
+fn stale_skill(index: &BTreeMap<String, Entry>) -> Vec<Hit> {
     let current = env!("CARGO_PKG_VERSION");
     index
         .keys()
         .filter(|p| base(p) == "SKILL.md" && !index.get(*p).is_some_and(|e| e.link))
         .filter_map(|p| {
-            let (n, v) = stamped_version(p)?;
-            (v != current).then(|| format!("{p}:{n}:1: from necro {v}; this is necro {current}"))
+            let Frontmatter::Parsed(node) = frontmatter(p) else {
+                return None;
+            };
+            let (n, v) = stamped_version(&node)?;
+            (v != current).then(|| Hit {
+                path: p.to_string(),
+                line: n,
+                col: 1,
+                endcol: None,
+                label: format!("from necro {v}; this is necro {current}"),
+            })
         })
         .collect()
 }
