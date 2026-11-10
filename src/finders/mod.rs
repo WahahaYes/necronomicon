@@ -25,7 +25,7 @@ pub enum Fix {
     No,
     /// Always fixable (no subcommand or option needed).
     Always,
-    /// Fixable when one of the listed checks is the first non-option word before `--`.
+    /// Fixable when one of the listed checks is among the words before `--`.
     WithCheck(&'static [&'static str]),
     /// Fixable when the given option (or option=value) appears before any `--`.
     WithOption(&'static str),
