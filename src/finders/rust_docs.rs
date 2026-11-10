@@ -6,6 +6,7 @@ use std::path::Path;
 
 use super::grep::read_list;
 use super::{split_pathspecs, text_lines, tracked};
+use crate::command::Hit;
 
 const USAGE: &str = "necro rust-docs [--files-from <file>] [--header <n>] [--item <n>] \
                      (missing|module|length) [-- <pathspec>…]";
@@ -23,7 +24,7 @@ const QUALIFIERS: &[&str] = &["unsafe", "async", "const"];
 const TYPE_KINDS: &[&str] = &["struct", "enum", "trait", "union", "impl"];
 
 /// The `rust-docs` finder.
-pub fn run(args: &[String]) -> Result<Vec<String>, String> {
+pub fn run(args: &[String]) -> Result<Vec<Hit>, String> {
     let (opts, pathspecs) = split_pathspecs(args);
     let (mut header, mut item) = (HEADER, ITEM);
     let mut list: Option<String> = None;
@@ -177,7 +178,7 @@ fn public_item(line: &str) -> Option<(usize, &str, &str)> {
 }
 
 /// `missing`: public items with no `///` above them.
-fn missing(path: &str, lines: &[String], hits: &mut Vec<String>) {
+fn missing(path: &str, lines: &[String], hits: &mut Vec<Hit>) {
     let attr = attribute_lines(lines);
     // (depth inside the module's braces, whether it's a test module)
     let mut modules: Vec<(i64, bool)> = Vec::new();
@@ -204,7 +205,13 @@ fn missing(path: &str, lines: &[String], hits: &mut Vec<String>) {
                 } else {
                     format!("{kind} {name}")
                 };
-                hits.push(format!("{path}:{}:{col}: {label}", i + 1));
+                hits.push(Hit {
+                    path: path.to_string(),
+                    line: i + 1,
+                    col,
+                    endcol: None,
+                    label,
+                });
             }
         }
         let code = code_part(line);
@@ -296,16 +303,22 @@ fn inner_attr_tail(lines: &[String], attr: &[bool], i: usize) -> bool {
 }
 
 /// `module`: a file that doesn't open with `//!`.
-fn module(path: &str, lines: &[String], hits: &mut Vec<String>) {
+fn module(path: &str, lines: &[String], hits: &mut Vec<Hit>) {
     if let Some(first) = first_content(lines)
         && !first.trim_start().starts_with("//!")
     {
-        hits.push(format!("{path}:1:1: no //! module doc"));
+        hits.push(Hit {
+            path: path.to_string(),
+            line: 1,
+            col: 1,
+            endcol: None,
+            label: "no //! module doc".to_string(),
+        });
     }
 }
 
 /// `length`: doc runs over their limit.
-fn length(path: &str, lines: &[String], header: usize, item: usize, hits: &mut Vec<String>) {
+fn length(path: &str, lines: &[String], header: usize, item: usize, hits: &mut Vec<Hit>) {
     let attr = attribute_lines(lines);
     let mut i = 0;
     while i < lines.len() {
@@ -326,11 +339,13 @@ fn length(path: &str, lines: &[String], header: usize, item: usize, hits: &mut V
             || lines.get(next).is_some_and(|l| declares_type(l));
         let limit = if is_header { header } else { item };
         if run.len() > limit {
-            hits.push(format!(
-                "{path}:{}:1: doc block is {} lines (limit {limit})",
-                start + 1,
-                run.len()
-            ));
+            hits.push(Hit {
+                path: path.to_string(),
+                line: start + 1,
+                col: 1,
+                endcol: None,
+                label: format!("doc block is {} lines (limit {limit})", run.len()),
+            });
         }
     }
 }

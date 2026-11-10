@@ -259,9 +259,6 @@ pub fn run_observed(
     report
 }
 
-/// The finders that search files, which a narrowed run hands its list.
-const FILE_FINDERS: &[&str] = &["grep", "rust-docs", "gdscan", "gdtoolkit"];
-
 /// A rule's command words; in a narrowed run, necro's file finders get
 /// `--files-from <list>` after their name (spec: Narrowed runs).
 fn narrowed(mut words: Vec<String>, list: Option<&Path>) -> Vec<String> {
@@ -269,7 +266,7 @@ fn narrowed(mut words: Vec<String>, list: Option<&Path>) -> Vec<String> {
         && words.first().is_some_and(|w| w == "necro")
         && words
             .get(1)
-            .is_some_and(|w| FILE_FINDERS.contains(&w.as_str()))
+            .is_some_and(|w| crate::finders::is_narrowable(w))
     {
         let at = words.len().min(2);
         words.splice(
@@ -472,11 +469,19 @@ pub fn fix(config: &Config, root: &Path, only: Option<&str>, given: Option<&[Str
             config::Fixer::Finder => {
                 let mut words = rule.words();
                 let at = words.len().min(2);
+                // Determine --only-at granularity from the finder
+                let finder = words.get(1).map(String::as_str).unwrap_or("");
+                let granularity = crate::finders::only_at_granularity(finder);
+                let only_at_arg = match granularity {
+                    crate::finders::OnlyAtGranularity::PathLineCol => "--only-at",
+                    crate::finders::OnlyAtGranularity::PathLine => "--only-at",
+                    crate::finders::OnlyAtGranularity::Path => "--only-at",
+                };
                 words.splice(
                     at..at,
                     [
                         "--write".to_string(),
-                        "--only-at".to_string(),
+                        only_at_arg.to_string(),
                         list.path.display().to_string(),
                     ],
                 );

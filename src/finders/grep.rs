@@ -5,6 +5,7 @@
 
 use std::sync::atomic::{AtomicUsize, Ordering};
 
+use crate::command::Hit;
 use fancy_regex::Regex;
 use globset::{GlobBuilder, GlobSet, GlobSetBuilder};
 use regex_syntax::hir::literal::{ExtractKind, Extractor};
@@ -31,7 +32,7 @@ const MAX_LITERALS: usize = 64;
 const FILES_PER_THREAD: usize = 64;
 
 /// The `grep` finder: every regex match in the tracked files.
-pub fn run(args: &[String]) -> Result<Vec<String>, String> {
+pub fn run(args: &[String]) -> Result<Vec<Hit>, String> {
     let (opts, pathspecs) = split_pathspecs(args);
     let mut markers: Vec<String> = Vec::new();
     let mut globs: Vec<String> = Vec::new();
@@ -213,18 +214,13 @@ fn required_text(pattern: &str) -> Option<Vec<String>> {
 }
 
 /// Every hit in the files, on all cores, in the files' order.
-fn search(
-    files: &[String],
-    re: &Regex,
-    markers: &[String],
-    fix: &Fix,
-) -> Result<Vec<String>, String> {
+fn search(files: &[String], re: &Regex, markers: &[String], fix: &Fix) -> Result<Vec<Hit>, String> {
     let threads = std::thread::available_parallelism()
         .map_or(1, |n| n.get())
         .min(files.len().div_ceil(FILES_PER_THREAD))
         .max(1);
     let next = AtomicUsize::new(0);
-    let found: Vec<(usize, Vec<String>)> = std::thread::scope(|s| {
+    let found: Vec<(usize, Vec<Hit>)> = std::thread::scope(|s| {
         let workers: Vec<_> = (0..threads)
             .map(|_| {
                 s.spawn(|| {
@@ -252,11 +248,10 @@ fn search(
     Ok(found.into_iter().flat_map(|(_, hits)| hits).collect())
 }
 
-/// One file's hits, `path:line:col-endcol: <match>` (or, with `--replace`,
-/// `replace with "<text>"`); with `--write`, the file rewritten and the hits
+/// One file's hits as `command::Hit`; with `--write`, the file rewritten and the hits
 /// it replaced. An error when the regex gives up on a line (fancy_regex's
 /// backtracking limit).
-fn file_hits(path: &str, re: &Regex, markers: &[String], fix: &Fix) -> Result<Vec<String>, String> {
+fn file_hits(path: &str, re: &Regex, markers: &[String], fix: &Fix) -> Result<Vec<Hit>, String> {
     if fix
         .only
         .as_ref()
@@ -295,7 +290,13 @@ fn file_hits(path: &str, re: &Regex, markers: &[String], fix: &Fix) -> Result<Ve
                 }
                 let col = code[..m.start()].chars().count() + 1;
                 let end = col + m.as_str().chars().count() - 1;
-                hits.push(format!("{path}:{}:{col}-{end}: {}", n + 1, m.as_str()));
+                hits.push(Hit {
+                    path: path.to_string(),
+                    line: n + 1,
+                    col,
+                    endcol: Some(end),
+                    label: m.as_str().to_string(),
+                });
             }
             continue;
         }
@@ -317,7 +318,13 @@ fn file_hits(path: &str, re: &Regex, markers: &[String], fix: &Fix) -> Result<Ve
                 out.push_str(&with);
                 last = m.end();
             }
-            hits.push(format!("{at}-{end}: replace with \"{with}\""));
+            hits.push(Hit {
+                path: path.to_string(),
+                line: n + 1,
+                col,
+                endcol: Some(end),
+                label: format!("replace with \"{with}\""),
+            });
         }
         out.push_str(&body[last..]);
         out.push_str(ending);

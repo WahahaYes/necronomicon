@@ -7,11 +7,12 @@ use std::process::Command;
 
 use super::cargo::{Workspace, relative, workspaces};
 use super::grep::read_list;
+use crate::command::Hit;
 
 const USAGE: &str = "necro rustfmt [--write [--only-at <file>]]";
 
 /// The `rustfmt` finder.
-pub fn run(args: &[String]) -> Result<Vec<String>, String> {
+pub fn run(args: &[String]) -> Result<Vec<Hit>, String> {
     let mut write = false;
     let mut only_at: Option<String> = None;
     let mut it = args.iter();
@@ -42,11 +43,13 @@ pub fn run(args: &[String]) -> Result<Vec<String>, String> {
     for ws in workspaces()? {
         let files = unformatted(&ws)?;
         if !write {
-            hits.extend(
-                files
-                    .iter()
-                    .map(|(rel, _)| format!("{rel}: needs reformatting")),
-            );
+            hits.extend(files.iter().map(|(rel, _)| Hit {
+                path: rel.to_string(),
+                line: 0,
+                col: 0,
+                endcol: None,
+                label: "needs reformatting".to_string(),
+            }));
             continue;
         }
         let chosen: Vec<&(String, PathBuf)> = files
@@ -55,10 +58,16 @@ pub fn run(args: &[String]) -> Result<Vec<String>, String> {
             .collect();
         for (rel, abs) in chosen {
             reformat(&ws, abs)?;
-            hits.push(format!("{rel}: reformatted"));
+            hits.push(Hit {
+                path: rel.to_string(),
+                line: 0,
+                col: 0,
+                endcol: None,
+                label: "reformatted".to_string(),
+            });
         }
     }
-    hits.sort();
+    hits.sort_by(|a, b| a.path.cmp(&b.path));
     Ok(hits)
 }
 

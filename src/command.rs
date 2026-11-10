@@ -153,7 +153,7 @@ fn path_with_necro() -> Option<std::ffi::OsString> {
 }
 
 /// One violation as printed: `path[:line[:col[-endcol]]][:label]`.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Eq, Ord, PartialOrd)]
 pub struct Hit {
     pub path: String,
     /// 0 for a whole-file hit.
@@ -161,6 +161,31 @@ pub struct Hit {
     pub col: usize,
     pub endcol: Option<usize>,
     pub label: String,
+}
+
+impl std::fmt::Display for Hit {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.path)?;
+        if self.line == 0 {
+            if !self.label.is_empty() {
+                write!(f, ": {}", self.label)?;
+            }
+            return Ok(());
+        }
+        write!(f, ":{}", self.line)?;
+        if self.col > 0 {
+            write!(f, ":{}", self.col)?;
+            if let Some(end) = self.endcol
+                && end >= self.col
+            {
+                write!(f, "-{}", end)?;
+            }
+        }
+        if !self.label.is_empty() {
+            write!(f, ": {}", self.label)?;
+        }
+        Ok(())
+    }
 }
 
 fn number(s: &str) -> Option<usize> {
