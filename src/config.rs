@@ -62,16 +62,6 @@ pub enum Fixer {
     Command,
 }
 
-/// The finders that can fix, and the words in a command that make it fixable.
-const FIX_FINDERS: &[(&str, &[&str])] = &[
-    ("grep", &["--replace"]),
-    ("gdtoolkit", &["format"]),
-    ("gdscan", &["spacing"]),
-    // Every rustfmt command is fixable: it has no check to name.
-    ("rustfmt", &[]),
-    ("agent-files", crate::finders::AGENT_FILES_FIXABLE),
-];
-
 /// The `autofix:` word that becomes the files to fix.
 pub const FILES_WORD: &str = "{files}";
 
@@ -164,18 +154,11 @@ impl Rule {
         let finder = (words.first().map(String::as_str) == Some("necro"))
             .then(|| words.get(1))
             .flatten()?;
-        let (_, options) = FIX_FINDERS.iter().find(|(f, _)| f == finder)?;
-        if options.is_empty() {
-            return Some(Fixer::Finder);
+        if crate::finders::is_fixable(finder, &words[2..]) {
+            Some(Fixer::Finder)
+        } else {
+            None
         }
-        let opts = words.iter().skip(2).take_while(|w| *w != "--");
-        opts.into_iter()
-            .any(|w| {
-                options
-                    .iter()
-                    .any(|o| w == o || w.starts_with(&format!("{o}=")))
-            })
-            .then_some(Fixer::Finder)
     }
 
     /// The `autofix:` command as words: parameters in place, and the

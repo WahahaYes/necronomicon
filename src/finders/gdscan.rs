@@ -4,6 +4,8 @@
 use std::collections::HashSet;
 
 use super::gdscript::{self, Kind, Source};
+use crate::command::Hit;
+
 use super::grep::read_list;
 use super::{split_pathspecs, tracked};
 
@@ -18,7 +20,7 @@ const ITEM: usize = 6;
 const PREAMBLE: &[&str] = &["@tool", "@icon", "class_name ", "extends "];
 
 /// The `gdscan` finder.
-pub fn run(args: &[String]) -> Result<Vec<String>, String> {
+pub fn run(args: &[String]) -> Result<Vec<Hit>, String> {
     let (opts, pathspecs) = split_pathspecs(args);
     let (mut header, mut item) = (HEADER, ITEM);
     let mut list: Option<String> = None;
@@ -56,7 +58,7 @@ pub fn run(args: &[String]) -> Result<Vec<String>, String> {
     if check == "uid" {
         return uid(pathspecs, only.as_ref());
     }
-    let run: fn(&str, &Source, usize, usize, &mut Vec<String>) = match check {
+    let run: fn(&str, &Source, usize, usize, &mut Vec<Hit>) = match check {
         "spacing" => spacing,
         "inline-lambda" => inline_lambda,
         "doc-length" => doc_length,
@@ -85,19 +87,15 @@ pub fn run(args: &[String]) -> Result<Vec<String>, String> {
 /// blank lines keep from its function (gdformat would widen that gap and
 /// detach a `##` doc), then make two blank lines above the block. Bottom up,
 /// so earlier line numbers hold, in the file's own line endings.
-fn write_spacing(hits: &[String], at: Option<&HashSet<String>>) -> Result<Vec<String>, String> {
+fn write_spacing(hits: &[Hit], at: Option<&HashSet<String>>) -> Result<Vec<Hit>, String> {
     let mut by_file: std::collections::BTreeMap<&str, Vec<usize>> = Default::default();
     for hit in hits {
-        let mut parts = hit.splitn(3, ':');
-        let (Some(path), Some(line)) = (parts.next(), parts.next()) else {
-            continue;
-        };
+        let path = &hit.path;
+        let line = hit.line;
         if at.is_some_and(|a| !a.contains(&format!("{path}:{line}"))) {
             continue;
         }
-        if let Ok(line) = line.parse::<usize>() {
-            by_file.entry(path).or_default().push(line);
-        }
+        by_file.entry(path).or_default().push(line);
     }
     let mut fixed = Vec::new();
     for (path, mut blocks) in by_file {
@@ -126,7 +124,13 @@ fn write_spacing(hits: &[String], at: Option<&HashSet<String>>) -> Result<Vec<St
         }
         std::fs::write(path, lines.concat()).map_err(|e| format!("can't write {path}: {e}"))?;
         blocks.reverse();
-        fixed.extend(blocks.iter().map(|line| format!("{path}:{line}:1: fixed")));
+        fixed.extend(blocks.iter().map(|line| Hit {
+            path: path.to_string(),
+            line: *line,
+            col: 1,
+            endcol: None,
+            label: "fixed".to_string(),
+        }));
     }
     Ok(fixed)
 }
@@ -172,7 +176,7 @@ fn preamble_len(lines: &[String]) -> usize {
 }
 
 /// `spacing`: a top-level func block (with its attached comments) needs 2 blank lines before it.
-fn spacing(path: &str, src: &Source, _: usize, _: usize, hits: &mut Vec<String>) {
+fn spacing(path: &str, src: &Source, _: usize, _: usize, hits: &mut Vec<Hit>) {
     let lines = &src.lines;
     let mut previous: Option<usize> = None;
     for (i, &depth) in src.depth.iter().enumerate() {
@@ -196,19 +200,28 @@ fn spacing(path: &str, src: &Source, _: usize, _: usize, hits: &mut Vec<String>)
             && blank < 2
         {
             let s = if blank == 1 { "" } else { "s" };
-            hits.push(format!(
-                "{path}:{}:1: {blank} blank line{s}; the previous block starts at line {p}",
-                start + 1
-            ));
+            hits.push(Hit {
+                path: path.to_string(),
+                line: start + 1,
+                col: 1,
+                endcol: None,
+                label: format!("{blank} blank line{s}; the previous block starts at line {p}"),
+            });
         }
         previous = Some(start + 1);
     }
 }
 
 /// `inline-lambda`: a lambda inside brackets opened on an earlier line (gdformat corrupts these).
-fn inline_lambda(path: &str, src: &Source, _: usize, _: usize, hits: &mut Vec<String>) {
+fn inline_lambda(path: &str, src: &Source, _: usize, _: usize, hits: &mut Vec<Hit>) {
     for (n, col, end) in lambda_spans(src) {
-        hits.push(format!("{path}:{n}:{col}-{end}"));
+        hits.push(Hit {
+            path: path.to_string(),
+            line: n,
+            col,
+            endcol: Some(end),
+            label: String::new(),
+        });
     }
 }
 
@@ -268,7 +281,7 @@ pub(super) fn has_inline_lambda(path: &str) -> bool {
 
 /// `doc-length`: a run of own-line `##` comments over `item` lines, or
 /// `header` for the first one right after the preamble.
-fn doc_length(path: &str, src: &Source, header: usize, item: usize, hits: &mut Vec<String>) {
+fn doc_length(path: &str, src: &Source, header: usize, item: usize, hits: &mut Vec<Hit>) {
     let preamble = preamble_len(&src.lines);
     // (first line, column, count)
     let mut blocks: Vec<(usize, usize, usize)> = Vec::new();
@@ -291,17 +304,19 @@ fn doc_length(path: &str, src: &Source, header: usize, item: usize, hits: &mut V
             item
         };
         if count > limit {
-            hits.push(format!(
-                "{path}:{}:{}: {count} lines, over {limit}",
-                line + 1,
-                col + 1
-            ));
+            hits.push(Hit {
+                path: path.to_string(),
+                line: line + 1,
+                col: col + 1,
+                endcol: None,
+                label: format!("{count} lines, over {limit}"),
+            });
         }
     }
 }
 
 /// `export-doc`: an `@export` with no own-line `##` comment directly above it.
-fn export_doc(path: &str, src: &Source, _: usize, _: usize, hits: &mut Vec<String>) {
+fn export_doc(path: &str, src: &Source, _: usize, _: usize, hits: &mut Vec<Hit>) {
     let documented: HashSet<usize> = src
         .comments
         .iter()
@@ -317,14 +332,20 @@ fn export_doc(path: &str, src: &Source, _: usize, _: usize, hits: &mut Vec<Strin
         }
         if n == 0 || !documented.contains(&(n - 1)) {
             let col = line[..line.len() - t.len()].chars().count() + 1;
-            hits.push(format!("{path}:{}:{col}-{}", n + 1, col + 6));
+            hits.push(Hit {
+                path: path.to_string(),
+                line: n + 1,
+                col,
+                endcol: Some(col + 6),
+                label: String::new(),
+            });
         }
     }
 }
 
 /// `uid`: in a repo that tracks `.gd.uid` files (Godot 4.4 and later),
 /// every tracked `.gd` has its tracked `.uid`, and every `.uid` its `.gd`.
-fn uid(pathspecs: &[String], only: Option<&HashSet<String>>) -> Result<Vec<String>, String> {
+fn uid(pathspecs: &[String], only: Option<&HashSet<String>>) -> Result<Vec<Hit>, String> {
     let specs = if pathspecs.is_empty() {
         vec!["*.gd".to_string(), "*.gd.uid".to_string()]
     } else {
@@ -344,16 +365,28 @@ fn uid(pathspecs: &[String], only: Option<&HashSet<String>>) -> Result<Vec<Strin
         return Ok(vec![]);
     }
     let wanted = |p: &str| only.is_none_or(|o| o.contains(p));
-    let mut hits: Vec<String> = gd
+    let mut hits: Vec<Hit> = gd
         .iter()
         .filter(|g| !uids.contains(*g) && wanted(g))
-        .map(|g| format!("{g}: no tracked {g}.uid"))
+        .map(|g| Hit {
+            path: g.to_string(),
+            line: 0,
+            col: 0,
+            endcol: None,
+            label: format!("no tracked {g}.uid"),
+        })
         .chain(
             uids.iter()
                 .filter(|g| !gd.contains(*g) && wanted(&format!("{g}.uid")))
-                .map(|g| format!("{g}.uid: no tracked {g}")),
+                .map(|g| Hit {
+                    path: format!("{g}.uid"),
+                    line: 0,
+                    col: 0,
+                    endcol: None,
+                    label: format!("no tracked {g}"),
+                }),
         )
         .collect();
-    hits.sort();
+    hits.sort_by(|a, b| a.path.cmp(&b.path));
     Ok(hits)
 }

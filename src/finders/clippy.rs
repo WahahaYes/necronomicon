@@ -1,6 +1,7 @@
 //! `necro clippy` (spec: Finders): clippy lints as hits, one cached run per
 //! workspace for every rule that uses it.
 
+use crate::command::Hit;
 use std::collections::BTreeMap;
 use std::process::Command;
 
@@ -99,7 +100,7 @@ fn parse(args: &[String]) -> Result<Options, String> {
 }
 
 /// The `clippy` finder: the given lints' hits in every workspace.
-pub fn run(args: &[String]) -> Result<Vec<String>, String> {
+pub fn run(args: &[String]) -> Result<Vec<Hit>, String> {
     let o = parse(args)?;
     let wanted: Vec<String> = o.lints.iter().map(|l| format!("clippy::{l}")).collect();
     // (path, line) -> (column, location, message): one hit per line.
@@ -109,7 +110,20 @@ pub fn run(args: &[String]) -> Result<Vec<String>, String> {
     }
     Ok(hits
         .into_iter()
-        .map(|((path, line), (_, col, message))| format!("{path}:{line}:{col}: {message}"))
+        .map(|((path, line), (start, col, message))| {
+            let endcol = if col.contains('-') {
+                col.split_once('-').and_then(|(_, e)| e.parse().ok())
+            } else {
+                None
+            };
+            Hit {
+                path,
+                line,
+                col: start,
+                endcol,
+                label: message,
+            }
+        })
         .collect())
 }
 

@@ -6,6 +6,7 @@
 use std::collections::{BTreeMap, HashSet};
 use std::path::Path;
 
+use crate::command::Hit;
 use regex::Regex;
 
 use crate::yaml::{self, Value};
@@ -33,11 +34,8 @@ struct Entry {
     link: bool,
 }
 
-/// The checks `--write` fixes.
-pub const FIXABLE: &[&str] = &["claude-md", "skill-link"];
-
 /// The `agent-files` finder.
-pub fn run(args: &[String]) -> Result<Vec<String>, String> {
+pub fn run(args: &[String]) -> Result<Vec<Hit>, String> {
     let mut write = false;
     let mut only_at: Option<String> = None;
     let mut check: Option<&str> = None;
@@ -63,7 +61,7 @@ pub fn run(args: &[String]) -> Result<Vec<String>, String> {
         }
     }
     let check = check.ok_or(format!("name a check: {USAGE}"))?;
-    if (write || only_at.is_some()) && !FIXABLE.contains(&check) {
+    if (write || only_at.is_some()) && !["claude-md", "skill-link"].contains(&check) {
         return Err(format!(
             "--write goes with claude-md and skill-link: {USAGE}"
         ));
@@ -90,12 +88,18 @@ pub fn run(args: &[String]) -> Result<Vec<String>, String> {
     });
     let mut fixed = Vec::new();
     for hit in hits {
-        let path = hit.split(':').next().unwrap_or_default().to_string();
-        if only.as_ref().is_some_and(|o| !o.contains(&path)) {
+        let path = &hit.path;
+        if only.as_ref().is_some_and(|o| !o.contains(path)) {
             continue;
         }
-        if fix(check, &path)? {
-            fixed.push(format!("{path}: fixed"));
+        if fix(check, path)? {
+            fixed.push(Hit {
+                path: path.to_string(),
+                line: 0,
+                col: 0,
+                endcol: None,
+                label: "fixed".to_string(),
+            });
         }
     }
     Ok(fixed)
@@ -165,24 +169,40 @@ fn base(path: &str) -> &str {
 }
 
 /// `claude-md`: each AGENTS.md has a CLAUDE.md beside it holding only `@AGENTS.md` (or linking to it).
-fn claude_md(index: &BTreeMap<String, Entry>) -> Vec<String> {
+fn claude_md(index: &BTreeMap<String, Entry>) -> Vec<Hit> {
     let mut hits = Vec::new();
     for path in index.keys().filter(|p| base(p) == "AGENTS.md") {
         let claude = format!("{}CLAUDE.md", dir_of(path));
         match index.get(&claude) {
-            None => hits.push(format!("{path}: no CLAUDE.md beside it")),
+            None => hits.push(Hit {
+                path: path.to_string(),
+                line: 0,
+                col: 0,
+                endcol: None,
+                label: "no CLAUDE.md beside it".to_string(),
+            }),
             Some(e) if e.link => {
                 if target(&claude) != "AGENTS.md" {
-                    hits.push(format!(
-                        "{claude}: links to {}, not AGENTS.md",
-                        target(&claude)
-                    ));
+                    let target = target(&claude);
+                    hits.push(Hit {
+                        path: claude.clone(),
+                        line: 0,
+                        col: 0,
+                        endcol: None,
+                        label: format!("links to {}, not AGENTS.md", target),
+                    });
                 }
             }
             Some(_) => {
                 let text = std::fs::read_to_string(&claude).unwrap_or_default();
                 if text.trim() != IMPORT {
-                    hits.push(format!("{claude}: holds more than {IMPORT}"));
+                    hits.push(Hit {
+                        path: claude,
+                        line: 0,
+                        col: 0,
+                        endcol: None,
+                        label: format!("holds more than {IMPORT}"),
+                    });
                 }
             }
         }
@@ -191,13 +211,19 @@ fn claude_md(index: &BTreeMap<String, Entry>) -> Vec<String> {
 }
 
 /// `claude-md-alone`: a CLAUDE.md with no AGENTS.md beside it.
-fn claude_md_alone(index: &BTreeMap<String, Entry>) -> Vec<String> {
+fn claude_md_alone(index: &BTreeMap<String, Entry>) -> Vec<Hit> {
     index
         .keys()
         .filter(|p| {
             base(p) == "CLAUDE.md" && !index.contains_key(&format!("{}AGENTS.md", dir_of(p)))
         })
-        .map(|p| format!("{p}: no AGENTS.md beside it"))
+        .map(|p| Hit {
+            path: p.to_string(),
+            line: 0,
+            col: 0,
+            endcol: None,
+            label: "no AGENTS.md beside it".to_string(),
+        })
         .collect()
 }
 
@@ -213,7 +239,7 @@ fn agent_skills(index: &BTreeMap<String, Entry>) -> Vec<(String, String)> {
 }
 
 /// `skill-link`: each skill in `.agents/skills` has a `.claude/skills/<name>` link to it.
-fn skill_link(index: &BTreeMap<String, Entry>) -> Vec<String> {
+fn skill_link(index: &BTreeMap<String, Entry>) -> Vec<Hit> {
     let mut hits = Vec::new();
     for (prefix, name) in agent_skills(index) {
         let skill = format!("{prefix}.agents/skills/{name}/SKILL.md");
@@ -221,20 +247,29 @@ fn skill_link(index: &BTreeMap<String, Entry>) -> Vec<String> {
         let want = format!("../../.agents/skills/{name}");
         match index.get(&link) {
             Some(e) if e.link && target(&link) == want => {}
-            Some(e) if e.link => hits.push(format!(
-                "{skill}: {link} links to {}, not {want}",
-                target(&link)
-            )),
+            Some(e) if e.link => hits.push(Hit {
+                path: skill,
+                line: 0,
+                col: 0,
+                endcol: None,
+                label: format!("{link} links to {}, not {want}", target(&link)),
+            }),
             // A real folder there is skill-misplaced's to report.
             _ if index.keys().any(|p| p.starts_with(&format!("{link}/"))) => {}
-            _ => hits.push(format!("{skill}: no {link} link")),
+            _ => hits.push(Hit {
+                path: skill,
+                line: 0,
+                col: 0,
+                endcol: None,
+                label: format!("no {link} link"),
+            }),
         }
     }
     hits
 }
 
 /// `skill-misplaced`: a real skill folder in `.claude/skills`, or a link there to no skill.
-fn skill_misplaced(index: &BTreeMap<String, Entry>) -> Vec<String> {
+fn skill_misplaced(index: &BTreeMap<String, Entry>) -> Vec<Hit> {
     let Ok(re) = Regex::new(r"^(.*?)\.claude/skills/([^/]+)(/.*)?$") else {
         return vec![];
     };
@@ -252,16 +287,26 @@ fn skill_misplaced(index: &BTreeMap<String, Entry>) -> Vec<String> {
                 .into_iter()
                 .find(|f| index.contains_key(f))
                 .unwrap_or_default();
-            hits.push(format!(
-                "{file}: a skill folder in .claude/skills; it belongs in .agents/skills"
-            ));
+            hits.push(Hit {
+                path: file,
+                line: 0,
+                col: 0,
+                endcol: None,
+                label: "a skill folder in .claude/skills; it belongs in .agents/skills".to_string(),
+            });
         } else if entry.link {
             let skill = format!("{prefix}.agents/skills/{name}/SKILL.md");
             if !index.contains_key(&skill) {
-                hits.push(format!(
-                    "{path}: links to {}, which isn't a skill in .agents/skills",
-                    target(path)
-                ));
+                hits.push(Hit {
+                    path: path.to_string(),
+                    line: 0,
+                    col: 0,
+                    endcol: None,
+                    label: format!(
+                        "links to {}, which isn't a skill in .agents/skills",
+                        target(path)
+                    ),
+                });
             }
         }
     }
@@ -348,41 +393,80 @@ fn scalar(node: &yaml::Node) -> Option<&str> {
 }
 
 /// `skill-frontmatter`: each SKILL.md opens with frontmatter naming its folder and saying what it's for.
-fn skill_frontmatter(index: &BTreeMap<String, Entry>) -> Vec<String> {
+fn skill_frontmatter(index: &BTreeMap<String, Entry>) -> Vec<Hit> {
     let mut hits = Vec::new();
     for path in index.keys().filter(|p| base(p) == "SKILL.md") {
         let folder = base(dir_of(path).trim_end_matches('/'));
         let node = match frontmatter(path) {
             Frontmatter::Missing => {
-                hits.push(format!("{path}:1:1: no --- frontmatter"));
+                hits.push(Hit {
+                    path: path.to_string(),
+                    line: 1,
+                    col: 1,
+                    endcol: None,
+                    label: "no --- frontmatter".to_string(),
+                });
                 continue;
             }
             Frontmatter::Invalid(pos, message) => {
-                hits.push(format!("{path}:{}:{}: {message}", pos.line, pos.col));
+                hits.push(Hit {
+                    path: path.to_string(),
+                    line: pos.line,
+                    col: pos.col,
+                    endcol: None,
+                    label: message,
+                });
                 continue;
             }
             Frontmatter::Parsed(node) => node,
         };
         match field(&node, "name") {
-            None => hits.push(format!("{path}:1:1: no name")),
+            None => hits.push(Hit {
+                path: path.to_string(),
+                line: 1,
+                col: 1,
+                endcol: None,
+                label: "no name".to_string(),
+            }),
             Some((value, line)) => {
                 let name = scalar(value).unwrap_or_default();
                 if name != folder {
-                    hits.push(format!(
-                        "{path}:{line}:1: name {name} isn't the folder's, {folder}"
-                    ));
+                    hits.push(Hit {
+                        path: path.to_string(),
+                        line,
+                        col: 1,
+                        endcol: None,
+                        label: format!("name {name} isn't the folder's, {folder}"),
+                    });
                 } else if !crate::config::valid_name(name) || name.len() > 64 {
-                    hits.push(format!("{path}:{line}:1: name {name} isn't lowercase words joined by hyphens, up to 64 characters"));
+                    hits.push(Hit {
+                        path: path.to_string(),
+                        line,
+                        col: 1,
+                        endcol: None,
+                        label: format!(
+                            "name {name} isn't lowercase words joined by hyphens, up to 64 characters"
+                        ),
+                    });
                 }
             }
         }
         match field(&node, "description").and_then(|(value, line)| scalar(value).map(|d| (d, line)))
         {
-            None | Some(("", _)) => hits.push(format!("{path}:1:1: no description")),
-            Some((description, line)) if description.len() > 1024 => hits.push(format!(
-                "{path}:{line}:1: description over 1024 characters ({})",
-                description.len()
-            )),
+            None | Some(("", _)) => hits.push(Hit {
+                path: path.to_string(),
+                line: 1,
+                col: 1,
+                endcol: None,
+                label: "no description".to_string(),
+            }),
+            Some((description, line)) if description.len() > 1024 => hits.push(Hit {
+                path: path.to_string(),
+                line,
+                col: 1,
+                endcol: None,
+                label: format!("description over 1024 characters ({})", description.len()),
+            }),
             Some(_) => {}
         }
     }
@@ -390,7 +474,7 @@ fn skill_frontmatter(index: &BTreeMap<String, Entry>) -> Vec<String> {
 }
 
 /// `other-instructions`: another harness's instruction file with content that doesn't point to AGENTS.md.
-fn other_instructions(index: &BTreeMap<String, Entry>) -> Vec<String> {
+fn other_instructions(index: &BTreeMap<String, Entry>) -> Vec<Hit> {
     index
         .keys()
         .filter(|p| {
@@ -402,12 +486,18 @@ fn other_instructions(index: &BTreeMap<String, Entry>) -> Vec<String> {
             let text = std::fs::read_to_string(p).unwrap_or_default();
             !text.trim().is_empty() && !text.contains("AGENTS.md")
         })
-        .map(|p| format!("{p}: instructions outside AGENTS.md"))
+        .map(|p| Hit {
+            path: p.to_string(),
+            line: 0,
+            col: 0,
+            endcol: None,
+            label: "instructions outside AGENTS.md".to_string(),
+        })
         .collect()
 }
 
 /// `rule-reference`: a rule named in AGENTS.md, CLAUDE.md or a SKILL.md that the config here doesn't have.
-fn rule_reference(index: &BTreeMap<String, Entry>) -> Result<Vec<String>, String> {
+fn rule_reference(index: &BTreeMap<String, Entry>) -> Result<Vec<Hit>, String> {
     let cwd = std::env::current_dir().map_err(|e| format!("can't read the current folder: {e}"))?;
     let root = crate::files::find_root(&cwd).ok_or("no necro.yaml here or above")?;
     let config = crate::config::load(&root, &crate::files::list(&root))
@@ -446,11 +536,13 @@ fn rule_reference(index: &BTreeMap<String, Entry>) -> Result<Vec<String>, String
                     continue;
                 }
                 let col = line[..m.start()].chars().count() + 1;
-                hits.push(format!(
-                    "{path}:{}:{col}-{}: {name}",
-                    n + 1,
-                    col + name.chars().count() - 1
-                ));
+                hits.push(Hit {
+                    path: path.to_string(),
+                    line: n + 1,
+                    col,
+                    endcol: Some(col + name.chars().count() - 1),
+                    label: name.to_string(),
+                });
             }
         }
     }
@@ -465,7 +557,7 @@ fn stamped_version(node: &yaml::Node) -> Option<(usize, String)> {
 }
 
 /// `stale-skill`: a skill `necro skills install` wrote for another necro version.
-fn stale_skill(index: &BTreeMap<String, Entry>) -> Vec<String> {
+fn stale_skill(index: &BTreeMap<String, Entry>) -> Vec<Hit> {
     let current = env!("CARGO_PKG_VERSION");
     index
         .keys()
@@ -475,7 +567,13 @@ fn stale_skill(index: &BTreeMap<String, Entry>) -> Vec<String> {
                 return None;
             };
             let (n, v) = stamped_version(&node)?;
-            (v != current).then(|| format!("{p}:{n}:1: from necro {v}; this is necro {current}"))
+            (v != current).then(|| Hit {
+                path: p.to_string(),
+                line: n,
+                col: 1,
+                endcol: None,
+                label: format!("from necro {v}; this is necro {current}"),
+            })
         })
         .collect()
 }
