@@ -12,10 +12,23 @@ use regex::Regex;
 use crate::yaml::{self, Value};
 
 use super::grep::read_list;
+use crate::args::{self, Spec};
 
 const USAGE: &str = "necro agent-files [--write [--only-at <file>]] \
      (claude-md|claude-md-alone|skill-link|skill-misplaced|skill-frontmatter|\
      other-instructions|rule-reference|stale-skill)";
+
+/// The checks `agent-files` knows.
+const CHECKS: &[&str] = &[
+    "claude-md",
+    "claude-md-alone",
+    "skill-link",
+    "skill-misplaced",
+    "skill-frontmatter",
+    "other-instructions",
+    "rule-reference",
+    "stale-skill",
+];
 
 /// What a CLAUDE.md holds when AGENTS.md has the content.
 const IMPORT: &str = "@AGENTS.md";
@@ -36,31 +49,18 @@ struct Entry {
 
 /// The `agent-files` finder.
 pub fn run(args: &[String]) -> Result<Vec<Hit>, String> {
-    let mut write = false;
-    let mut only_at: Option<String> = None;
-    let mut check: Option<&str> = None;
-    let mut it = args.iter();
-    while let Some(arg) = it.next() {
-        match arg.as_str() {
-            "--write" => write = true,
-            "--only-at" => {
-                only_at = Some(
-                    it.next()
-                        .ok_or(format!("--only-at needs a value: {USAGE}"))?
-                        .clone(),
-                )
-            }
-            a if a.starts_with("--only-at=") => only_at = Some(a["--only-at=".len()..].to_string()),
-            // A narrowed run's list: these checks look at pairs, so the whole folder.
-            "--files-from" => {
-                it.next();
-            }
-            f if f.starts_with('-') => return Err(format!("unknown option {f}: {USAGE}")),
-            c if check.is_none() => check = Some(c),
-            other => return Err(format!("unexpected argument {other}: {USAGE}")),
-        }
-    }
-    let check = check.ok_or(format!("name a check: {USAGE}"))?;
+    let parsed = args::parse(
+        args,
+        &Spec {
+            values: &["--only-at", "--files-from"],
+            flags: &["--write"],
+            pathspecs: false,
+        },
+    )
+    .map_err(|e| e.with_usage(USAGE))?;
+    let write = parsed.flag("--write");
+    let only_at = parsed.value("--only-at");
+    let check = args::check(&parsed.positional, CHECKS, USAGE)?;
     if (write || only_at.is_some()) && !["claude-md", "skill-link"].contains(&check) {
         return Err(format!(
             "--write goes with claude-md and skill-link: {USAGE}"
@@ -76,12 +76,12 @@ pub fn run(args: &[String]) -> Result<Vec<Hit>, String> {
         "other-instructions" => other_instructions(&index),
         "rule-reference" => rule_reference(&index)?,
         "stale-skill" => stale_skill(&index),
-        other => return Err(format!("unknown check {other}: {USAGE}")),
+        _ => unreachable!("args::check accepted {check}"),
     };
     if !write {
         return Ok(hits);
     }
-    let only: Option<HashSet<String>> = only_at.as_deref().map(read_list).transpose()?.map(|l| {
+    let only: Option<HashSet<String>> = only_at.map(read_list).transpose()?.map(|l| {
         l.into_iter()
             .map(|a| a.split(':').next().unwrap_or_default().to_string())
             .collect()
