@@ -30,3 +30,13 @@ rules:
     examples:
       bad: '[spec/v0.md](spec/v0.md)'
       good: '[spec/v0.md](https://github.com/WahahaYes/necronomicon/blob/main/spec/v0.md)'
+  # Local only, not a pack: adopters have no plugins/ or .agents/plugins/
+  # dirs. The copies are re-copied from canonical at release (release-meta.py
+  # sync-skills); the rule keeps them in sync between releases.
+  plugin-skills-sync:
+    command: python3 scripts/release-meta.py sync-skills --check
+    files: '(^|/)(necro|necro-rules|necro-adopt)/SKILL\.md$'
+    autofix: python3 scripts/release-meta.py sync-skills {files}
+    message: a plugin skill copy that differs from its canonical skill
+    why: the canonical `.agents/skills/<name>/SKILL.md` is the source; the copies under `plugins/` and `.agents/plugins/` are re-copied from it at release, so an edit to a copy alone is lost and an edit to canonical alone leaves stale copies.
+    fix: edit the canonical skill, never a copy, then run `necro --fix` to re-copy it into every harness plugin dir.

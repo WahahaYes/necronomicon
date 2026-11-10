@@ -5,7 +5,8 @@
 #   release.sh X.Y.Z [--notes-file FILE] [--no-push]
 #       1. Cut (or update) branch release-X.Y.Z from origin/main in a scratch
 #          worktree: bump Cargo.toml and Cargo.lock to X.Y.Z (the wheel
-#          takes Cargo.toml's version), turn CHANGELOG.md's
+#          takes Cargo.toml's version), stamp the plugin manifests and
+#          re-copy the plugin skills, turn CHANGELOG.md's
 #          Unreleased section into X.Y.Z (FILE replaces it instead), commit
 #          "release X.Y.Z", push, open the release PR.
 #       2. Wait for the PR's required builds, then merge it.
@@ -93,13 +94,20 @@ open_pr() {
     rm -f "$WT/Cargo.toml.bak"
     cargo metadata --manifest-path "$WT/Cargo.toml" --format-version 1 --offline >/dev/null 2>&1 \
         || cargo metadata --manifest-path "$WT/Cargo.toml" --format-version 1 >/dev/null
+    meta stamp "$VER" || die "plugin manifests not stamped for $VER"
     meta check "$VER" || die "manifests not bumped to $VER"
     meta changelog "$VER" "$(date +%Y-%m-%d)" ${NOTES_FILE:+"$NOTES_FILE"} \
         || die "no CHANGELOG notes for $VER"
     meta stale \
         || die "a version is hardcoded outside the manifests; read it from the build instead"
 
-    git -C "$WT" add Cargo.toml Cargo.lock CHANGELOG.md
+    git -C "$WT" add Cargo.toml Cargo.lock CHANGELOG.md \
+        plugins/necronomicon/.claude-plugin/plugin.json \
+        .agents/plugins/necronomicon/plugin.json \
+        plugins/opencode-necronomicon/package.json \
+        plugins/necronomicon/skills \
+        .agents/plugins/necronomicon/skills \
+        plugins/opencode-necronomicon/skills
     git -C "$WT" diff --cached --quiet || git -C "$WT" commit --quiet -m "release $VER"
     HEAD_SHA=$(git -C "$WT" rev-parse HEAD)
     if [ "$PUSH" = 0 ]; then

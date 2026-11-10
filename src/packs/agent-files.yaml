@@ -23,7 +23,7 @@ rules:
     command: necro agent-files skill-link
     files: '(^|/)\.(agents|claude)/skills/'
     message: a skill without its .claude/skills link
-    why: skills live once in .agents/skills, which Codex, Cursor, Gemini and Copilot read; Claude Code reads only .claude/skills, so each skill needs a link there.
+    why: skills live once in .agents/skills, which Codex, OpenCode, Cursor, Gemini and Copilot read; Claude Code reads only .claude/skills, so each skill needs a link there.
     fix: run `necro --fix` to create `.claude/skills/<name>`, a symlink to `../../.agents/skills/<name>`.
   skill-misplaced:
     command: necro agent-files skill-misplaced

@@ -1,0 +1,16 @@
+{
+  "name": "necronomicon",
+  "owner": {
+    "name": "WahahaYes"
+  },
+  "metadata": {
+    "description": "House rules that teach: pre-commit checks whose hits explain themselves to coding agents."
+  },
+  "plugins": [
+    {
+      "name": "necronomicon",
+      "source": "./plugins/necronomicon",
+      "description": "House rules that teach: work with necro hits, write necro rules, and adopt necro in a repo."
+    }
+  ]
+}
