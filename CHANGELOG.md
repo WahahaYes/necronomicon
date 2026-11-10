@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- **Options parse the same way in the CLI and every finder.** A value option takes `--name=value` as well as `--name value` (`agent-files` and `rustfmt` rejected `--only-at=…`, `clippy` rejected `--match=…`), options may come anywhere before `--` (`grep` took `--write` only before its regex), and an option a command doesn't know is always `unknown option`.
 - **`agent-files/skill-frontmatter`** reads a `SKILL.md`'s frontmatter as YAML and reports frontmatter that doesn't parse or isn't one mapping, rather than half-reading it line by line.
 - **`gdscan`** no longer loses its place after a bracket inside a triple-quoted string, so `spacing` and `inline-lambda` keep finding later hits.
 - **`necro grep --skip-comments`** keeps a comment marker inside a `"""` string, even one spanning lines, so a `#` in GDScript text isn't read as a comment.
