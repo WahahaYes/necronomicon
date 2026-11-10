@@ -2,7 +2,7 @@
 
 # necronomicon
 
-[![PyPI](https://img.shields.io/pypi/v/necronomicon.svg)](https://pypi.org/project/necronomicon/) [![crates.io](https://img.shields.io/crates/v/necronomicon.svg)](https://crates.io/crates/necronomicon) [![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://github.com/WahahaYes/necronomicon/blob/main/LICENSE)
+[![PyPI](https://img.shields.io/pypi/v/necronomicon.svg)](https://pypi.org/project/necronomicon/) [![crates.io](https://img.shields.io/crates/v/necronomicon.svg)](https://crates.io/crates/necronomicon) [![Coverage](https://codecov.io/gh/WahahaYes/necronomicon/graph/badge.svg)](https://codecov.io/gh/WahahaYes/necronomicon) [![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://github.com/WahahaYes/necronomicon/blob/main/LICENSE)
 
 A simple way to organize a repo's pre-commit hooks for progressive disclosure, steering coding agents toward the repo's conventions and intended architecture. Each rule pairs a command that finds violations with what to say about them: what's wrong, why the rule exists, and what to do instead. An agent sees a rule only when its commit breaks it, at the line it broke, with the long form one `necro --explain` away.
 
