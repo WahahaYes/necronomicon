@@ -156,14 +156,6 @@ pub fn dispatch(args: &[String]) -> Option<u8> {
     })
 }
 
-/// Split finder arguments at `--`: (before, pathspecs).
-pub fn split_pathspecs(args: &[String]) -> (&[String], &[String]) {
-    match args.iter().position(|a| a == "--") {
-        Some(i) => (&args[..i], &args[i + 1..]),
-        None => (args, &[]),
-    }
-}
-
 /// Tracked text files matching the pathspecs, sorted; with `containing`,
 /// only those holding one of the strings. `git grep` lists them: unlike
 /// `git ls-files`, it honours an exclude starting with a wildcard
