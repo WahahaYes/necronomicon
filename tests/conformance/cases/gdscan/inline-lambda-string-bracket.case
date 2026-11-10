@@ -1,0 +1,10 @@
+# inline-lambda: a bracket inside a triple-quoted string doesn't make a later top-level lambda look like it's in brackets
+spec: Finders
+args: gdscan inline-lambda
+-- src/a.gd --
+extends Node
+var s = """
+open ( paren
+"""
+
+var f = func(): pass

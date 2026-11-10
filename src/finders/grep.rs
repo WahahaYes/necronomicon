@@ -9,6 +9,7 @@ use fancy_regex::Regex;
 use globset::{GlobBuilder, GlobSet, GlobSetBuilder};
 use regex_syntax::hir::literal::{ExtractKind, Extractor};
 
+use super::gdscript;
 use super::{regex_error, split_pathspecs, text_lines, tracked};
 
 const USAGE: &str = "necro grep [--skip-comments <marker>]… [--glob <glob>]… \
@@ -280,12 +281,16 @@ fn file_hits(path: &str, re: &Regex, markers: &[String], fix: &Fix) -> Result<Ve
             None => return Ok(Vec::new()),
         }
     };
+    let source = (!markers.is_empty()).then(|| gdscript::scan(&text, markers));
     let mut hits = Vec::new();
     let mut out = String::with_capacity(text.len());
     for (n, raw) in text.split_inclusive('\n').enumerate() {
         let body = raw.trim_end_matches('\n').trim_end_matches('\r');
         let ending = &raw[body.len()..];
-        let code = &body[..code_end(body, markers)];
+        let end = source
+            .as_ref()
+            .map_or(body.len(), |source| source.code_end(n));
+        let code = &body[..end];
         let mut last = 0;
         if fix.replace.is_none() {
             for m in re.find_iter(code) {
@@ -326,27 +331,4 @@ fn file_hits(path: &str, re: &Regex, markers: &[String], fix: &Fix) -> Result<Ve
         std::fs::write(path, out).map_err(|e| format!("can't write {path}: {e}"))?;
     }
     Ok(hits)
-}
-
-/// The byte offset where a line's comment starts: the first marker outside a
-/// `"…"` or `'…'` string, or the line's end.
-fn code_end(line: &str, markers: &[String]) -> usize {
-    if markers.is_empty() {
-        return line.len();
-    }
-    let mut quote: Option<char> = None;
-    let mut chars = line.char_indices();
-    while let Some((i, c)) = chars.next() {
-        match quote {
-            Some(_) if c == '\\' => {
-                chars.next();
-            }
-            Some(q) if c == q => quote = None,
-            Some(_) => {}
-            None if c == '"' || c == '\'' => quote = Some(c),
-            None if markers.iter().any(|m| line[i..].starts_with(m.as_str())) => return i,
-            None => {}
-        }
-    }
-    line.len()
 }
