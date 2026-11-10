@@ -7,6 +7,8 @@
 - **`gdscan`** no longer loses its place after a bracket inside a triple-quoted string, so `spacing` and `inline-lambda` keep finding later hits.
 - **`necro grep --skip-comments`** keeps a comment marker inside a `"""` string, even one spanning lines, so a `#` in GDScript text isn't read as a comment.
 - **`necro rust-docs`** uses a single stateful scanner that tracks block comments, strings, raw strings and character literals across lines, so brackets inside them no longer skew the `cfg(test)` module depth.
+- **Skill-only plugins for discoverability.** The `necro`, `necro-rules` and `necro-adopt` skills ship as a Claude Code plugin (marketplace `WahahaYes/necronomicon`) and a Codex plugin (`.agents/plugins`), copied from `.agents/skills`; OpenCode reads those skills already. No binary or hooks ride along: install necro itself as before.
+- **`agent-files/skill-link`** names OpenCode among the harnesses that read `.agents/skills`, matching the documented read paths.
 
 ## 0.5.1 - 2026-11-06
 

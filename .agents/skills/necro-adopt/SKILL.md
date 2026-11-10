@@ -7,11 +7,11 @@ description: Set up necro (necronomicon) in a repo, house rules run as pre-commi
 
 ## 1. Install
 
-`uv tool install necronomicon` or `pip install necronomicon` (a wheel around the binary), or `cargo install necronomicon`. Check with `necro --version`.
+`uv tool install necronomicon` or `pip install necronomicon` (a wheel around the binary), or `cargo install necronomicon`. For Godot, install `necronomicon[gdscript]` instead, which pins gdtoolkit beside the binary. Check with `necro --version`.
 
 ## 2. necro.yaml
 
-At the repo top: `version: 0`, then `include:` the packs for what the repo holds: `necro:rust` (and the opt-in `necro:rust-style`) for Rust, `necro:agent-files` when it has `AGENTS.md` or skills. If its main language has no pack, tell the user; they can ask for one with the [pack suggestion form](https://github.com/WahahaYes/necronomicon/issues/new?template=pack-suggestion.yml). A top-level `exclude:` leaves out vendored code and fixtures.
+At the repo top: `version: 0`, then `include:` the packs for what the repo holds: `necro:rust` (and the opt-in `necro:rust-style`) for Rust, `necro:gdscript` (and the opt-in `necro:gdscript-style`) for Godot, `necro:agent-files` when it has `AGENTS.md` or skills. If its main language has no pack, tell the user; they can ask for one with the [pack suggestion form](https://github.com/WahahaYes/necronomicon/issues/new?template=pack-suggestion.yml). A top-level `exclude:` leaves out vendored code and fixtures.
 
 ## 3. Rules from what's there
 
@@ -23,7 +23,7 @@ Run `necro`. `necro --fix` clears fixable hits; fix the real ones that are quick
 
 ## 5. Hook and CI
 
-Add the hook from the [README](https://github.com/WahahaYes/necronomicon#install), for prek or pre-commit, whichever the repo uses, and pin `necronomicon` below the next 0.x. In CI, run `necro` with no files, or `prek run --from-ref origin/main --to-ref HEAD` (`pre-commit run` takes the same arguments).
+Add the hook from the [README](https://github.com/WahahaYes/necronomicon#install), for prek or pre-commit, whichever the repo uses. It floats to the latest `necronomicon` on fresh hook environments, which is how rule fixes arrive; any 0.x may break the format, so to pin instead name the minor last upgraded to (`necronomicon==0.<minor>.*`). In CI, run `necro` with no files, or `prek run --from-ref origin/main --to-ref HEAD` (`pre-commit run` takes the same arguments).
 
 ## 6. Skills
 

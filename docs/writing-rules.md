@@ -80,10 +80,11 @@ A rule that runs runs in full, so a hit it causes elsewhere still shows, except 
 
 ```yaml
 - repo: local
+  # Non-login shells (IDEs, agents) often lack ~/.cargo/bin on PATH.
   hooks:
     - id: necro
-      name: necro
-      entry: cargo run -q --manifest-path <clone>/Cargo.toml --
+      name: necro (this repo's house rules, current build)
+      entry: sh -c 'PATH="$HOME/.cargo/bin:$PATH" exec cargo run -q --manifest-path <clone>/Cargo.toml -- --fix "$@"' necro
       language: system
       always_run: true
       require_serial: true

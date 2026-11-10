@@ -1,8 +1,13 @@
 #!/usr/bin/env python3
 """Release metadata shared by scripts/release.sh and the release workflow.
 
-  release-meta.py check X.Y.Z   exit 1 unless Cargo.toml and Cargo.lock carry
-                                X.Y.Z (the wheel takes Cargo.toml's version)
+  release-meta.py check X.Y.Z   exit 1 unless Cargo.toml, Cargo.lock and the
+                                stamped plugin manifests carry X.Y.Z (the
+                                wheel takes Cargo.toml's version)
+  release-meta.py stamp X.Y.Z   write X.Y.Z into the plugin manifests' version
+                                and re-copy .agents/skills into every harness
+                                plugin skills/ dir; same commit as the Cargo
+                                bump in release.sh open_pr
   release-meta.py notes X.Y.Z   print the CHANGELOG.md section for X.Y.Z;
                                 exit 1 when there is none
   release-meta.py changelog X.Y.Z DATE [NOTES_FILE]
@@ -15,10 +20,13 @@
                                 on top for the next release's notes
   release-meta.py stale         exit 1, listing each hit, if any version in
                                 CHANGELOG.md is written into source or user
-                                docs, where a bump would leave it behind
+                                docs, where a bump would leave it behind.
+                                A stamp already at the current Cargo.toml
+                                version is the release's own, not a hit
 """
 import os
 import re
+import json
 import subprocess
 import sys
 from pathlib import Path
@@ -29,7 +37,24 @@ ROOT = Path(os.environ.get("RELEASE_ROOT") or Path(__file__).resolve().parent.pa
 CHANGELOG = ROOT / "CHANGELOG.md"
 # Where a hardcoded version would reach users. The manifests, the lockfile
 # and the CHANGELOG carry versions on purpose.
-STALE_PATHS = ["src", "README.md", "docs", "spec", "examples", ".pre-commit-hooks.yaml"]
+STALE_PATHS = ["src", "README.md", "docs", "spec", "examples", ".pre-commit-hooks.yaml",
+               "plugins", ".agents/plugins"]
+# Harness plugin manifests stamped with Cargo.toml's version at release
+# (release.sh stamps them, check verifies them). Marketplace entries stay
+# unversioned: the manifest wins and a mismatch would only warn.
+STAMP_FILES = [
+    "plugins/necronomicon/.claude-plugin/plugin.json",
+    ".agents/plugins/necronomicon/plugin.json",
+    "plugins/opencode-necronomicon/package.json",
+]
+# Skills carried for coding agents, re-copied from the canonical
+# .agents/skills into every harness plugin skills/ dir at release.
+STAMP_SKILLS = ["necro", "necro-rules", "necro-adopt"]
+STAMP_SKILL_DIRS = [
+    "plugins/necronomicon/skills",
+    ".agents/plugins/necronomicon/skills",
+    "plugins/opencode-necronomicon/skills",
+]
 
 
 def check(ver):
@@ -41,9 +66,53 @@ def check(ver):
     lock = re.search(r'^name = "necronomicon"\nversion = "([^"]*)"$', (ROOT / "Cargo.lock").read_text(), re.M)
     if not lock or lock.group(1) != ver:
         bad.append("Cargo.lock")
+    for rel in STAMP_FILES:
+        try:
+            stamped = json.loads((ROOT / rel).read_text()).get("version")
+        except (OSError, ValueError):
+            stamped = None
+        if stamped != ver:
+            bad.append(rel)
     for f in bad:
         print("release-meta: %s is not at %s" % (f, ver), file=sys.stderr)
     return 1 if bad else 0
+
+
+def derived(name):
+    """The plugin copy of a canonical skill: identical but for a header
+    comment pointing at the file to edit, kept after the frontmatter so
+    harnesses still parse it."""
+    lines = (ROOT / ".agents/skills" / name / "SKILL.md").read_text().split("\n")
+    if not lines or lines[0].strip() != "---" or "---" not in lines[1:]:
+        raise ValueError(".agents/skills/%s/SKILL.md has no frontmatter" % name)
+    end = lines.index("---", 1)
+    rest = lines[end + 1:]
+    if rest and rest[0] == "":
+        rest = rest[1:]
+    header = "<!-- Derived from .agents/skills/%s/SKILL.md: edit the canonical file there, then re-copy here. -->" % name
+    return "\n".join(lines[: end + 1] + ["", header, ""] + rest)
+
+
+def stamp(ver):
+    for rel in STAMP_FILES:
+        target = ROOT / rel
+        try:
+            data = json.loads(target.read_text())
+        except (OSError, ValueError) as e:
+            print("release-meta: can't stamp %s: %s" % (rel, e), file=sys.stderr)
+            return 1
+        data["version"] = ver
+        target.write_text(json.dumps(data, indent=2) + "\n")
+    for folder in STAMP_SKILL_DIRS:
+        for name in STAMP_SKILLS:
+            try:
+                text = derived(name)
+            except ValueError as e:
+                print("release-meta: %s" % e, file=sys.stderr)
+                return 1
+            (ROOT / folder / name).mkdir(parents=True, exist_ok=True)
+            (ROOT / folder / name / "SKILL.md").write_text(text)
+    return 0
 
 
 def section(text, heading):
@@ -104,6 +173,8 @@ def stale():
     versions = re.findall(r"^## (\d+\.\d+\.\d+)\b", CHANGELOG.read_text(), re.M)
     if not versions:
         return 0
+    cargo = re.search(r'^version = "([^"]*)"$', (ROOT / "Cargo.toml").read_text(), re.M)
+    current = cargo.group(1) if cargo else None
     paths = [p for p in STALE_PATHS if (ROOT / p).exists()]
     pattern = []
     for v in versions:
@@ -112,14 +183,23 @@ def stale():
         ["git", "-C", str(ROOT), "grep", "-n", "-w", "-F"] + pattern + ["--"] + paths,
         capture_output=True, text=True,
     ).stdout
-    hits = out.splitlines()
-    for line in hits:
+    failed = False
+    for line in out.splitlines():
+        path, _, rest = line.partition(":")
+        _, _, text = rest.partition(":")
+        # A stamp already at the current version is the release's own: the
+        # harness reads it from the manifest, never from the build. A stamp
+        # at any other released version is still a hit.
+        if (path in STAMP_FILES and current
+                and re.fullmatch(r'\s*"version": "%s",?' % re.escape(current), text)):
+            continue
         print("release-meta: version hardcoded here: %s" % line, file=sys.stderr)
-    return 1 if hits else 0
+        failed = True
+    return 1 if failed else 0
 
 
 if __name__ == "__main__":
-    cmds = {"check": (check, 1), "notes": (notes, 1), "changelog": (changelog, 2, 3), "stale": (stale, 0)}
+    cmds = {"check": (check, 1), "stamp": (stamp, 1), "notes": (notes, 1), "changelog": (changelog, 2, 3), "stale": (stale, 0)}
     args = sys.argv[2:]
     spec = cmds.get(sys.argv[1] if len(sys.argv) > 1 else "")
     if not spec or not (spec[1] <= len(args) <= spec[-1]):

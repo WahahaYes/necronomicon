@@ -103,19 +103,26 @@ As a hook for [prek](https://github.com/j178/prek) or pre-commit, which installs
       entry: necro --fix
       language: python
       additional_dependencies: ['necronomicon']
+      # The published hook declares pre-commit 3.0.0 as its floor.
       always_run: true
       require_serial: true
 ```
 
 For `necro:gdscript`, install `necronomicon[gdscript]` instead, which pins gdtoolkit beside necro.
 
-The runner passes the changed files, so a commit runs only the rules that concern them, and `--fix` applies the fixes rules carry, failing the commit until you re-stage, as a formatter does; in CI, `prek run --from-ref origin/main --to-ref HEAD` (or `pre-commit run`, the same) does it for a branch. `necro` with no files checks everything.
+The runner passes the changed files, so a commit runs only the rules that concern them, and `--fix` applies the fixes rules carry, failing the commit until you re-stage, as a formatter does; in CI, `prek run --from-ref origin/main --to-ref HEAD` (or `pre-commit run`, the same) does it for a branch — that from-ref/to-ref form is the standard adopter pattern, and this repo dogfoods it through `make check` (every hook on every file) plus a full `make necro`. `necro` with no files checks everything.
 
-Pin below the next 0.x: any 0.x may break the format.
+The hook floats to the latest `necronomicon` on each fresh hook environment, which is how rule fixes reach you without a bump on your side — but any 0.x may break the format, so a breaking release would break your hook too. To pin instead, name the minor you last upgraded to: `additional_dependencies: ['necronomicon==0.<minor>.*']`.
+
+As skill-only plugins (discovery and easy install; the binary above still runs the checks, no hooks or binaries ride along):
+
+- Claude Code: `/plugin marketplace add WahahaYes/necronomicon`, then `/plugin install necronomicon@necronomicon`.
+- Codex: `codex plugin marketplace add WahahaYes/necronomicon`, then install the `necronomicon` plugin (listing: `.agents/plugins/marketplace.json`).
+- OpenCode: no plugin file needed, `.agents/skills` is already a read path: `npx skills add WahahaYes/necronomicon --skill necro-adopt -a opencode`.
 
 ## Skills for agents
 
-`npx skills add WahahaYes/necronomicon --skill necro-adopt` gives a coding agent a skill for setting necro up in a repo. Its last step, `necro skills install`, adds two skills versioned with your necro: `necro`, for working with its hits, and `necro-rules`, for writing rules and keeping `AGENTS.md` in step. They go in `.agents/skills`, linked from `.claude/skills`; after an upgrade, `necro --fix` rewrites them.
+`npx skills add WahahaYes/necronomicon --skill necro-adopt` gives a coding agent a skill for setting necro up in a repo. Its last step, `necro skills install`, adds two skills versioned with your necro: `necro`, for working with its hits, and `necro-rules`, for writing rules and keeping `AGENTS.md` in step. They go in `.agents/skills`, linked from `.claude/skills`; after an upgrade, `necro --fix` rewrites them. Pass `-a <harness>` (e.g. `-a opencode`) to write to one harness's skill dir explicitly; without it the tool detects the harness.
 
 ## More
 
