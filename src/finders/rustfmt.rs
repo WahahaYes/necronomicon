@@ -7,38 +7,39 @@ use std::process::Command;
 
 use super::cargo::{Workspace, relative, workspaces};
 use super::grep::read_list;
+use crate::args::{self, Spec};
 use crate::command::Hit;
 
 const USAGE: &str = "necro rustfmt [--write [--only-at <file>]]";
 
 /// The `rustfmt` finder.
 pub fn run(args: &[String]) -> Result<Vec<Hit>, String> {
-    let mut write = false;
-    let mut only_at: Option<String> = None;
-    let mut it = args.iter();
-    while let Some(arg) = it.next() {
-        match arg.as_str() {
-            "--write" => write = true,
-            "--only-at" => {
-                only_at = Some(
-                    it.next()
-                        .ok_or(format!("--only-at needs a value: {USAGE}"))?
-                        .clone(),
-                );
-            }
-            a if a.starts_with("--only-at=") => only_at = Some(a["--only-at=".len()..].to_string()),
-            // A narrowed run's list: rustfmt checks whole workspaces.
-            "--files-from" => {
-                it.next();
-            }
-            other => return Err(format!("unknown option {other}: {USAGE}")),
-        }
+    let parsed = args::parse(
+        args,
+        &Spec {
+            values: &["--only-at", "--files-from"],
+            flags: &["--write"],
+            pathspecs: false,
+        },
+    )
+    .map_err(|e| e.with_usage(USAGE))?;
+
+    // No positional arguments allowed
+    if let Some(extra) = parsed.positional.first() {
+        return Err(format!("unexpected argument {extra}: {USAGE}"));
     }
-    let only: Option<HashSet<String>> = only_at.as_deref().map(read_list).transpose()?.map(|l| {
+
+    let write = parsed.flag("--write");
+    let only_at = parsed.value("--only-at");
+    // --files-from is accepted but ignored, as before
+    let _ = parsed.value("--files-from");
+
+    let only: Option<HashSet<String>> = only_at.map(read_list).transpose()?.map(|l| {
         l.into_iter()
             .map(|h| h.split(':').next().unwrap_or_default().to_string())
             .collect()
     });
+
     let mut hits = Vec::new();
     for ws in workspaces()? {
         let files = unformatted(&ws)?;
