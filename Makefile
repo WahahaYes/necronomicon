@@ -27,6 +27,24 @@ test: ## Run the tests; quiet, failures in full
 test-verbose: ## Run the tests with full output (CI)
 	cargo test
 
+# Coverage: a signal, never a gate. target/llvm-cov/ is local only (under
+# /target/, never committed) and instrumented runs take minutes, so it stays
+# out of hooks. CI's test job runs this and uploads the LCOV to Codecov.
+CARGO_LLVM_COV_VERSION := 0.9.1
+COVERAGE_DIR := target/llvm-cov
+COVERAGE_IGNORE := --ignore-filename-regex '/tests/'
+
+.PHONY: coverage
+coverage: ## Run the tests instrumented: summary, HTML and LCOV in target/llvm-cov (local only)
+	@cargo llvm-cov --version 2>/dev/null | grep -qx "cargo-llvm-cov $(CARGO_LLVM_COV_VERSION)" || \
+		cargo install cargo-llvm-cov --version $(CARGO_LLVM_COV_VERSION) --locked
+	@cargo llvm-cov clean --workspace
+	@cargo llvm-cov --no-report
+	@cargo llvm-cov report --html --output-dir $(COVERAGE_DIR) $(COVERAGE_IGNORE)
+	@cargo llvm-cov report --lcov --output-path $(COVERAGE_DIR)/lcov.info $(COVERAGE_IGNORE)
+	@cargo llvm-cov report --summary-only $(COVERAGE_IGNORE)
+	@echo "HTML report: $(COVERAGE_DIR)/html/index.html"
+
 ##@ Linting
 
 .PHONY: necro
