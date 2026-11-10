@@ -54,3 +54,26 @@ rules:
     details: |
       A run of own-line ## comments. The header is the first run, right
       after `extends`, `class_name`, `@tool` and blank lines.
+  deep-node-path:
+    command: necro grep --skip-comments '#' '(\$[A-Za-z_]\w*(/[\w.]+){{max-depth},}|get_node\([^)]*\.\./)' -- '*.gd'
+    files: '\.gd$'
+    params: { max-depth: 2 }
+    message: a $ node path deeper than {max-depth} nodes
+    why: every / in a $ path is a place the scene must keep shaped exactly so; past {max-depth} nodes a rename two levels up breaks this script, and nothing names the dependency.
+    fix: give the node a unique name and use %Name, or take it as an @export var wired in the inspector; a path the scene owns keeps it and takes an allow.
+    details: |
+      A $ path deeper than {max-depth} nodes, or a get_node() path
+      reaching through `..`. Comments are skipped; a path inside a string
+      still counts.
+    examples:
+      bad: $Hud/Panel/ScoreLabel
+      good: '%ScoreLabel'
+  signal-forward:
+    command: necro grep --skip-comments '#' '\.connect\(\s*[\w.]+\.emit\s*\)' -- '*.gd'
+    files: '\.gd$'
+    message: a signal connected straight to another emit
+    why: chaining one signal's emit to another hides the hop between them; a reader tracing the second signal never finds the first, and the middle object can't log, guard or remap.
+    fix: connect the first signal where the second is consumed, so the parent owns the wiring; a deliberate fan-out through an event bus keeps the chain and takes an allow.
+    examples:
+      bad: health.depleted.connect(bus.game_over.emit)
+      good: health.depleted.connect(_on_health_depleted)
