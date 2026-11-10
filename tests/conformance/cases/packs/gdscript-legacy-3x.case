@@ -1,0 +1,21 @@
+# gdscript/legacy-3x-api flags Godot 3 calls Godot 4 removed: string connect, yield, instance(), emit_signal
+spec: Packs
+args: --format terse --rule gdscript/legacy-3x-api
+exit: 1
+-- necro.yaml --
+version: 0
+include: [necro:gdscript]
+-- src/a.gd --
+extends Node
+
+
+func _ready() -> void:
+	button.connect("pressed", Callable(self, "_on_pressed"))
+	var state: int = yield(loader, "finished")
+	var copy: Node = packed.instance()
+	emit_signal("player_died")
+-- @stdout --
+src/a.gd:5:8: gdscript/legacy-3x-api a Godot 3 API that Godot 4 removed or renamed
+src/a.gd:6:19: gdscript/legacy-3x-api a Godot 3 API that Godot 4 removed or renamed
+src/a.gd:7:25: gdscript/legacy-3x-api a Godot 3 API that Godot 4 removed or renamed
+src/a.gd:8:2: gdscript/legacy-3x-api a Godot 3 API that Godot 4 removed or renamed

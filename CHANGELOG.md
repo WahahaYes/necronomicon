@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- **`necro:gdscript` learns four correctness guards.** `legacy-3x-api` (Godot 3 calls Godot 4 removed: string `connect`, `yield`, `instance()`, `emit_signal`), `physics-context` (physics-step calls inside `func _process`, through a new `necro gdscan physics-context` check), `literal-load` (a `load()` of a constant `res://` path belongs in a `preload` const) and `signal-name-prefix` (a signal named like a handler instead of the past-tense event). They need only git.
 - **Options parse the same way in the CLI and every finder.** A value option takes `--name=value` as well as `--name value` (`agent-files` and `rustfmt` rejected `--only-at=…`, `clippy` rejected `--match=…`), options may come anywhere before `--` (`grep` took `--write` only before its regex), and an option a command doesn't know is always `unknown option`.
 - **`agent-files/skill-frontmatter`** reads a `SKILL.md`'s frontmatter as YAML and reports frontmatter that doesn't parse or isn't one mapping, rather than half-reading it line by line.
 - **`gdscan`** no longer loses its place after a bracket inside a triple-quoted string, so `spacing` and `inline-lambda` keep finding later hits.

@@ -53,3 +53,76 @@ rules:
     details: |
       Only in a repo that tracks at least one .gd.uid file, so projects on
       Godot 4.3 or older find nothing.
+  legacy-3x-api:
+    command: necro grep --skip-comments '#' '\.connect\(\s*"|(?<![_a-zA-Z0-9])yield\(|\.instance\(\)|emit_signal\(' -- '*.gd'
+    files: '\.gd$'
+    message: a Godot 3 API that Godot 4 removed or renamed
+    why: Godot 4 removed string-based connects, yield, instance() and emit_signal; they parse but fail at run time, so a script calling them looks fine until it runs.
+    fix: connect the Callable (`pressed.connect(_on_pressed)`), await the signal (`await loader.finished`), call `instantiate()`, and emit with `died.emit(args)`.
+    details: |
+      `.connect("pressed", ...)` becomes `pressed.connect(...)`;
+      `yield(loader, "finished")` becomes `await loader.finished`;
+      `scene.instance()` becomes `scene.instantiate()`;
+      `emit_signal("died")` becomes `died.emit()`.
+    examples:
+      bad: |
+        button.connect("pressed", self, "_on_pressed")
+        var state: int = yield(loader, "finished")
+        var copy: Node = scene.instance()
+        emit_signal("player_died")
+      good: |
+        button.pressed.connect(_on_pressed)
+        await loader.finished
+        var copy: Node = scene.instantiate()
+        player_died.emit()
+  physics-context:
+    command: necro gdscan physics-context -- '*.gd'
+    files: '\.gd$'
+    message: a physics-step call inside _process
+    why: _process runs once per rendered frame, so its delta swings with the frame rate; physics helpers assume the fixed physics tick, and a body stepped there drifts or tunnels between frames while floor, space-state and RayCast reads answer for the wrong tick.
+    fix: move the call into _physics_process(delta); when _process needs the result, have _physics_process store it in a member the frame reads.
+    details: |
+      `move_and_slide`, `move_and_collide`, `apply_central_force`,
+      `apply_central_impulse`, the `is_on_floor`/`is_on_wall`/`is_on_ceiling`
+      checks, `direct_space_state` queries (`intersect_ray`, `intersect_shape`)
+      and RayCast reads (`is_colliding`, `get_collider`,
+      `get_collision_point`, `get_collision_normal`) belong in
+      `_physics_process`. The same call there is fine, as are strings and
+      comments naming one.
+    examples:
+      bad: |
+        func _process(delta: float) -> void:
+        	velocity = move_and_slide()
+      good: |
+        func _physics_process(delta: float) -> void:
+        	velocity = move_and_slide()
+  literal-load:
+    command: necro grep --skip-comments '#' '(?<![.\w])load\(\s*"res://[^"]*"' -- '*.gd'
+    files: '\.gd$'
+    message: a load() of a constant path that preload() could resolve
+    why: load() with a constant path pays a run-time lookup on every call and hides the dependency from the parser; preload() resolves once at parse time and fails fast on a wrong path.
+    fix: 'hoist it into a const: `const EnemyScene: PackedScene = preload("res://enemy.tscn")`.'
+    details: |
+      Only the global load() with a literal res:// path. Dotted receivers
+      stay out of scope: ResourceLoader.load(variable) with a dynamic path
+      can't preload, and a value's own load method isn't the resource loader.
+    examples:
+      bad: 'var scene: PackedScene = load("res://enemy.tscn")'
+      good: 'const EnemyScene: PackedScene = preload("res://enemy.tscn")'
+  signal-name-prefix:
+    command: necro grep '^\s*signal\s+(on_|handle_|emit_|send_|do_|_on_)' -- '*.gd'
+    files: '\.gd$'
+    message: a signal named like a handler instead of the event
+    why: a signal announces what happened, in the past tense; an on_ or handle_ prefix reads as the callback that answers it, so the declaration and its handlers blur.
+    fix: 'rename to the event, past tense: `signal player_died`, not `signal on_player_died`.'
+    details: |
+      `on_`, `handle_`, `emit_`, `send_`, `do_` and `_on_` prefixes all read
+      as the response rather than the event. Name what happened: `died`,
+      `hit_taken`, `health_changed`.
+    examples:
+      bad: |
+        signal on_player_died
+        signal handle_hit
+      good: |
+        signal player_died
+        signal hit_taken

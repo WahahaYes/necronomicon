@@ -1,0 +1,16 @@
+# gdscript/signal-name-prefix flags a signal named like a handler; a past-tense event stays silent
+spec: Packs
+args: --format terse --rule gdscript/signal-name-prefix
+exit: 1
+-- necro.yaml --
+version: 0
+include: [necro:gdscript]
+-- src/a.gd --
+extends Node
+
+signal on_player_died
+signal handle_hit
+signal player_hurt
+-- @stdout --
+src/a.gd:3:1: gdscript/signal-name-prefix a signal named like a handler instead of the event
+src/a.gd:4:1: gdscript/signal-name-prefix a signal named like a handler instead of the event

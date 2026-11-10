@@ -3,7 +3,7 @@
 
 use std::collections::HashSet;
 
-use super::gdscript::{self, Kind, Source};
+use super::gdscript::{self, Kind, Source, Span};
 use crate::command::Hit;
 
 use super::grep::read_list;
@@ -11,7 +11,7 @@ use super::tracked;
 use crate::args::{self, Spec};
 
 const USAGE: &str = "necro gdscan [--files-from <file>] [--header <n>] [--item <n>] \
-                     [--write [--only-at <file>]] (spacing|inline-lambda|doc-length|export-doc|uid) [-- <pathspec>…]";
+                     [--write [--only-at <file>]] (spacing|inline-lambda|doc-length|export-doc|uid|physics-context) [-- <pathspec>…]";
 
 /// The checks `gdscan` knows.
 const CHECKS: &[&str] = &[
@@ -20,6 +20,7 @@ const CHECKS: &[&str] = &[
     "doc-length",
     "export-doc",
     "uid",
+    "physics-context",
 ];
 
 /// What `doc-length` allows when `--header` or `--item` isn't given.
@@ -64,6 +65,7 @@ pub fn run(args: &[String]) -> Result<Vec<Hit>, String> {
         "inline-lambda" => inline_lambda,
         "doc-length" => doc_length,
         "export-doc" => export_doc,
+        "physics-context" => physics_context,
         _ => unreachable!("args::check accepted {check}"),
     };
     let markers = ["#".to_string()];
@@ -342,6 +344,124 @@ fn export_doc(path: &str, src: &Source, _: usize, _: usize, hits: &mut Vec<Hit>)
             });
         }
     }
+}
+
+/// `physics-context`: a physics-step call inside `func _process`, which runs
+/// once per rendered frame instead of once per physics tick. The same call in
+/// `_physics_process` is fine, as are strings and comments naming one.
+fn physics_context(path: &str, src: &Source, _: usize, _: usize, hits: &mut Vec<Hit>) {
+    let mut current: Option<&str> = None;
+    for (n, line) in src.code.iter().enumerate() {
+        if src.in_string[n] {
+            continue;
+        }
+        let trimmed = line.trim();
+        if trimmed.is_empty() {
+            continue;
+        }
+        let top_level = line.len() == line.trim_start().len() && src.depth[n] == 0;
+        if top_level {
+            current = func_name(trimmed);
+            if current != Some("_process") {
+                continue;
+            }
+        } else if current != Some("_process") {
+            continue;
+        }
+        for (col, end, label) in physics_hits(&src.lines[n], &src.spans[n]) {
+            hits.push(Hit {
+                path: path.to_string(),
+                line: n + 1,
+                col,
+                endcol: Some(end),
+                label: label.to_string(),
+            });
+        }
+    }
+}
+
+/// The function a top-level line defines, if it defines one.
+fn func_name(trimmed: &str) -> Option<&str> {
+    let rest = trimmed
+        .strip_prefix("func ")
+        .or_else(|| trimmed.strip_prefix("static func "))?;
+    let end = rest
+        .find(|c: char| !c.is_alphanumeric() && c != '_')
+        .unwrap_or(rest.len());
+    if end == 0 {
+        return None;
+    }
+    Some(&rest[..end])
+}
+
+/// Physics-step calls that belong in `_physics_process`: what to match and
+/// what the hit calls it.
+const PHYSICS_CALLS: &[(&str, &str)] = &[
+    ("move_and_slide(", "move_and_slide()"),
+    ("move_and_collide(", "move_and_collide()"),
+    ("apply_central_force(", "apply_central_force()"),
+    ("apply_central_impulse(", "apply_central_impulse()"),
+    ("is_on_floor(", "is_on_floor()"),
+    ("is_on_wall(", "is_on_wall()"),
+    ("is_on_ceiling(", "is_on_ceiling()"),
+    ("direct_space_state", "direct_space_state"),
+    ("intersect_ray(", "intersect_ray()"),
+    ("intersect_shape(", "intersect_shape()"),
+    ("is_colliding(", "is_colliding()"),
+    ("get_collider(", "get_collider()"),
+    ("get_collision_point(", "get_collision_point()"),
+    ("get_collision_normal(", "get_collision_normal()"),
+];
+
+/// Each physics-step call on a line: (col, endcol, label), 1-based. Only code
+/// spans count, so strings and comments don't; a match inside a longer
+/// identifier (`my_move_and_slide(`) doesn't.
+fn physics_hits(line: &str, spans: &[Span]) -> Vec<(usize, usize, &'static str)> {
+    let mut out = Vec::new();
+    // Whether the char before the current span ends an identifier, which may
+    // continue across the span boundary (code split around a string).
+    let mut prev_word = false;
+    for span in spans {
+        match span.kind {
+            Kind::Comment => break,
+            Kind::String => prev_word = false,
+            Kind::Code => {
+                let code = &line[span.start..span.end];
+                let base = line[..span.start].chars().count();
+                for &(text, label) in PHYSICS_CALLS {
+                    let mut from = 0;
+                    while let Some(rel) = code[from..].find(text) {
+                        let at = from + rel;
+                        let before_ok = if at > 0 {
+                            !code[..at]
+                                .chars()
+                                .next_back()
+                                .is_some_and(|c| c.is_alphanumeric() || c == '_')
+                        } else {
+                            !prev_word
+                        };
+                        let after = &code[at + text.len()..];
+                        let after_ok = text.ends_with('(')
+                            || after
+                                .chars()
+                                .next()
+                                .is_none_or(|c| !c.is_alphanumeric() && c != '_');
+                        if before_ok && after_ok {
+                            let col = base + code[..at].chars().count() + 1;
+                            out.push((col, col + text.chars().count() - 1, label));
+                        }
+                        from = at + text.len();
+                    }
+                }
+                prev_word = code
+                    .chars()
+                    .next_back()
+                    .is_some_and(|c| c.is_alphanumeric() || c == '_');
+            }
+        }
+    }
+    out.sort_by_key(|&(col, _, _)| col);
+    out
 }
 
 /// `uid`: in a repo that tracks `.gd.uid` files (Godot 4.4 and later),
