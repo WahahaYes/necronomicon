@@ -5,11 +5,14 @@
 use std::path::Path;
 
 use super::grep::read_list;
-use super::{split_pathspecs, text_lines, tracked};
+use super::{text_lines, tracked};
+use crate::args::{self, Spec};
 use crate::command::Hit;
 
 const USAGE: &str = "necro rust-docs [--files-from <file>] [--header <n>] [--item <n>] \
-                     (missing|module|length) [-- <pathspec>…]";
+                      (missing|module|length) [-- <pathspec>…]";
+
+const CHECKS: &[&str] = &["missing", "module", "length"];
 
 /// What `length` allows when `--header` or `--item` isn't given.
 const HEADER: usize = 10;
@@ -25,37 +28,32 @@ const TYPE_KINDS: &[&str] = &["struct", "enum", "trait", "union", "impl"];
 
 /// The `rust-docs` finder.
 pub fn run(args: &[String]) -> Result<Vec<Hit>, String> {
-    let (opts, pathspecs) = split_pathspecs(args);
-    let (mut header, mut item) = (HEADER, ITEM);
-    let mut list: Option<String> = None;
-    let mut check: Option<&str> = None;
-    let mut it = opts.iter();
-    while let Some(arg) = it.next() {
-        let (flag, inline) = match arg.split_once('=') {
-            Some((f, v)) if arg.starts_with("--") => (f, Some(v.to_string())),
-            _ => (arg.as_str(), None),
-        };
-        let mut value = || -> Result<String, String> {
-            inline
-                .clone()
-                .or_else(|| it.next().cloned())
-                .ok_or(format!("{flag} needs a value: {USAGE}"))
-        };
-        match flag {
-            "--files-from" => list = Some(value()?),
-            "--header" => header = count(flag, &value()?)?,
-            "--item" => item = count(flag, &value()?)?,
-            f if f.starts_with('-') => return Err(format!("unknown option {f}: {USAGE}")),
-            c if check.is_none() => check = Some(c),
-            other => return Err(format!("unexpected argument {other}: {USAGE}")),
-        }
-    }
-    let check = check.ok_or(format!("name a check: {USAGE}"))?;
-    if !["missing", "module", "length"].contains(&check) {
-        return Err(format!("unknown check {check}: {USAGE}"));
-    }
+    let parsed = args::parse(
+        args,
+        &Spec {
+            values: &["--files-from", "--header", "--item"],
+            flags: &[],
+            pathspecs: true,
+        },
+    )
+    .map_err(|e| e.with_usage(USAGE))?;
+
+    let check = args::check(&parsed.positional, CHECKS, USAGE)?;
+
+    let list = parsed.value("--files-from").map(String::from);
+    let header = parsed
+        .value("--header")
+        .map(|v| count("--header", v))
+        .transpose()?
+        .unwrap_or(HEADER);
+    let item = parsed
+        .value("--item")
+        .map(|v| count("--item", v))
+        .transpose()?
+        .unwrap_or(ITEM);
+
     let only = list.as_deref().map(read_list).transpose()?;
-    let mut specs = pathspecs.to_vec();
+    let mut specs = parsed.pathspecs.clone();
     if specs.is_empty() {
         specs.push("*.rs".into());
     }
