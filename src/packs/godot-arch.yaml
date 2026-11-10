@@ -1,0 +1,60 @@
+# The necro:godot-arch pack (spec: Packs), built into the binary: opt-in
+# architecture guards for Godot beside necro:gdscript. Rule names get the
+# `godot-arch/` prefix. Commands use only necro's own finders, so it needs
+# no gdtoolkit; test paths are parameters a repo sets with override.
+rules:
+  no-bare-assert-in-tests:
+    command: necro grep --skip-comments '#' --glob {test-glob} '(?<![_a-zA-Z0-9])assert\s*\('
+    files: {glob: '{test,tests}/**/*.gd'}
+    params: { test-glob: '{test,tests}/**/*.gd' }
+    message: a bare assert() in a test
+    why: a bare assert aborts the headless runner where it stands, with no summary and no exit code to fail the run; counted assertions report through the framework, and quit(1) fails the run loudly.
+    fix: use the framework's counted assertions (`assert_eq(a, b)`), and end the run with `quit(1)` when one fails.
+    details: |
+      Only files under the test dirs count (`test-glob`, `{test,tests}/**/*.gd`
+      by default): a bare assert in game code is some other rule's problem.
+      `assert_eq` and friends stay silent. A repo with another layout sets both
+      sides together:
+      `override: {godot-arch/no-bare-assert-in-tests: {params: {test-glob: 'spec/**/*.gd'}, files: {glob: 'spec/**/*.gd'}}}`.
+    examples:
+      bad: 'assert(health > 0)'
+      good: 'assert_eq(health, 3)'
+  parent-call:
+    command: necro grep --skip-comments '#' 'get_parent\(\)\s*\.|(?<![_a-zA-Z0-9])owner\s*\.' -- '*.gd'
+    files: '\.gd$'
+    message: a child reaching up into its parent
+    why: a child that names its parent's API can't be reparented, and the parent can't change without touching the child; calls flow down, so the child should signal up instead.
+    fix: emit a signal and let the parent connect it (`died.emit()` in the child, `child.died.connect(_on_child_died)` in the parent).
+    details: |
+      Both `get_parent().drive()` and `owner.drive()` count. A case that
+      truly must reach up guards with `has_method` and keeps an allow
+      comment with a reason on the guarded line, in the usual
+      `necro-allow <rule>: <reason>` form.
+    examples:
+      bad: |
+        get_parent().remove_child(self)
+        owner.setup(self)
+      good: |
+        left_screen.emit()
+        # in the parent: child.left_screen.connect(_on_child_left)
+  resource-behavior:
+    command: necro gdscan resource-behavior -- '*.gd'
+    files: '\.gd$'
+    message: node behavior in a Resource script
+    why: a Resource holds data and pure logic outside the scene tree; engine callbacks and scene-tree calls in one run nowhere, or on whatever node happened to touch it, so the behavior drifts with the caller.
+    fix: move the behavior into the Node script that owns it, and keep the Resource to data and pure functions; a shared tick lives in an autoload or the scene that runs it.
+    details: |
+      In a file extending `Resource`, an engine callback (`_process`,
+      `_physics_process`, `_input`, `_unhandled_input`) and a scene-tree call
+      (`move_and_slide`, `add_child`, `queue_free`, `get_node`, `get_tree`)
+      each count. The same lines in a `Node` script are fine, as are strings
+      and comments naming them.
+    examples:
+      bad: |
+        extends Resource
+        func _process(delta: float) -> void:
+        	add_child(buff)
+      good: |
+        extends Resource
+        func tick(delta: float) -> void:
+        	charge = min(charge + delta, full)

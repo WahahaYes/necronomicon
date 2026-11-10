@@ -1,0 +1,22 @@
+# godot-arch/resource-behavior flags engine callbacks and scene-tree calls in a Resource; the same lines in a Node stay silent
+spec: Packs
+args: --format terse --rule godot-arch/resource-behavior
+exit: 1
+-- necro.yaml --
+version: 0
+include: [necro:godot-arch]
+-- src/a.gd --
+extends Resource
+
+
+func _process(delta: float) -> void:
+	add_child(buff)
+-- src/b.gd --
+extends Node
+
+
+func _process(delta: float) -> void:
+	move_and_slide()
+-- @stdout --
+src/a.gd:4:6: godot-arch/resource-behavior node behavior in a Resource script
+src/a.gd:5:2: godot-arch/resource-behavior node behavior in a Resource script
