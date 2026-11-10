@@ -1,0 +1,19 @@
+# necro:gdscript-style: deep $ paths and get_node() through .., and a signal wired straight to another emit
+spec: Packs
+args: --format terse
+exit: 1
+-- necro.yaml --
+version: 0
+include: [necro:gdscript-style]
+-- src/a.gd --
+extends Node
+
+
+func _ready() -> void:
+	var label: Label = $Hud/Panel/Score
+	add_child(get_node("../Sibling/Thing"))
+	health.depleted.connect(bus.game_over.emit)
+-- @stdout --
+src/a.gd:5:21: gdscript-style/deep-node-path a $ node path deeper than 2 nodes
+src/a.gd:6:12: gdscript-style/deep-node-path a $ node path deeper than 2 nodes
+src/a.gd:7:17: gdscript-style/signal-forward a signal connected straight to another emit
