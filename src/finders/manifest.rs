@@ -1,6 +1,7 @@
 //! `necro cargo-manifest` (spec: Finders): crate manifests below the house
 //! baseline, the current edition and a declared `rust-version`.
 
+use crate::args::{self, Spec};
 use crate::command::Hit;
 use std::path::Path;
 
@@ -15,12 +16,19 @@ const EDITION: &str = "2024";
 
 /// The `cargo-manifest` finder: every member manifest under the working folder.
 pub fn run(args: &[String]) -> Result<Vec<Hit>, String> {
-    let want = match args {
-        [] => EDITION.to_string(),
-        [flag, year] if flag == "--edition" => year.clone(),
-        [flag] if flag.starts_with("--edition=") => flag["--edition=".len()..].to_string(),
-        [arg, ..] => return Err(format!("unexpected argument {arg}: {USAGE}")),
-    };
+    let parsed = args::parse(
+        args,
+        &Spec {
+            values: &["--edition"],
+            flags: &[],
+            pathspecs: false,
+        },
+    )
+    .map_err(|e| e.with_usage(USAGE))?;
+    if let Some(extra) = parsed.positional.first() {
+        return Err(format!("unexpected argument {extra}: {USAGE}"));
+    }
+    let want = parsed.value("--edition").unwrap_or(EDITION);
     if want.len() != 4 || !want.chars().all(|c| c.is_ascii_digit()) {
         return Err(format!("--edition takes a year such as 2024, got {want}"));
     }
@@ -33,8 +41,7 @@ pub fn run(args: &[String]) -> Result<Vec<Hit>, String> {
             };
             let name = pkg["name"].as_str().unwrap_or_default();
             let edition = pkg["edition"].as_str().unwrap_or("2015");
-            let required = &want;
-            if edition < required.as_str() {
+            if edition < want {
                 let text = format!("{name} is on edition {edition}");
                 match edition_line(manifest) {
                     Some(n) => hits.push(Hit {
