@@ -126,3 +126,21 @@ rules:
       good: |
         signal player_died
         signal hit_taken
+  tilemap-legacy:
+    command: necro grep --skip-comments '#' '^\s*extends\s+TileMap\b|(?<![_a-zA-Z0-9])TileMap\.new\(' -- '*.gd'
+    files: '\.gd$'
+    message: a TileMap that TileMapLayer replaces
+    why: 'Godot 4.3 deprecated TileMap in favor of one TileMapLayer node per layer, but the house floor is Godot 4.2, so a repo still on 4.2 turns this rule off in its own necro.yaml (`disable: [gdscript/tilemap-legacy]`) until it moves past 4.3.'
+    fix: extend TileMapLayer instead, and set each cell with its 3-arg set_cell(coords, source_id, atlas_coords).
+    details: |
+      Both `extends TileMap` and `TileMap.new()` count; `TileMapLayer`
+      matches neither. The rule stays on in the pack because the floor moves
+      forward: a repo still on Godot 4.2 disables it:
+      `disable: [gdscript/tilemap-legacy]`.
+    examples:
+      bad: |
+        extends TileMap
+        var map: TileMap = TileMap.new()
+      good: |
+        extends TileMapLayer
+        var layer: TileMapLayer = TileMapLayer.new()
