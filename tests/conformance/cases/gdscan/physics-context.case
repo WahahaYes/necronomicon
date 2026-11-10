@@ -1,0 +1,27 @@
+# physics-context: a physics-step call inside func _process; the same call in _physics_process, a longer identifier, a string or a comment is fine
+spec: Finders
+args: gdscan physics-context
+-- src/a.gd --
+extends CharacterBody2D
+
+
+func _process(delta: float) -> void:
+	velocity = move_and_slide()
+	if is_on_floor():
+		jump()
+	var space: PhysicsDirectSpaceState3D = get_world_3d().direct_space_state
+	if ray.is_colliding():
+		target = ray.get_collider()
+	print("move_and_slide() in a string")
+	# is_on_floor() in a comment
+	my_move_and_slide()
+
+
+func _physics_process(delta: float) -> void:
+	move_and_slide()
+-- @stdout --
+src/a.gd:5:13-27: move_and_slide()
+src/a.gd:6:5-16: is_on_floor()
+src/a.gd:8:56-73: direct_space_state
+src/a.gd:9:9-21: is_colliding()
+src/a.gd:10:16-28: get_collider()

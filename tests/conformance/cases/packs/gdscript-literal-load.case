@@ -1,0 +1,16 @@
+# gdscript/literal-load flags a load() of a constant path; ResourceLoader.load(variable) stays silent
+spec: Packs
+args: --format terse --rule gdscript/literal-load
+exit: 1
+-- necro.yaml --
+version: 0
+include: [necro:gdscript]
+-- src/a.gd --
+extends Node
+
+
+func spawn() -> void:
+	var scene: PackedScene = load("res://enemy.tscn")
+	var other: Resource = ResourceLoader.load(dynamic_path)
+-- @stdout --
+src/a.gd:5:27: gdscript/literal-load a load() of a constant path that preload() could resolve
