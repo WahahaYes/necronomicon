@@ -18,15 +18,17 @@ mod rustfmt;
 /// A finder: its arguments after the name, to its hits or a usage error.
 type Finder = fn(&[String]) -> Result<Vec<command::Hit>, String>;
 
-/// How `--only-at` limits a fix: the granularity of locations it accepts.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum OnlyAtGranularity {
-    /// `path:line:col` (grep, gdscan spacing)
-    PathLineCol,
-    /// `path:line` (gdtoolkit format, rustfmt)
-    PathLine,
-    /// `path` only (agent-files)
-    Path,
+/// How a finder fixes its hits.
+#[derive(Debug, Clone, Copy)]
+pub enum Fix {
+    /// Not fixable.
+    No,
+    /// Always fixable (no subcommand or option needed).
+    Always,
+    /// Fixable when one of the listed checks is the first non-option word before `--`.
+    WithCheck(&'static [&'static str]),
+    /// Fixable when the given option (or option=value) appears before any `--`.
+    WithOption(&'static str),
 }
 
 /// What a finder declares about itself.
@@ -37,13 +39,8 @@ pub struct FinderCapability {
     pub run: Finder,
     /// Whether a narrowed run can pass `--files-from` to this finder.
     pub narrowable: bool,
-    /// The subcommands/checks that are fixable. Empty means all/always fixable.
-    pub fixable_checks: &'static [&'static str],
-    /// The option words that enable fix mode (e.g., "--replace", "format", "spacing").
-    /// Empty means the finder is always fixable (like rustfmt).
-    pub fix_requires_option: &'static [&'static str],
-    /// How `--only-at` limits fixes for this finder.
-    pub only_at_granularity: OnlyAtGranularity,
+    /// How this finder fixes its hits.
+    pub fix: Fix,
 }
 
 /// The finder registry: all finders with their declared capabilities.
@@ -52,65 +49,49 @@ pub const FINDER_REGISTRY: &[FinderCapability] = &[
         name: "agent-files",
         run: agent_files::run,
         narrowable: false,
-        fixable_checks: &["claude-md", "skill-link"],
-        fix_requires_option: &[],
-        only_at_granularity: OnlyAtGranularity::Path,
+        fix: Fix::WithCheck(&["claude-md", "skill-link"]),
     },
     FinderCapability {
         name: "cargo-manifest",
         run: manifest::run,
         narrowable: false,
-        fixable_checks: &[],
-        fix_requires_option: &[],
-        only_at_granularity: OnlyAtGranularity::PathLineCol,
+        fix: Fix::No,
     },
     FinderCapability {
         name: "clippy",
         run: clippy::run,
         narrowable: false,
-        fixable_checks: &[],
-        fix_requires_option: &[],
-        only_at_granularity: OnlyAtGranularity::PathLineCol,
+        fix: Fix::No,
     },
     FinderCapability {
         name: "gdscan",
         run: gdscan::run,
         narrowable: true,
-        fixable_checks: &["spacing"],
-        fix_requires_option: &["spacing"],
-        only_at_granularity: OnlyAtGranularity::PathLineCol,
+        fix: Fix::WithCheck(&["spacing"]),
     },
     FinderCapability {
         name: "gdtoolkit",
         run: gdtoolkit::run,
         narrowable: true,
-        fixable_checks: &["format"],
-        fix_requires_option: &["format"],
-        only_at_granularity: OnlyAtGranularity::PathLine,
+        fix: Fix::WithCheck(&["format"]),
     },
     FinderCapability {
         name: "grep",
         run: grep::run,
         narrowable: true,
-        fixable_checks: &["grep"],
-        fix_requires_option: &["--replace"],
-        only_at_granularity: OnlyAtGranularity::PathLineCol,
+        fix: Fix::WithOption("--replace"),
     },
     FinderCapability {
         name: "rust-docs",
         run: rust_docs::run,
         narrowable: true,
-        fixable_checks: &[],
-        fix_requires_option: &[],
-        only_at_granularity: OnlyAtGranularity::PathLineCol,
+        fix: Fix::No,
     },
     FinderCapability {
         name: "rustfmt",
         run: rustfmt::run,
         narrowable: false,
-        fixable_checks: &["rustfmt"],
-        fix_requires_option: &[],
-        only_at_granularity: OnlyAtGranularity::PathLine,
+        fix: Fix::Always,
     },
 ];
 
@@ -129,53 +110,18 @@ pub fn is_fixable(finder: &str, words: &[String]) -> bool {
     let Some(cap) = find_finder(finder) else {
         return false;
     };
-    if cap.fixable_checks.is_empty() {
-        // Always fixable (like rustfmt) or never fixable (like clippy)
-        return cap.name == "rustfmt";
-    }
-    // For finders where the finder itself is the check (grep, rustfmt),
-    // the check name is the finder name.
-    // For finders with subcommands (gdscan, gdtoolkit, agent-files),
-    // the check name is the first word that is a known subcommand/check.
-    let is_self_check = cap.name == "grep" || cap.name == "rustfmt";
-    let check = if is_self_check {
-        Some(cap.name)
-    } else {
-        words
+    match cap.fix {
+        Fix::No => false,
+        Fix::Always => true,
+        Fix::WithCheck(checks) => words
             .iter()
-            .find(|w| cap.fixable_checks.contains(&w.as_str()))
-            .map(String::as_str)
-    };
-    let Some(check) = check else {
-        return false;
-    };
-    if !cap.fixable_checks.contains(&check) {
-        return false;
+            .take_while(|w| *w != "--")
+            .any(|w| checks.contains(&w.as_str())),
+        Fix::WithOption(opt) => words
+            .iter()
+            .take_while(|w| *w != "--")
+            .any(|w| w == opt || w.starts_with(&format!("{opt}="))),
     }
-    if cap.fix_requires_option.is_empty() {
-        return true;
-    }
-    // Check if any of the fix-required options are present in the words
-    // For self-check finders (grep), check all words for --replace flag.
-    // For subcommand finders (gdscan, gdtoolkit), the subcommand name IS the fix mode,
-    // so we just need to verify the check is in fixable_checks (done above).
-    // For agent-files, the check is the fix mode and no extra option needed.
-    if is_self_check {
-        words.iter().any(|w| {
-            cap.fix_requires_option
-                .iter()
-                .any(|opt| w == *opt || w.starts_with(&format!("{opt}=")))
-        })
-    } else {
-        true
-    }
-}
-
-/// Get the --only-at granularity for a finder.
-pub fn only_at_granularity(finder: &str) -> OnlyAtGranularity {
-    find_finder(finder)
-        .map(|f| f.only_at_granularity)
-        .unwrap_or(OnlyAtGranularity::PathLineCol)
 }
 
 /// Remove the Cargo finders' build folders: each as (folder, size).
