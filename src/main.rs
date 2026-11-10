@@ -1,6 +1,7 @@
 //! `necro`: checks a repo against its house rules (spec/v0.md).
 
 mod allows;
+mod args;
 #[expect(dead_code, reason = "entries() serves the status lane; no caller yet")]
 mod baseline;
 mod command;
