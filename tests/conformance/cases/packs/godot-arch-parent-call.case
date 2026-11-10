@@ -1,0 +1,20 @@
+# godot-arch/parent-call flags a child reaching up through get_parent() or owner; a signal emit stays silent
+spec: Packs
+args: --format terse --rule godot-arch/parent-call
+exit: 1
+-- necro.yaml --
+version: 0
+include: [necro:godot-arch]
+-- src/a.gd --
+extends Node2D
+
+signal left_screen
+
+
+func _ready() -> void:
+	get_parent().remove_child(self)
+	owner.setup(self)
+	left_screen.emit()
+-- @stdout --
+src/a.gd:7:2: godot-arch/parent-call a child reaching up into its parent
+src/a.gd:8:2: godot-arch/parent-call a child reaching up into its parent

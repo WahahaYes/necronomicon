@@ -3,4 +3,4 @@ spec: Finders
 args: gdscan --write export-doc
 exit: 2
 -- @stderr --
-necro: gdscan: --write goes with spacing: necro gdscan [--files-from <file>] [--header <n>] [--item <n>] [--write [--only-at <file>]] (spacing|inline-lambda|doc-length|export-doc|uid|physics-context) [-- <pathspec>…]
+necro: gdscan: --write goes with spacing: necro gdscan [--files-from <file>] [--header <n>] [--item <n>] [--write [--only-at <file>]] (spacing|inline-lambda|doc-length|export-doc|uid|physics-context|resource-behavior) [-- <pathspec>…]
