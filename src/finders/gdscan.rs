@@ -11,7 +11,7 @@ use super::tracked;
 use crate::args::{self, Spec};
 
 const USAGE: &str = "necro gdscan [--files-from <file>] [--header <n>] [--item <n>] \
-                     [--write [--only-at <file>]] (spacing|inline-lambda|doc-length|export-doc|uid|physics-context) [-- <pathspec>…]";
+                     [--write [--only-at <file>]] (spacing|inline-lambda|doc-length|export-doc|uid|physics-context|resource-behavior) [-- <pathspec>…]";
 
 /// The checks `gdscan` knows.
 const CHECKS: &[&str] = &[
@@ -21,6 +21,7 @@ const CHECKS: &[&str] = &[
     "export-doc",
     "uid",
     "physics-context",
+    "resource-behavior",
 ];
 
 /// What `doc-length` allows when `--header` or `--item` isn't given.
@@ -66,6 +67,7 @@ pub fn run(args: &[String]) -> Result<Vec<Hit>, String> {
         "doc-length" => doc_length,
         "export-doc" => export_doc,
         "physics-context" => physics_context,
+        "resource-behavior" => resource_behavior,
         _ => unreachable!("args::check accepted {check}"),
     };
     let markers = ["#".to_string()];
@@ -368,7 +370,7 @@ fn physics_context(path: &str, src: &Source, _: usize, _: usize, hits: &mut Vec<
         } else if current != Some("_process") {
             continue;
         }
-        for (col, end, label) in physics_hits(&src.lines[n], &src.spans[n]) {
+        for (col, end, label) in call_hits(&src.lines[n], &src.spans[n], PHYSICS_CALLS) {
             hits.push(Hit {
                 path: path.to_string(),
                 line: n + 1,
@@ -413,10 +415,14 @@ const PHYSICS_CALLS: &[(&str, &str)] = &[
     ("get_collision_normal(", "get_collision_normal()"),
 ];
 
-/// Each physics-step call on a line: (col, endcol, label), 1-based. Only code
+/// Each call from a table on a line: (col, endcol, label), 1-based. Only code
 /// spans count, so strings and comments don't; a match inside a longer
 /// identifier (`my_move_and_slide(`) doesn't.
-fn physics_hits(line: &str, spans: &[Span]) -> Vec<(usize, usize, &'static str)> {
+fn call_hits(
+    line: &str,
+    spans: &[Span],
+    calls: &[(&'static str, &'static str)],
+) -> Vec<(usize, usize, &'static str)> {
     let mut out = Vec::new();
     // Whether the char before the current span ends an identifier, which may
     // continue across the span boundary (code split around a string).
@@ -428,7 +434,7 @@ fn physics_hits(line: &str, spans: &[Span]) -> Vec<(usize, usize, &'static str)>
             Kind::Code => {
                 let code = &line[span.start..span.end];
                 let base = line[..span.start].chars().count();
-                for &(text, label) in PHYSICS_CALLS {
+                for &(text, label) in calls {
                     let mut from = 0;
                     while let Some(rel) = code[from..].find(text) {
                         let at = from + rel;
@@ -463,6 +469,94 @@ fn physics_hits(line: &str, spans: &[Span]) -> Vec<(usize, usize, &'static str)>
     out.sort_by_key(|&(col, _, _)| col);
     out
 }
+
+/// `resource-behavior`: node behavior in a file extending `Resource`: an
+/// engine callback it defines, or a scene-tree call it makes. A Resource
+/// holds data and pure logic, outside the scene tree; the same lines in a
+/// `Node` script are fine, as are strings and comments naming them.
+fn resource_behavior(path: &str, src: &Source, _: usize, _: usize, hits: &mut Vec<Hit>) {
+    if !extends_resource(src) {
+        return;
+    }
+    for (n, line) in src.code.iter().enumerate() {
+        if src.in_string[n] {
+            continue;
+        }
+        let trimmed = line.trim();
+        if trimmed.is_empty() {
+            continue;
+        }
+        if let Some(name) = callback_def(trimmed) {
+            let indent = line.len() - line.trim_start().len();
+            let prefix = if trimmed.starts_with("static func ") {
+                "static func ".len()
+            } else {
+                "func ".len()
+            };
+            let col = line[..indent + prefix].chars().count() + 1;
+            hits.push(Hit {
+                path: path.to_string(),
+                line: n + 1,
+                col,
+                endcol: Some(col + name.chars().count() - 1),
+                label: name.to_string(),
+            });
+        }
+        for (col, end, label) in call_hits(&src.lines[n], &src.spans[n], RESOURCE_CALLS) {
+            hits.push(Hit {
+                path: path.to_string(),
+                line: n + 1,
+                col,
+                endcol: Some(end),
+                label: label.to_string(),
+            });
+        }
+    }
+}
+
+/// Whether a file extends `Resource`: a top-level `extends Resource` line.
+fn extends_resource(src: &Source) -> bool {
+    src.code.iter().enumerate().any(|(n, line)| {
+        if src.in_string[n] {
+            return false;
+        }
+        let trimmed = line.trim();
+        if trimmed.is_empty() || line.len() != line.trim_start().len() || src.depth[n] != 0 {
+            return false;
+        }
+        let Some(rest) = trimmed.strip_prefix("extends ") else {
+            return false;
+        };
+        let end = rest
+            .find(|c: char| !c.is_alphanumeric() && c != '_')
+            .unwrap_or(rest.len());
+        &rest[..end] == "Resource"
+    })
+}
+
+/// The engine callback a func line defines, if it defines a flagged one.
+fn callback_def(trimmed: &str) -> Option<&str> {
+    let rest = trimmed
+        .strip_prefix("func ")
+        .or_else(|| trimmed.strip_prefix("static func "))?;
+    let end = rest
+        .find(|c: char| !c.is_alphanumeric() && c != '_')
+        .unwrap_or(rest.len());
+    let name = &rest[..end];
+    ["_process", "_physics_process", "_input", "_unhandled_input"]
+        .contains(&name)
+        .then_some(name)
+}
+
+/// Node calls that don't belong in a `Resource`: what to match and what the
+/// hit calls it.
+const RESOURCE_CALLS: &[(&str, &str)] = &[
+    ("move_and_slide(", "move_and_slide()"),
+    ("add_child(", "add_child()"),
+    ("queue_free(", "queue_free()"),
+    ("get_node(", "get_node()"),
+    ("get_tree(", "get_tree()"),
+];
 
 /// `uid`: in a repo that tracks `.gd.uid` files (Godot 4.4 and later),
 /// every tracked `.gd` has its tracked `.uid`, and every `.uid` its `.gd`.
