@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- **`gdscript/legacy-3x-api` softens its words, and `gdscript/literal-load` narrows.** String `connect` still runs on Godot 4, so the rule now calls the old spellings deprecated style rather than removed; `literal-load` only fires when the literal is the whole argument, so `%`-formatted, `.format()` and concatenated paths stay silent. Neither rule's hits change beyond that.
 ## 0.5.2 - 2026-11-10
 
 - **`necro:godot-arch`**, an opt-in pack for Godot architecture: `parent-call` (no child reaching up through `get_parent()` or `owner`; signal up instead, `has_method`-guarded access keeps an allow), `resource-behavior` (no engine callbacks or scene-tree calls in a file extending `Resource`, through a new `necro gdscan resource-behavior` check) and `no-bare-assert-in-tests` (no bare `assert()` under test dirs — `test-glob`, `{test,tests}/**/*.gd` by default — since the headless runner hangs on one; use counted `assert_eq` plus `quit(1)`). It needs only git.

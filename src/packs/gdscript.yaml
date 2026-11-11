@@ -56,8 +56,8 @@ rules:
   legacy-3x-api:
     command: necro grep --skip-comments '#' '\.connect\(\s*"|(?<![_a-zA-Z0-9])yield\(|\.instance\(\)|emit_signal\(' -- '*.gd'
     files: '\.gd$'
-    message: a Godot 3 API that Godot 4 removed or renamed
-    why: Godot 4 removed string-based connects, yield, instance() and emit_signal; they parse but fail at run time, so a script calling them looks fine until it runs.
+    message: a Godot 3 API spelling Godot 4 deprecated
+    why: 'Godot 4 keeps the Godot 3 spellings running — string-based connects, yield, instance() and emit_signal — but they are deprecated style: Callable connects, await and instantiate() show the flow the old forms hide, so a script using them reads as Godot 3.'
     fix: connect the Callable (`pressed.connect(_on_pressed)`), await the signal (`await loader.finished`), call `instantiate()`, and emit with `died.emit(args)`.
     details: |
       `.connect("pressed", ...)` becomes `pressed.connect(...)`;
@@ -97,15 +97,18 @@ rules:
         func _physics_process(delta: float) -> void:
         	velocity = move_and_slide()
   literal-load:
-    command: necro grep --skip-comments '#' '(?<![.\w])load\(\s*"res://[^"]*"' -- '*.gd'
+    command: necro grep --skip-comments '#' '(?<![.\w])load\(\s*"res://[^"]*"(?=\s*\))' -- '*.gd'
     files: '\.gd$'
     message: a load() of a constant path that preload() could resolve
     why: load() with a constant path pays a run-time lookup on every call and hides the dependency from the parser; preload() resolves once at parse time and fails fast on a wrong path.
     fix: 'hoist it into a const: `const EnemyScene: PackedScene = preload("res://enemy.tscn")`.'
     details: |
-      Only the global load() with a literal res:// path. Dotted receivers
+      Only the global load() with a literal res:// path as the whole
+      argument (the closing quote is followed by `)`). Dotted receivers
       stay out of scope: ResourceLoader.load(variable) with a dynamic path
       can't preload, and a value's own load method isn't the resource loader.
+      So do %-formatted, .format() and concatenated paths: preload can't
+      resolve them either.
     examples:
       bad: 'var scene: PackedScene = load("res://enemy.tscn")'
       good: 'const EnemyScene: PackedScene = preload("res://enemy.tscn")'
