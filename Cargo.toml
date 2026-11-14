@@ -3,7 +3,7 @@ name = "necronomicon"
 version = "0.5.2"
 edition = "2024"
 # The pinned toolchain (rust-toolchain.toml): the only one CI builds with.
-rust-version = "1.98"
+rust-version = "1.100"
 description = "Agent mind control for your codebase: house rules that teach. Pre-commit checks tell coding agents what's wrong, why, and what to do instead."
 keywords = ["linter", "pre-commit", "static-analysis", "code-quality", "coding-agents"]
 categories = ["development-tools", "command-line-utilities"]
