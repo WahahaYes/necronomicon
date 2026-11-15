@@ -13,6 +13,11 @@
 - **`necro header`** keeps a fixed header, such as an SPDX license id and the project's link, at the top of each file, behind the comment marker for the file's extension (`--marker` adds one), above `@tool`, `extends` and `//!` docs; `--fix` writes it with a blank line after. The lines come from `--template <file>` or the command's words, so a list parameter can hold them; `--similar <percent>` recognizes and replaces an earlier version of the header.
 - **`gdscript/legacy-3x-api` softens its words, and `gdscript/literal-load` narrows.** String `connect` still runs on Godot 4, so the rule now calls the old spellings deprecated style rather than removed; `literal-load` only fires when the literal is the whole argument, so `%`-formatted, `.format()` and concatenated paths stay silent. Neither rule's hits change beyond that.
 
+### For contributors
+
+- **Failed CI jobs upload their step logs** (artifact `logs-<job>`).
+- **A release builds its commit once less.** The tag's `release.yml` waits for main's `build.yml` run of the release merge commit and reuses its result, running `build.yml` itself only when there is none or it failed.
+
 ## 0.5.2 - 2026-11-10
 
 - **`necro:godot-arch`**, an opt-in pack for Godot architecture: `parent-call` (no child reaching up through `get_parent()` or `owner`; signal up instead, `has_method`-guarded access keeps an allow), `resource-behavior` (no engine callbacks or scene-tree calls in a file extending `Resource`, through a new `necro gdscan resource-behavior` check) and `no-bare-assert-in-tests` (no bare `assert()` under test dirs — `test-glob`, `{test,tests}/**/*.gd` by default — since the headless runner hangs on one; use counted `assert_eq` plus `quit(1)`). It needs only git.

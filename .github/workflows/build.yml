@@ -1,8 +1,9 @@
 # Hooks (prek), tests, a Linux wheel and the crate. Every job step is one local
 # command (see Makefile): make check, make necro, make coverage, make wheel,
-# make package. Runs on pull requests and pushes to main. release.yml calls
-# this before its wheel matrix; it grants actions: write, which purge_caches
-# asks for.
+# make package. Runs on pull requests and pushes to main. The test and wheel
+# jobs tee each build and test step to $CI_LOGS and upload the logs when they
+# fail (artifact logs-<job>). release.yml calls this before its wheel matrix;
+# it grants actions: write, which purge_caches asks for.
 name: build
 
 on:
@@ -112,7 +113,11 @@ jobs:
         with:
           # Main seeds caches every PR reads; PR runs never write their own.
           save-if: ${{ github.ref == 'refs/heads/main' }}
-      - run: make necro
+      - name: Log folder
+        run: mkdir -p "$RUNNER_TEMP/ci-logs" && echo "CI_LOGS=$RUNNER_TEMP/ci-logs" >> "$GITHUB_ENV"
+      - name: House rules
+        shell: bash
+        run: make necro 2>&1 | tee "$CI_LOGS/necro.log"
       # The tests run once, instrumented, so the same run gives the rust-tests
       # coverage; the upload is warning-only (continue-on-error plus the warn
       # step below), never a failure.
@@ -120,7 +125,9 @@ jobs:
         run: |
           rustup component add llvm-tools-preview
           cargo install cargo-llvm-cov --version 0.9.1 --locked
-      - run: make coverage
+      - name: Tests (instrumented)
+        shell: bash
+        run: make coverage 2>&1 | tee "$CI_LOGS/tests.log"
       - name: Upload rust-tests coverage
         id: upload
         continue-on-error: true
@@ -134,6 +141,13 @@ jobs:
       - name: Warn when coverage was not uploaded
         if: steps.upload.outcome == 'failure'
         run: echo "::warning title=Coverage not uploaded::rust-tests coverage did not reach Codecov (no CODECOV_TOKEN, or Codecov unavailable). Tests passed; coverage is informational."
+      - name: Upload step logs
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: logs-test
+          path: ${{ runner.temp }}/ci-logs/*.log
+          if-no-files-found: ignore
 
   # Proves the wheel builds and installs a working `necro`, the way pre-commit
   # will get it, and that the crate builds from what crates.io would get.
@@ -150,15 +164,29 @@ jobs:
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
         with:
           save-if: ${{ github.ref == 'refs/heads/main' }}
-      - run: make wheel
+      - name: Log folder
+        run: mkdir -p "$RUNNER_TEMP/ci-logs" && echo "CI_LOGS=$RUNNER_TEMP/ci-logs" >> "$GITHUB_ENV"
+      - name: Wheel
+        shell: bash
+        run: make wheel 2>&1 | tee "$CI_LOGS/wheel.log"
       - name: Install and run
         run: |
           uv venv "$RUNNER_TEMP/venv"
           uv pip install --python "$RUNNER_TEMP/venv" target/wheels/*.whl
           "$RUNNER_TEMP/venv/bin/necro" --version
       - name: The installed necro on each example
-        run: for d in examples/*/; do "$RUNNER_TEMP/venv/bin/necro" -C "$d" || exit 1; done
-      - run: make package
+        shell: bash
+        run: for d in examples/*/; do "$RUNNER_TEMP/venv/bin/necro" -C "$d" || exit 1; done 2>&1 | tee "$CI_LOGS/examples.log"
+      - name: Crate package
+        shell: bash
+        run: make package 2>&1 | tee "$CI_LOGS/package.log"
+      - name: Upload step logs
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: logs-wheel
+          path: ${{ runner.temp }}/ci-logs/*.log
+          if-no-files-found: ignore
 
   # The only required check; a skipped job counts as a pass.
   ci:

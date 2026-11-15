@@ -1,7 +1,8 @@
 # Publish a release when a vX.Y.Z tag is pushed. scripts/release.sh pushes it
 # on the merge commit of the release PR (only repository admins may create v*
 # tags). Checks that the tag is on main and that Cargo.toml, Cargo.lock and
-# CHANGELOG are at X.Y.Z, runs build.yml, builds the wheels and sdist, then
+# CHANGELOG are at X.Y.Z, reuses main's build.yml run of the commit (or runs
+# build.yml when there is none), builds the wheels and sdist, then
 # publishes to PyPI and crates.io (trusted publishing: the pypi and crates-io
 # environments, no tokens) and makes the GitHub release with the CHANGELOG
 # section as its notes. Every publish step skips what is already up, so a
@@ -22,7 +23,12 @@ concurrency:
 jobs:
   check:
     runs-on: ubuntu-24.04
-    timeout-minutes: 5
+    timeout-minutes: 30
+    permissions:
+      actions: read
+      contents: read
+    outputs:
+      built: ${{ steps.built.outputs.built }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -44,9 +50,26 @@ jobs:
             echo "::error::release $GITHUB_REF_NAME is already published"
             exit 1
           fi
+      # The tag lands on the release PR's merge commit, which main's push run
+      # of build.yml is already testing: wait for it and reuse its result, and
+      # only build here when there is none (a tag on an older commit) or it failed.
+      - name: Main's build of this commit
+        id: built
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          RUN=$(gh run list --workflow build.yml --event push --commit "$GITHUB_SHA" --limit 1 --json databaseId --jq '.[0].databaseId // empty')
+          if [ -n "$RUN" ] && gh run watch "$RUN" --exit-status --interval 30 >/dev/null; then
+            echo "build.yml run $RUN passed on $GITHUB_SHA; not building again"
+            echo "built=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "no passing build.yml push run for $GITHUB_SHA; building here"
+            echo "built=false" >> "$GITHUB_OUTPUT"
+          fi
 
   build:
     needs: check
+    if: needs.check.outputs.built != 'true'
     uses: ./.github/workflows/build.yml
     # A called workflow gets no more than this. build.yml's purge_caches asks
     # for actions: write, and GitHub rejects the whole run if it is not
@@ -110,6 +133,8 @@ jobs:
 
   pypi:
     needs: [build, wheels, sdist]
+    # build is skipped when main's run of this commit passed.
+    if: ${{ !cancelled() && !contains(needs.*.result, 'failure') && needs.wheels.result == 'success' && needs.sdist.result == 'success' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     environment:
@@ -141,7 +166,8 @@ jobs:
   # version is published by hand (the necronomicon-dev registry notes); until
   # then this job says so and skips. A version already up is skipped too.
   crates:
-    needs: build
+    needs: [check, build]
+    if: ${{ !cancelled() && needs.check.result == 'success' && needs.build.result != 'failure' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     environment:
@@ -178,6 +204,7 @@ jobs:
 
   github:
     needs: pypi
+    if: ${{ !cancelled() && needs.pypi.result == 'success' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
