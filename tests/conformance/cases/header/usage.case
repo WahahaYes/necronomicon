@@ -1,0 +1,6 @@
+# the header comes from --template or the line words, exactly one of them
+spec: Finders
+args: header --template necro/header.txt 'SPDX-License-Identifier: Apache-2.0' -- 'src/*'
+exit: 2
+-- @stderr --
+necro: header: give the header as --template <file> or as lines, not both: necro header [--files-from <file>] [--template <file>] [--marker <ext>=<marker>]… [--similar <percent>] [--write [--only-at <file>]] [<line>…] [-- <pathspec>…]

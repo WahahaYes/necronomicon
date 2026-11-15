@@ -8,6 +8,7 @@ necro runs it from the repo root, splits it into words like a shell (quotes) but
 
 - **A pattern:** `necro grep [--skip-comments <marker>] [--glob <glob>] '<regex>' -- <pathspecs>`. Rust regex with lookaround (`(?<![.\w])randf\(`), columns right for every match, the match as the label. Pick files with globs as prek reads them, `*` crossing folders (`--glob '*.gd' --glob '!src/net/protocol.gd'`) or pathspecs (`':!src/net/protocol.gd'`). Fast on large repos: `git grep` picks the files holding the regex's fixed text, then necro matches on every core. A pattern with lookaround or backreferences skips that step and reads every file it's given, so narrow it with a pathspec or `--glob`.
 - **Rust:** `necro clippy [--tests] <lint>…` reports clippy lints, from the set the Rust pack uses, in every Cargo workspace under the root; `necro cargo-manifest` checks each crate's edition and `rust-version`. Test code is skipped unless `--tests`. `necro clippy` builds in `necro/` inside each target folder; `necro --clean-cache` removes it.
+- **A header:** `necro header --template necro/header.txt -- '*.gd' '*.rs'` keeps the template's lines (a license id, a link to the project) at the top of each file, behind the extension's comment marker, and `--fix` writes them. `--similar 80` also replaces an earlier version of the header, one at least 80% alike. A list parameter works in place of the file: `necro header {lines} -- …`.
 - **More than a pattern:** a script in the repo's language that prints the same lines. For Python, `uv run --script necro/x.py` with the script's needs in a PEP 723 header, so nobody installs anything.
 - **Any other tool** works if its output fits, `git grep -n --column -o` included (its columns count bytes and drift after the first match on a line).
 
@@ -54,9 +55,9 @@ A rule that knows its fix can apply it. For a pattern, give `necro grep` the rep
 ```yaml
 trailing-space:
   command: necro grep --replace '' '[ \t]+$' -- '*.gd'
-license-header:
-  command: uv run --script necro/header.py --check
-  autofix: uv run --script necro/header.py --write {files}
+sorted-imports:
+  command: uv run --script necro/imports.py --check
+  autofix: uv run --script necro/imports.py --write {files}
 ```
 
 `necro --fix` (what the hook runs) fixes the hits a run reports, one rule at a time, then checks again: `necro: fixed 3 hits in 2 files (…); review and re-stage them`, followed by any hits it couldn't fix in full. Allowed and baselined hits stay as they are, so run `--fix` before `--write-baseline` to keep fixable hits out of the snapshot.

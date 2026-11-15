@@ -1,0 +1,26 @@
+# a file whose top lines aren't the header is a hit; after a #! line the header starts on line 2, and nothing after it is checked
+spec: Finders
+args: header 'SPDX-License-Identifier: Apache-2.0' 'https://github.com/me/proj' -- 'src/*'
+-- src/a.gd --
+extends Node
+-- src/b.rs --
+// SPDX-License-Identifier: Apache-2.0
+// https://github.com/me/proj
+//! Docs, with no blank line before them.
+-- src/c.py --
+#!/usr/bin/env python3
+# SPDX-License-Identifier: Apache-2.0
+# https://github.com/me/proj
+
+print(1)
+-- src/d.sh --
+#!/bin/sh
+echo hi
+-- src/e.gd --
+# SPDX-License-Identifier: MIT
+# https://github.com/me/proj
+extends Node
+-- @stdout --
+src/a.gd:1:1: no header
+src/d.sh:2:1: no header
+src/e.gd:1:1: no header

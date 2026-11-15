@@ -1,0 +1,22 @@
+# a list parameter given as a whole word fills the header's lines
+spec: Finders; Parameters
+args: --format terse
+exit: 1
+-- necro.yaml --
+version: 0
+rules:
+  source-header:
+    command: necro header {lines} -- '*.rs'
+    params:
+      lines: ["SPDX-License-Identifier: Apache-2.0", "https://github.com/me/proj"]
+    message: source file without the project header
+    why: Because.
+    fix: Run necro --fix.
+-- src/a.rs --
+// SPDX-License-Identifier: Apache-2.0
+// https://github.com/me/proj
+fn main() {}
+-- src/b.rs --
+fn main() {}
+-- @stdout --
+src/b.rs:1:1: source-header source file without the project header

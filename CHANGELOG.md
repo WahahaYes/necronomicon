@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- **`necro header`** keeps a fixed header, such as an SPDX license id and the project's link, at the top of each file, behind the comment marker for the file's extension (`--marker` adds one), above `@tool`, `extends` and `//!` docs; `--fix` writes it with a blank line after. The lines come from `--template <file>` or the command's words, so a list parameter can hold them; `--similar <percent>` recognizes and replaces an earlier version of the header.
 - **`gdscript/legacy-3x-api` softens its words, and `gdscript/literal-load` narrows.** String `connect` still runs on Godot 4, so the rule now calls the old spellings deprecated style rather than removed; `literal-load` only fires when the literal is the whole argument, so `%`-formatted, `.format()` and concatenated paths stay silent. Neither rule's hits change beyond that.
 ## 0.5.2 - 2026-11-10
 

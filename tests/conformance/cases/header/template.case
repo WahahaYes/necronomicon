@@ -1,0 +1,20 @@
+# --template reads the header from a file, one line each, trailing blank lines dropped; a blank line in it is the marker alone
+spec: Finders
+args: header --template necro/header.txt -- 'src/*'
+-- necro/header.txt --
+SPDX-License-Identifier: Apache-2.0
+
+https://github.com/me/proj
+
+
+-- src/a.gd --
+# SPDX-License-Identifier: Apache-2.0
+#
+# https://github.com/me/proj
+extends Node
+-- src/b.gd --
+# SPDX-License-Identifier: Apache-2.0
+# https://github.com/me/proj
+extends Node
+-- @stdout --
+src/b.gd:1:1: no header
