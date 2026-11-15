@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- **File finders check new files before they're staged.** `grep`, `rust-docs`, `gdscan`, `gdtoolkit` and `header` read untracked files git doesn't ignore as well as tracked ones, so a clean `necro` run covers the change you're about to commit. `gdscan uid` still judges only what git tracks.
 - **`godot-arch/no-res-writes`** flags `ResourceSaver` in game code, outside `addons/` and `@tool` scripts, through a new `necro gdscan res-write` check: data is authored as `.tres` in the editor, and `res://` is read-only in an exported game.
 - **`godot-arch/data-comment`** flags full-line `;` comments in Godot's data files (`.tscn`, `.tres`, `.godot`, `.cfg`, `.gdextension`, `.import`), through a new `necro gdscan data-comment` check; Godot's own `project.godot` header and `;` lines inside multi-line string values are left alone.
 - **`gdscan doc-length` counts plain `#` comments as preamble**, so a class doc below a license header keeps the header limit (`--header`, 10 lines) rather than the item limit.

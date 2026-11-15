@@ -1,0 +1,10 @@
+# uid is about what git tracks: an untracked script isn't asked for its .uid
+spec: Finders
+args: gdscan uid
+untracked: src/new.gd
+-- src/a.gd --
+extends Node
+-- src/a.gd.uid --
+uid://abc
+-- src/new.gd --
+extends Node

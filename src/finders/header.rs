@@ -4,7 +4,7 @@
 use std::collections::{BTreeMap, HashSet};
 
 use super::grep::read_list;
-use super::tracked;
+use super::known;
 use crate::args::{self, Spec};
 use crate::command::Hit;
 
@@ -64,7 +64,7 @@ pub fn run(args: &[String]) -> Result<Vec<Hit>, String> {
     let markers = markers(&parsed.values("--marker"))?;
     let similar = parsed.value("--similar").map(percent).transpose()?;
     let only = parsed.value("--files-from").map(read_list).transpose()?;
-    let files: Vec<String> = tracked(&parsed.pathspecs, None)?
+    let files: Vec<String> = known(&parsed.pathspecs, None)?
         .into_iter()
         .filter(|p| only.as_ref().is_none_or(|o| o.contains(p)))
         .collect();

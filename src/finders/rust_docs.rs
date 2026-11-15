@@ -5,7 +5,7 @@
 use std::path::Path;
 
 use super::grep::read_list;
-use super::{text_lines, tracked};
+use super::{known, text_lines};
 use crate::args::{self, Spec};
 use crate::command::Hit;
 
@@ -58,7 +58,7 @@ pub fn run(args: &[String]) -> Result<Vec<Hit>, String> {
         specs.push("*.rs".into());
     }
     let mut hits = Vec::new();
-    for path in tracked(&specs, None)? {
+    for path in known(&specs, None)? {
         if !path.ends_with(".rs") || only.as_ref().is_some_and(|o| !o.contains(&path)) {
             continue;
         }
