@@ -1,5 +1,5 @@
 # necro:rust adds the pack's rules, named <pack>/<rule>; with no Cargo workspace its cargo rules find nothing
-spec: Packs
+behavior: pack-include
 args: --format terse
 exit: 1
 -- necro.yaml --

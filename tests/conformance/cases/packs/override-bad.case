@@ -1,5 +1,5 @@
 # override takes only rules of an included pack that disable leaves on, and only files and exclude
-spec: Packs
+behavior: pack-override
 -- necro.yaml --
 version: 0
 include: [necro:rust]

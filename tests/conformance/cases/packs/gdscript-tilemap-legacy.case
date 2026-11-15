@@ -1,5 +1,5 @@
 # gdscript/tilemap-legacy flags extends TileMap and TileMap.new(); TileMapLayer stays silent
-spec: Packs
+behavior: gdscript-pack
 args: --format terse --rule gdscript/tilemap-legacy
 exit: 1
 -- necro.yaml --
