@@ -1,5 +1,5 @@
 # a narrowed run hands necro rust-docs the given files, as it does necro grep
-spec: Narrowed runs
+behavior: finders-take-the-given-files
 args: --format terse src/a.rs
 exit: 1
 -- necro.yaml --

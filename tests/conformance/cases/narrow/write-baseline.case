@@ -1,5 +1,5 @@
 # a baseline covers every file, so --write-baseline takes no files
-spec: Narrowed runs
+behavior: unscoped-flags-refuse-files
 args: --write-baseline src/a.ts
 exit: 2
 -- @stderr --

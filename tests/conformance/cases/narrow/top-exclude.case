@@ -1,5 +1,5 @@
 # a narrowed run drops given files the top-level exclude leaves out, so a rule they alone would trigger doesn't run
-spec: Narrowed runs
+behavior: narrowed-paths-reach-the-root
 args: --format terse fixtures/a.ts
 -- necro.yaml --
 version: 0

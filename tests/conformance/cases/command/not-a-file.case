@@ -1,5 +1,5 @@
 # a path that isn't a file in the working folder is a check error
-spec: Commands (exit codes)
+behavior: command-errors-are-check-errors
 exit: 2
 -- necro.yaml --
 version: 0

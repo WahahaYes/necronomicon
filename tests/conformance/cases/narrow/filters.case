@@ -1,5 +1,5 @@
 # given files, a rule with files: or exclude: runs in full when one passes and is skipped when none does; a rule with neither always runs in full
-spec: Narrowed runs
+behavior: files-and-exclude-choose-what-a-rule-checks
 args: --format terse src/a.ts
 exit: 1
 -- necro.yaml --

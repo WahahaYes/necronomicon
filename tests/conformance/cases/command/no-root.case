@@ -1,5 +1,5 @@
 # no necro.yaml here or above
-spec: Commands (where it runs)
+behavior: no-config-is-a-setup-error
 args: -C /
 exit: 2
 -- @stderr --

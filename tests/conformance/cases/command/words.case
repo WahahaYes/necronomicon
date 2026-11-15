@@ -1,5 +1,5 @@
 # the command is split into shell words; no shell runs, so $NAME stays as written
-spec: Commands (how it's read)
+behavior: command-split-without-a-shell
 args: --format terse
 env: T_WORD=donkey
 exit: 1

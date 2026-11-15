@@ -1,5 +1,5 @@
 # a program that isn't on PATH is a setup error naming the rule and the program
-spec: Commands (runtime)
+behavior: missing-command-is-a-setup-error
 exit: 2
 -- necro.yaml --
 version: 0

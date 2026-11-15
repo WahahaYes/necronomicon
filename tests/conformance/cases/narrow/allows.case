@@ -1,5 +1,5 @@
 # given files, necro's allow checks cover only those files
-spec: Narrowed runs
+behavior: allows-and-baseline-count-only-given-files
 args: --format terse src/a.ts
 exit: 1
 -- src/a.ts --
