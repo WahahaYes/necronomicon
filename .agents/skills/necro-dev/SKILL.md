@@ -24,9 +24,9 @@ The key goes in `RULE_KEYS` (`src/config.rs`), `load_rule` parses and validates 
 
 ## Adding a finder
 
-- `src/finders/<name>.rs` with a `run(args) -> Result<Vec<String>, String>` that returns hit lines, `path[:line[:col[-endcol]]][: label]`, sorted; register it in `FINDERS` (`src/finders/mod.rs`).
-- A finder that reads files belongs in `FILE_FINDERS` (`src/run.rs`), so a narrowed run passes it `--files-from`; take that option and keep only the listed files.
-- A finder that can fix belongs in `FIX_FINDERS` (`src/config.rs`) with the option that marks a fixable command; `--fix` adds `--write` and `--only-at <file>`.
+- `src/finders/<name>.rs` with a `run(args) -> Result<Vec<Hit>, String>` returning its hits (`crate::command::Hit`); `dispatch` sorts and prints them. Register it with a `FinderCapability` in `FINDER_REGISTRY` (`src/finders/mod.rs`).
+- A finder that reads files is `narrowable: true`, so a narrowed run passes it `--files-from`; take that option and keep only the listed files.
+- A finder that can fix declares how in `fix`: `Fix::Always`, `Fix::WithCheck` (the checks that fix) or `Fix::WithOption` (the option that marks a fixable command); `--fix` adds `--write` and `--only-at <file>`.
 - Errors are usage errors (`Err`), never hits. A tool it runs that's missing says how to install it.
 - A spec section under Finders gives its usage line and each check's hit format.
 
