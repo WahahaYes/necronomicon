@@ -30,7 +30,7 @@ rules:
     files: '(^|/)\.(agents|claude)/skills/'
     message: a skill in .claude/skills instead of .agents/skills
     why: a skill kept only in .claude/skills is invisible to every other harness, and a link there to no skill is a dead end.
-    fix: move the folder to `.agents/skills/<name>` and `necro --fix` links it back; delete a link to a skill that's gone.
+    fix: move the folder to `.agents/skills/<name>` and `necro --fix` links it back; delete a link to a skill that's gone. For a skill added with `npx skills add --copy` (which writes `.claude/skills/`), re-add it without `--copy` to get the `.agents/skills` layout and the links.
   skill-frontmatter:
     command: necro agent-files skill-frontmatter
     files: '(^|/)SKILL\.md$'
