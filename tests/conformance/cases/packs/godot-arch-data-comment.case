@@ -1,0 +1,12 @@
+# godot-arch/data-comment flags a comment in a scene or config file
+spec: Packs
+args: --format terse --rule godot-arch/data-comment
+exit: 1
+-- necro.yaml --
+version: 0
+include: [necro:godot-arch]
+-- scenes/main.tscn --
+; the root scene
+[gd_scene format=3]
+-- @stdout --
+scenes/main.tscn:1:1: godot-arch/data-comment a comment in a Godot data file

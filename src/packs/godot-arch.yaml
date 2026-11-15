@@ -58,3 +58,20 @@ rules:
         extends Resource
         func tick(delta: float) -> void:
         	charge = min(charge + delta, full)
+  data-comment:
+    command: necro gdscan data-comment
+    files: '\.(tscn|tres|godot|cfg|gdextension|import)$'
+    message: a comment in a Godot data file
+    why: scenes, resources and config files are read by Godot and rewritten by the editor, not read as text; a comment there goes unread, goes stale, and may be dropped on the next save.
+    fix: delete the comment; document the setting in the docs or in the script that reads it.
+    details: |
+      Full-line `;` comments in `.tscn`, `.tres`, `.godot`, `.cfg`,
+      `.gdextension` and `.import` files count. The header Godot writes at
+      the top of `project.godot` is left alone, as is a `;` line inside a
+      multi-line string value.
+    examples:
+      bad: |
+        ; the root scene
+        [gd_scene format=3]
+      good: |
+        [gd_scene format=3]
