@@ -1,5 +1,5 @@
 # a top-level exclude leaves files out of the whole run: no rule's hits there, and no allows read there
-spec: A rule
+behavior: config-top-exclude-scope
 args: --format terse
 exit: 1
 -- necro.yaml --

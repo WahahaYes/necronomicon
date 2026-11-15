@@ -1,5 +1,5 @@
 # an included file holds only rules
-spec: A rule
+behavior: config-include-merges-rules
 -- necro/more.yaml --
 version: 0
 rules: {}

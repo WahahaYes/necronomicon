@@ -1,5 +1,5 @@
 # --version prints the engine version
-spec: CLI
+behavior: cli-version-prints
 args: --version
 -- @stdout --
 necro <version>

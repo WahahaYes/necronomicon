@@ -1,5 +1,5 @@
 # --rule runs one rule; allows for rules that didn't run aren't reported as unused
-spec: CLI
+behavior: cli-rule-filter-runs-one
 args: --format terse --rule banned-word
 exit: 1
 -- necro.yaml --
