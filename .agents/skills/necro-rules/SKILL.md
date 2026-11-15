@@ -23,4 +23,4 @@ A convention has one home. If a command can check it, it's a rule, whose words t
 
 ## Suggesting it for a pack
 
-If the rule would suit any repo in that language, offer to suggest it for necro's packs with the [pack suggestion form](https://github.com/WahahaYes/necronomicon/issues/new?template=pack-suggestion.yml): the rule's YAML with generic paths (e.g. '*.gd'), generic examples and a generic why, the language, and its hit count here. Keep links absolute; write the allow syntax only with placeholders (`<rule>`). Ask the user before filing.
+If the rule would suit any repo in that language, offer to suggest it for necro's packs with the [pack suggestion form](https://github.com/WahahaYes/necronomicon/issues/new?template=pack-suggestion.yml): the rule's YAML made generic (paths like `*.gd`, examples and a why that name no project), the language, and its hit count here. Ask the user before filing.
