@@ -1,5 +1,5 @@
 # a files: glob is matched against the whole path, and * crosses folders, as in prek
-spec: Narrowed runs
+behavior: files-and-exclude-choose-what-a-rule-checks
 args: --format terse src/deep/a.ts
 exit: 1
 -- necro.yaml --

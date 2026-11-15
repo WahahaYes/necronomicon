@@ -1,5 +1,5 @@
 # an exit code other than 0 or 1 is a check error, with the end of stderr
-spec: Commands (exit codes)
+behavior: command-errors-are-check-errors
 env: T_EXIT=3
 exit: 2
 -- necro.yaml --

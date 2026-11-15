@@ -1,5 +1,5 @@
 # given files, stale baseline entries are counted only in those files
-spec: Narrowed runs
+behavior: allows-and-baseline-count-only-given-files
 args: --format terse src/a.ts
 -- src/a.ts --
 const ok = 1;

@@ -1,5 +1,5 @@
 # a line that doesn't parse is a check error; other rules still report
-spec: Commands (exit codes)
+behavior: command-errors-are-check-errors
 exit: 2
 -- necro.yaml --
 version: 0
