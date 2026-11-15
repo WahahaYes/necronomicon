@@ -2,7 +2,8 @@
 
 ## Unreleased
 
-- **`agent-files/skill-misplaced` fix** adds guidance for skills copied with `npx skills add --copy` (which writes `.claude/skills/`): re-add without `--copy` to get the `.agents/skills` layout and links. **Unknown pack error** now includes the running necro version and notes a newer necro may have the pack. **Pack suggestion form** and **necro-rules skill** ask for generic paths, examples and why, with absolute links and placeholder allow syntax.
+- **An unknown pack names the running necro's version**, since a newer necro may have the pack.
+- **`agent-files/skill-misplaced`'s fix covers skills added with `npx skills add --copy`**: re-add them without `--copy` for the `.agents/skills` layout and its links.
 - **`gdscan doc-length` counts plain `#` comments as preamble**, so a class doc below a license header keeps the header limit (`--header`, 10 lines) rather than the item limit.
 - **`necro header`** keeps a fixed header, such as an SPDX license id and the project's link, at the top of each file, behind the comment marker for the file's extension (`--marker` adds one), above `@tool`, `extends` and `//!` docs; `--fix` writes it with a blank line after. The lines come from `--template <file>` or the command's words, so a list parameter can hold them; `--similar <percent>` recognizes and replaces an earlier version of the header.
 - **`gdscript/legacy-3x-api` softens its words, and `gdscript/literal-load` narrows.** String `connect` still runs on Godot 4, so the rule now calls the old spellings deprecated style rather than removed; `literal-load` only fires when the literal is the whole argument, so `%`-formatted, `.format()` and concatenated paths stay silent. Neither rule's hits change beyond that.
