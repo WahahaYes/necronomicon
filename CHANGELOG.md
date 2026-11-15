@@ -2,22 +2,14 @@
 
 ## Unreleased
 
-- **`gdscript/class-by-name`** flags a script that declares a `class_name` but is used by its `res://` path (in `preload`/`load`, `extends`, or a path `const`), through a new `necro gdscan class-by-name` check that reads the named scripts from the repo. Use the class name instead.
-- **Allows count only inside comments.** An allow must follow a comment marker of the file's type (`#`, `//` or `/*`, `<!--`, `;`, `--`; none in `.json`, `.jsonl`, `.csv` and `.txt`), so notes, docs and data that quote the syntax no longer raise `necro/allow-reason` or `necro/unused-allow`. An extension necro doesn't know still takes one anywhere on the line.
-- **File finders check new files before they're staged.** `grep`, `rust-docs`, `gdscan`, `gdtoolkit` and `header` read untracked files git doesn't ignore as well as tracked ones, so a clean `necro` run covers the change you're about to commit. `gdscan uid` still judges only what git tracks.
-- **`godot-arch/no-res-writes`** flags `ResourceSaver` in game code, outside `addons/` and `@tool` scripts, through a new `necro gdscan res-write` check: data is authored as `.tres` in the editor, and `res://` is read-only in an exported game.
-- **`godot-arch/data-comment`** flags full-line `;` comments in Godot's data files (`.tscn`, `.tres`, `.godot`, `.cfg`, `.gdextension`, `.import`), through a new `necro gdscan data-comment` check; Godot's own `project.godot` header and `;` lines inside multi-line string values are left alone.
-- **An unknown pack names the running necro's version**, since a newer necro may have the pack.
-- **`agent-files/skill-misplaced`'s fix covers skills added with `npx skills add --copy`**: re-add them without `--copy` for the `.agents/skills` layout and its links.
-- **`gdscan doc-length` counts plain `#` comments as preamble**, so a class doc below a license header keeps the header limit (`--header`, 10 lines) rather than the item limit.
-- **`necro header`** keeps a fixed header, such as an SPDX license id and the project's link, at the top of each file, behind the comment marker for the file's extension (`--marker` adds one), above `@tool`, `extends` and `//!` docs; `--fix` writes it with a blank line after. The lines come from `--template <file>` or the command's words, so a list parameter can hold them; `--similar <percent>` recognizes and replaces an earlier version of the header.
-- **`gdscript/legacy-3x-api` softens its words, and `gdscript/literal-load` narrows.** String `connect` still runs on Godot 4, so the rule now calls the old spellings deprecated style rather than removed; `literal-load` only fires when the literal is the whole argument, so `%`-formatted, `.format()` and concatenated paths stay silent. Neither rule's hits change beyond that.
+## 0.5.3 - 2026-11-15
 
-### For contributors
-
-- **Failed CI jobs upload their step logs** (artifact `logs-<job>`).
-- **A behavior catalog**, `docs/BEHAVIORS.md`, names what users rely on; each conformance case names its entry with `behavior:`, and the suite fails when the two disagree.
-- **A release builds its commit once less.** The tag's `release.yml` waits for main's `build.yml` run of the release merge commit and reuses its result, running `build.yml` itself only when there is none or it failed.
+- **`necro header`** keeps a fixed header, such as an SPDX license id and the project's link, at the top of source files, behind each extension's comment marker; `--fix` writes it. The lines come from `--template <file>` or the command's words, and `--similar <percent>` replaces an earlier version of the header.
+- **Three Godot rules.** `gdscript/class-by-name` flags a script with a `class_name` used by its `res://` path (use the name); `godot-arch/data-comment` flags `;` comments in scenes, resources and config files; `godot-arch/no-res-writes` flags `ResourceSaver` in game code outside `addons/` and `@tool` scripts. Each runs through a new `necro gdscan` check.
+- **Allows count only inside comments.** An allow must follow a comment marker of the file's type, so docs, notes and data that quote the syntax no longer raise `necro/allow-reason` or `necro/unused-allow`. An allow outside a comment in a known file type no longer suppresses its hit; an unknown extension takes one anywhere on the line, as before.
+- **New files are checked before they're staged.** File finders read untracked files git doesn't ignore, so a clean `necro` run covers the change you're about to commit. Commit-hook runs are unchanged.
+- **`gdscript/legacy-3x-api` and `gdscript/literal-load` are quieter.** String `connect` is called deprecated style rather than removed, and `literal-load` skips formatted and concatenated paths.
+- **Smaller fixes.** `gdscan doc-length` treats plain `#` comments (a license header) as preamble; an unknown pack names the running necro's version; `agent-files/skill-misplaced`'s fix covers skills added with `npx skills add --copy`.
 
 ## 0.5.2 - 2026-11-10
 
