@@ -166,7 +166,8 @@ pub(super) fn gd_files(
         .collect())
 }
 
-/// Leading lines that may come before the header doc: blanks, `#!`, `@tool`, `extends`, ….
+/// Leading lines that may come before the header doc: blanks, `#!`, plain `#`
+/// comments, `@tool`, `extends`, ….
 fn preamble_len(lines: &[String]) -> usize {
     lines
         .iter()
@@ -175,6 +176,7 @@ fn preamble_len(lines: &[String]) -> usize {
             let t = l.trim();
             t.is_empty()
                 || (*n == 0 && t.starts_with("#!"))
+                || (t.starts_with('#') && !t.starts_with("##"))
                 || PREAMBLE.iter().any(|p| t.starts_with(p))
         })
         .count()

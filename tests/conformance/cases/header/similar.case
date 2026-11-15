@@ -1,0 +1,28 @@
+# --similar takes as many comment lines as the header has for an earlier version of it when they are alike enough, with the percent rounded down
+spec: Finders
+args: header --similar 80 'SPDX-License-Identifier: Apache-2.0' 'https://github.com/me/proj' -- 'src/*'
+-- src/a.gd --
+# SPDX-License-Identifier: MIT
+# https://github.com/me/proj
+extends Node
+-- src/b.gd --
+# SPDX-License-Identifier: Apache-2.0
+# https://github.com/me/old-proj
+extends Node
+-- src/c.gd --
+# Copyright someone else
+# all rights reserved
+extends Node
+-- src/d.rs --
+// SPDX-License-Identifier: MIT
+// https://github.com/me/proj
+fn main() {}
+-- src/e.gd --
+# SPDX-License-Identifier: MIT
+extends Node
+-- @stdout --
+src/a.gd:1:1: old header, 84% alike
+src/b.gd:1:1: old header, 94% alike
+src/c.gd:1:1: no header
+src/d.rs:1:1: old header, 85% alike
+src/e.gd:1:1: no header

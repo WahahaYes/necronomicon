@@ -1,0 +1,11 @@
+# --marker adds an extension or changes its marker
+spec: Finders
+args: header --marker tres=';' --marker gd=// 'SPDX-License-Identifier: Apache-2.0' -- 'src/*'
+-- src/a.tres --
+; SPDX-License-Identifier: Apache-2.0
+[resource]
+-- src/b.gd --
+# SPDX-License-Identifier: Apache-2.0
+extends Node
+-- @stdout --
+src/b.gd:1:1: no header

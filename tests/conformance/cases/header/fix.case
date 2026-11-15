@@ -1,0 +1,53 @@
+# --fix writes the header with a blank line after it unless one follows, after a #! line, and replaces an old header --similar recognizes
+spec: Finders; Fixes
+args: --fix --format terse
+exit: 1
+-- necro.yaml --
+version: 0
+rules:
+  source-header:
+    command: necro header --similar 80 --template necro/header.txt -- 'src/*.gd' 'src/*.py'
+    message: source file without the project header
+    why: Because.
+    fix: Run necro --fix.
+-- necro/header.txt --
+SPDX-License-Identifier: Apache-2.0
+https://github.com/me/proj
+-- src/a.gd --
+@tool
+extends Node
+-- src/b.gd --
+
+extends Node
+-- src/c.py --
+#!/usr/bin/env python3
+print(1)
+-- src/d.gd --
+# SPDX-License-Identifier: MIT
+# https://github.com/me/proj
+
+extends Node
+-- @stdout --
+necro: fixed 4 hits in 4 files (source-header ×4); review and re-stage them. Why: necro --explain source-header
+-- @file src/a.gd --
+# SPDX-License-Identifier: Apache-2.0
+# https://github.com/me/proj
+
+@tool
+extends Node
+-- @file src/b.gd --
+# SPDX-License-Identifier: Apache-2.0
+# https://github.com/me/proj
+
+extends Node
+-- @file src/c.py --
+#!/usr/bin/env python3
+# SPDX-License-Identifier: Apache-2.0
+# https://github.com/me/proj
+
+print(1)
+-- @file src/d.gd --
+# SPDX-License-Identifier: Apache-2.0
+# https://github.com/me/proj
+
+extends Node

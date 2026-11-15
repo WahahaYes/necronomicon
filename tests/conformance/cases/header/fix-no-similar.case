@@ -1,0 +1,22 @@
+# without --similar nothing is an old header: --fix puts the header above what was there
+spec: Finders; Fixes
+args: --fix --format terse
+exit: 1
+-- necro.yaml --
+version: 0
+rules:
+  source-header:
+    command: "necro header 'SPDX-License-Identifier: Apache-2.0' -- '*.gd'"
+    message: source file without the project header
+    why: Because.
+    fix: Run necro --fix.
+-- src/a.gd --
+# SPDX-License-Identifier: MIT
+extends Node
+-- @stdout --
+necro: fixed 1 hit in 1 file (source-header ×1); review and re-stage them. Why: necro --explain source-header
+-- @file src/a.gd --
+# SPDX-License-Identifier: Apache-2.0
+
+# SPDX-License-Identifier: MIT
+extends Node

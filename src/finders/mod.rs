@@ -12,6 +12,7 @@ mod gdscan;
 mod gdscript;
 mod gdtoolkit;
 mod grep;
+mod header;
 mod manifest;
 mod rust_docs;
 mod rustfmt;
@@ -81,6 +82,12 @@ pub const FINDER_REGISTRY: &[FinderCapability] = &[
         run: grep::run,
         narrowable: true,
         fix: Fix::WithOption("--replace"),
+    },
+    FinderCapability {
+        name: "header",
+        run: header::run,
+        narrowable: true,
+        fix: Fix::Always,
     },
     FinderCapability {
         name: "rust-docs",

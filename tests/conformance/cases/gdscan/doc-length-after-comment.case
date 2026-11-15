@@ -1,0 +1,16 @@
+# plain # comments, such as a license header, are preamble: the class doc after them keeps the header limit
+spec: Finders
+args: gdscan doc-length -- 'src/*'
+-- src/a.gd --
+# SPDX-License-Identifier: Apache-2.0
+# https://github.com/me/proj
+
+extends Node
+## 1
+## 2
+## 3
+## 4
+## 5
+## 6
+## 7
+## 8

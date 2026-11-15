@@ -1,0 +1,10 @@
+# a file whose extension has no comment marker is a usage error naming it
+spec: Finders
+args: header 'SPDX-License-Identifier: Apache-2.0' -- 'src/*'
+exit: 2
+-- src/a.gd --
+# SPDX-License-Identifier: Apache-2.0
+-- src/b.tres --
+[resource]
+-- @stderr --
+necro: header: no comment marker for src/b.tres; give --marker tres=<marker>
