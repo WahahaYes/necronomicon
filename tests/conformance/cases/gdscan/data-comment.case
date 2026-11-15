@@ -1,5 +1,5 @@
 # data-comment finds full-line ; comments in Godot data files; a ; line inside a multi-line string value and the header Godot writes atop project.godot are not comments
-spec: Finders
+behavior: godot-data-files-hold-no-comments
 args: gdscan data-comment
 -- project.godot --
 ; Engine configuration file.

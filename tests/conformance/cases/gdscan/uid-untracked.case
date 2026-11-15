@@ -1,5 +1,5 @@
 # uid is about what git tracks: an untracked script isn't asked for its .uid
-spec: Finders
+behavior: uid-files-are-tracked-together
 args: gdscan uid
 untracked: src/new.gd
 -- src/a.gd --
