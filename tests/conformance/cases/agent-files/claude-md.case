@@ -14,8 +14,7 @@ Claude-only notes.
 @AGENTS.md
 -- linked/AGENTS.md --
 # Linked
--- linked/CLAUDE.md -> AGENTS.md
+-- linked/CLAUDE.md -> AGENTS.md --
 -- @stdout --
 AGENTS.md: no CLAUDE.md beside it
-linked/AGENTS.md: no CLAUDE.md beside it
 sub/CLAUDE.md: holds more than @AGENTS.md
