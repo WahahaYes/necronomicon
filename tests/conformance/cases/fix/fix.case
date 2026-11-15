@@ -1,5 +1,5 @@
 # --fix fixes the hits a run reports, leaves allowed ones alone, checks again and says what it changed and what's left
-spec: Fixes
+behavior: fix-fixes-reported-hits
 args: --fix --format terse
 exit: 1
 -- necro.yaml --

@@ -1,5 +1,5 @@
 # --glob and pathspecs both apply: a file must pass each
-spec: Finders
+behavior: grep-globs-narrow-files
 args: grep --glob '*.{ts,rs}' donkey -- src ':!src/skip'
 -- src/a.ts --
 donkey

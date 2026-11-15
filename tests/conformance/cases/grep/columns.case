@@ -1,5 +1,5 @@
 # every non-empty match on a line is a hit, columns in code points, sorted by path, line, column
-spec: Finders
+behavior: grep-finds-every-match
 args: grep '\bdonkey\b' -- 'src/*'
 -- src/b.ts --
 é donkey, donkey

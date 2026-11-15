@@ -1,5 +1,5 @@
 # --write rewrites the matches and prints the hits it replaced
-spec: Finders; Fixes
+behavior: write-rewrites-matches
 args: grep --replace '' --write '[ \t]+$' -- 'src/*'
 -- src/a.gd --
 var a = 1   

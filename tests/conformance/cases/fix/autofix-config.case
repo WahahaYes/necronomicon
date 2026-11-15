@@ -1,5 +1,5 @@
 # autofix needs a {files} word, and files is no parameter's name
-spec: Fixes
+behavior: fix-autofix-needs-files-word
 -- necro.yaml --
 version: 0
 rules:

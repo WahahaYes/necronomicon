@@ -1,5 +1,5 @@
 # a regex that doesn't parse is a usage error
-spec: Finders
+behavior: grep-usage-errors
 args: grep '('
 exit: 2
 -- @stderr --

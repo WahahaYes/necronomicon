@@ -1,5 +1,5 @@
 # without --fix, a full run ends by saying how many of its hits a fix could clear
-spec: Fixes; Messages
+behavior: fix-hints-at-fixable-hits
 exit: 1
 -- necro.yaml --
 version: 0
