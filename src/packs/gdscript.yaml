@@ -96,6 +96,29 @@ rules:
       good: |
         func _physics_process(delta: float) -> void:
         	velocity = move_and_slide()
+  class-by-name:
+    command: necro gdscan class-by-name -- '*.gd'
+    files: '\.gd$'
+    message: a named script used by path
+    why: a script that declares a class_name has one reference, its name; a preload or path beside it is a second, which survives a move or rename silently and hides the type from typed code (a preload alias is a GDScript, not the class).
+    fix: 'use the class name (`Enemy.new()`, `extends Actor`, `var e: Enemy`) and drop the preload const; after adding a class, run `godot --headless --import` so headless runs see it.'
+    details: |
+      A script that declares a `class_name` may not be used by `res://`
+      path: no `preload(…)` or `load(…)` of it, no `extends "res://…"`, no
+      path const kept for a later load. Which scripts are named comes from
+      the repo, so a newly named script is covered with no rule edit.
+      Reading a script's text (`FileAccess.open`) isn't a use. A `-s`
+      SceneTree script whose dependency names an autoload compiles before
+      autoloads exist and must load it by path; it keeps an allow comment
+      saying so.
+    examples:
+      bad: |
+        const EnemyScript: GDScript = preload("res://enemies/enemy.gd")
+        func spawn() -> Node:
+        	return EnemyScript.new()
+      good: |
+        func spawn() -> Enemy:
+        	return Enemy.new()
   literal-load:
     command: necro grep --skip-comments '#' '(?<![.\w])load\(\s*"res://[^"]*"(?=\s*\))' -- '*.gd'
     files: '\.gd$'

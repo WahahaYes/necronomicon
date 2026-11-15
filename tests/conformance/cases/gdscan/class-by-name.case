@@ -1,0 +1,27 @@
+# class-by-name finds a named script used by path in preload, load, extends and a path const; unnamed scripts, comments, other strings and other files are fine
+spec: Finders
+args: gdscan class-by-name
+-- project.godot --
+config_version=5
+-- enemies/enemy.gd --
+class_name Enemy
+extends Node
+-- enemies/plain.gd --
+extends Node
+-- src/spawner.gd --
+extends "res://enemies/enemy.gd"
+
+const EnemyScript: GDScript = preload("res://enemies/enemy.gd")
+const ENEMY_PATH: String = 'res://enemies/enemy.gd'
+const Plain: GDScript = preload("res://enemies/plain.gd")
+
+
+func spawn() -> Node:
+	# preload("res://enemies/enemy.gd") in a comment
+	print("res://enemies/enemy.gd")
+	return load("res://enemies/enemy.gd").new()
+-- @stdout --
+src/spawner.gd:1:10-31: Enemy
+src/spawner.gd:3:40-61: Enemy
+src/spawner.gd:4:29-50: Enemy
+src/spawner.gd:11:15-36: Enemy

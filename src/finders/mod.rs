@@ -169,8 +169,25 @@ pub fn dispatch(args: &[String]) -> Option<u8> {
 /// (`:!*x*.gd`). The baseline snapshot is skipped, as its fingerprints would
 /// match the rules they came from.
 pub fn tracked(pathspecs: &[String], containing: Option<&[String]>) -> Result<Vec<String>, String> {
+    listed(pathspecs, containing, false)
+}
+
+/// As [`tracked`], plus untracked files git doesn't ignore: the files a full
+/// run checks, so a new file counts before it's staged.
+pub fn known(pathspecs: &[String], containing: Option<&[String]>) -> Result<Vec<String>, String> {
+    listed(pathspecs, containing, true)
+}
+
+fn listed(
+    pathspecs: &[String],
+    containing: Option<&[String]>,
+    untracked: bool,
+) -> Result<Vec<String>, String> {
     let mut git = crate::files::git();
     git.args(["grep", "-l", "-z", "-I"]);
+    if untracked {
+        git.arg("--untracked");
+    }
     match containing {
         Some(texts) => {
             git.arg("-F");

@@ -1,0 +1,16 @@
+# gdscript/class-by-name flags a preload of a script that has a class_name
+spec: Packs
+args: --format terse --rule gdscript/class-by-name
+exit: 1
+-- necro.yaml --
+version: 0
+include: [necro:gdscript]
+-- enemy.gd --
+class_name Enemy
+extends Node
+-- spawner.gd --
+extends Node
+
+const EnemyScript: GDScript = preload("res://enemy.gd")
+-- @stdout --
+spawner.gd:3:40: gdscript/class-by-name a named script used by path

@@ -578,8 +578,9 @@ fn include_packs(e: &mut Errors, file: &str, node: &Node) -> Vec<(&'static str, 
                 item.pos,
                 &format!("include[{i}]"),
                 format!(
-                    "necro has no pack `{name}`; packs: {}",
-                    crate::packs::names().join(", ")
+                    "necro has no pack `{name}`; packs: {} (necro {}; a newer necro may have it)",
+                    crate::packs::names().join(", "),
+                    env!("CARGO_PKG_VERSION")
                 ),
             ),
         }
