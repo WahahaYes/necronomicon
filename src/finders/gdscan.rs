@@ -11,7 +11,7 @@ use super::tracked;
 use crate::args::{self, Spec};
 
 const USAGE: &str = "necro gdscan [--files-from <file>] [--header <n>] [--item <n>] \
-                     [--write [--only-at <file>]] (spacing|inline-lambda|doc-length|export-doc|uid|physics-context|resource-behavior) [-- <pathspec>…]";
+                     [--write [--only-at <file>]] (spacing|inline-lambda|doc-length|export-doc|uid|physics-context|resource-behavior|data-comment) [-- <pathspec>…]";
 
 /// The checks `gdscan` knows.
 const CHECKS: &[&str] = &[
@@ -22,6 +22,7 @@ const CHECKS: &[&str] = &[
     "uid",
     "physics-context",
     "resource-behavior",
+    "data-comment",
 ];
 
 /// What `doc-length` allows when `--header` or `--item` isn't given.
@@ -60,6 +61,9 @@ pub fn run(args: &[String]) -> Result<Vec<Hit>, String> {
     let only = list.map(read_list).transpose()?;
     if check == "uid" {
         return uid(&parsed.pathspecs, only.as_ref());
+    }
+    if check == "data-comment" {
+        return data_comment(&parsed.pathspecs, only.as_ref());
     }
     let run: fn(&str, &Source, usize, usize, &mut Vec<Hit>) = match check {
         "spacing" => spacing,
@@ -606,4 +610,85 @@ fn uid(pathspecs: &[String], only: Option<&HashSet<String>>) -> Result<Vec<Hit>,
         .collect();
     hits.sort_by(|a, b| a.path.cmp(&b.path));
     Ok(hits)
+}
+
+/// Godot's data files, the pathspecs `data-comment` takes by default.
+const DATA_FILES: &[&str] = &[
+    "*.tscn",
+    "*.tres",
+    "*.godot",
+    "*.cfg",
+    "*.gdextension",
+    "*.import",
+];
+
+/// The header Godot writes at the top of `project.godot`.
+const PROJECT_HEADER: &[&str] = &[
+    "; Engine configuration file.",
+    "; It's best edited using the editor UI and not directly,",
+    "; since the parameters that go here are not all obvious.",
+    ";",
+    "; Format:",
+    ";   [section] ; section goes between []",
+    ";   param=value ; assign values to parameters",
+];
+
+/// `data-comment`: each full-line `;` comment in a Godot data file, outside
+/// multi-line string values and Godot's own `project.godot` header.
+fn data_comment(pathspecs: &[String], only: Option<&HashSet<String>>) -> Result<Vec<Hit>, String> {
+    let specs: Vec<String> = if pathspecs.is_empty() {
+        DATA_FILES.iter().map(|s| s.to_string()).collect()
+    } else {
+        pathspecs.to_vec()
+    };
+    let mut hits = Vec::new();
+    for path in tracked(&specs, None)? {
+        if only.is_some_and(|o| !o.contains(&path)) {
+            continue;
+        }
+        let Some(lines) = super::text_lines(&path) else {
+            continue;
+        };
+        let name = path.rsplit('/').next().unwrap_or(&path);
+        let start = if name == "project.godot"
+            && lines.len() >= PROJECT_HEADER.len()
+            && lines.iter().zip(PROJECT_HEADER).all(|(l, h)| l == h)
+        {
+            PROJECT_HEADER.len()
+        } else {
+            0
+        };
+        let mut in_string = false;
+        for (n, line) in lines.iter().enumerate().skip(start) {
+            if !in_string && line.trim_start().starts_with(';') {
+                hits.push(Hit {
+                    path: path.clone(),
+                    line: n + 1,
+                    col: 1,
+                    endcol: None,
+                    label: String::new(),
+                });
+            }
+            if unescaped_quotes(line) % 2 == 1 {
+                in_string = !in_string;
+            }
+        }
+    }
+    Ok(hits)
+}
+
+/// The `"` in `line` not escaped by a backslash.
+fn unescaped_quotes(line: &str) -> usize {
+    let mut count = 0;
+    let mut escaped = false;
+    for c in line.chars() {
+        if escaped {
+            escaped = false;
+        } else if c == '\\' {
+            escaped = true;
+        } else if c == '"' {
+            count += 1;
+        }
+    }
+    count
 }

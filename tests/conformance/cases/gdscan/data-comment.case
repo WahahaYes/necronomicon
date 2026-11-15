@@ -1,0 +1,35 @@
+# data-comment finds full-line ; comments in Godot data files; a ; line inside a multi-line string value and the header Godot writes atop project.godot are not comments
+spec: Finders
+args: gdscan data-comment
+-- project.godot --
+; Engine configuration file.
+; It's best edited using the editor UI and not directly,
+; since the parameters that go here are not all obvious.
+;
+; Format:
+;   [section] ; section goes between []
+;   param=value ; assign values to parameters
+
+config_version=5
+
+; our own note
+[application]
+config/name="Demo"
+-- addons/demo/plugin.cfg --
+[plugin]
+
+name="Demo"
+  ; indented note
+description="A plugin.
+; this line is part of the description
+Still the description."
+version="1.0"
+-- scenes/main.tscn --
+[gd_scene format=3]
+
+[node name="Main" type="Node"]
+-- src/notes.txt --
+; not a Godot data file
+-- @stdout --
+addons/demo/plugin.cfg:4:1
+project.godot:11:1
