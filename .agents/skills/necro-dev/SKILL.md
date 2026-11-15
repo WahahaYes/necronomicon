@@ -11,7 +11,7 @@ The order is always spec, then cases, then engine. The spec ([spec/v0.md](../../
 
 ## Writing a case
 
-A case is one behavior, `cases/<area>/<name>.case`, in the format [tests/conformance/README.md](../../../tests/conformance/README.md) describes: a `#` line saying what it shows, `spec:` naming the section, `args:`, `exit:`, then files and the expected `@stdout`, `@stderr` or `@config-error`.
+A case is one behavior, `cases/<area>/<name>.case`, in the format [tests/conformance/README.md](../../../tests/conformance/README.md) describes: a `#` line saying what it shows, `behavior:` naming its entry in [docs/BEHAVIORS.md](../../../docs/BEHAVIORS.md) (add the entry first when no entry fits, and list the case under its **Proved by**), `args:`, `exit:`, then files and the expected `@stdout`, `@stderr` or `@config-error`.
 
 - Hits sort by rule name, then path, line and column; `rust-style/…` sorts before `rust/…`, since `-` comes before `/`.
 - `--format terse` keeps expectations short; use the full format only when the layout is what the case shows.

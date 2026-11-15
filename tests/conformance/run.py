@@ -21,7 +21,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 SECTION = re.compile(r"^-- (.+?) --$")
-HEADER_KEYS = {"spec", "behavior", "args", "exit", "env", "git", "needs", "stdin", "untracked"}
+HEADER_KEYS = {"behavior", "args", "exit", "env", "git", "needs", "stdin", "untracked"}
 
 
 def parse(path):
@@ -198,6 +198,7 @@ def catalog_problems():
         rel = case.relative_to(HERE / "cases").as_posix()
         slug = parse(case)[0].get("behavior")
         if slug is None:
+            yield f"{rel}: no behavior: header"
             continue
         if slug not in proved:
             yield f"{rel}: behavior {slug} isn't in BEHAVIORS.md"
