@@ -11,7 +11,7 @@ use super::{known, tracked};
 use crate::args::{self, Spec};
 
 const USAGE: &str = "necro gdscan [--files-from <file>] [--header <n>] [--item <n>] \
-                     [--write [--only-at <file>]] (spacing|inline-lambda|doc-length|export-doc|uid|physics-context|resource-behavior|res-write|data-comment) [-- <pathspec>…]";
+                     [--write [--only-at <file>]] (spacing|inline-lambda|doc-length|export-doc|uid|physics-context|resource-behavior|res-write|class-by-name|data-comment) [-- <pathspec>…]";
 
 /// The checks `gdscan` knows.
 const CHECKS: &[&str] = &[
@@ -23,6 +23,7 @@ const CHECKS: &[&str] = &[
     "physics-context",
     "resource-behavior",
     "res-write",
+    "class-by-name",
     "data-comment",
 ];
 
@@ -62,6 +63,9 @@ pub fn run(args: &[String]) -> Result<Vec<Hit>, String> {
     let only = list.map(read_list).transpose()?;
     if check == "uid" {
         return uid(&parsed.pathspecs, only.as_ref());
+    }
+    if check == "class-by-name" {
+        return class_by_name(&parsed.pathspecs, only.as_ref());
     }
     if check == "data-comment" {
         return data_comment(&parsed.pathspecs, only.as_ref());
@@ -647,6 +651,95 @@ fn is_tool(src: &Source) -> bool {
             && src.depth[n] == 0
             && line.len() == line.trim_start().len()
             && (trimmed == "@tool" || trimmed.starts_with("@tool "))
+    })
+}
+
+/// `class-by-name`: each `res://` path to a script with a `class_name`, used
+/// as code (`preload(`/`load(`, `extends`, a `const`'s value).
+fn class_by_name(pathspecs: &[String], only: Option<&HashSet<String>>) -> Result<Vec<Hit>, String> {
+    let projects: Vec<String> = known(&["*project.godot".to_string()], None)?
+        .into_iter()
+        .filter(|p| p == "project.godot" || p.ends_with("/project.godot"))
+        .map(|p| p.trim_end_matches("project.godot").to_string())
+        .collect();
+    let res_path = |path: &str| -> String {
+        let base = projects
+            .iter()
+            .filter(|d| path.starts_with(d.as_str()))
+            .max_by_key(|d| d.len())
+            .map_or("", String::as_str);
+        format!("res://{}", &path[base.len()..])
+    };
+    let markers = ["#".to_string()];
+    let mut named: std::collections::HashMap<(String, String), String> = Default::default();
+    for path in gd_files(&[], None)? {
+        if let Some(src) = gdscript::scan_file(&path, &markers)
+            && let Some(name) = class_name(&src)
+        {
+            let base = res_path(&path);
+            let dir = path[..path.len() - (base.len() - "res://".len())].to_string();
+            named.insert((dir, base), name);
+        }
+    }
+    let prefix = fancy_regex::Regex::new(
+        r"(?:(?<![.\w])(?:preload|load)\s*\(\s*|^\s*extends\s+|^\s*const\s+\w+\s*(?::\s*\w+\s*)?:?=\s*)$",
+    )
+    .map_err(|e| super::regex_error(&e))?;
+    let mut hits = Vec::new();
+    for path in gd_files(pathspecs, only)? {
+        let Some(src) = gdscript::scan_file(&path, &markers) else {
+            continue;
+        };
+        let base = res_path(&path);
+        let dir = &path[..path.len() - (base.len() - "res://".len())];
+        for (n, spans) in src.spans.iter().enumerate() {
+            if src.in_string[n] {
+                continue;
+            }
+            let line = &src.lines[n];
+            for span in spans.iter().filter(|s| s.kind == Kind::String) {
+                let text = &line[span.start..span.end];
+                let inner = text.trim_matches(|c| c == '"' || c == '\'');
+                if !inner.starts_with("res://") {
+                    continue;
+                }
+                let Some(name) = named.get(&(dir.to_string(), inner.to_string())) else {
+                    continue;
+                };
+                if !prefix.is_match(&line[..span.start]).unwrap_or(false) {
+                    continue;
+                }
+                let at = span.start + text.find("res://").unwrap_or(0);
+                let col = line[..at].chars().count() + 1;
+                hits.push(Hit {
+                    path: path.clone(),
+                    line: n + 1,
+                    col,
+                    endcol: Some(col + inner.chars().count() - 1),
+                    label: name.clone(),
+                });
+            }
+        }
+    }
+    Ok(hits)
+}
+
+/// The `class_name` a script declares at top level, if any.
+fn class_name(src: &Source) -> Option<String> {
+    src.code.iter().enumerate().find_map(|(n, line)| {
+        if src.in_string[n] || src.depth[n] != 0 || line.len() != line.trim_start().len() {
+            return None;
+        }
+        let rest = line.trim().strip_prefix("class_name")?;
+        if !rest.starts_with(char::is_whitespace) {
+            return None;
+        }
+        let name: String = rest
+            .trim_start()
+            .chars()
+            .take_while(|c| c.is_alphanumeric() || *c == '_')
+            .collect();
+        (!name.is_empty()).then_some(name)
     })
 }
 

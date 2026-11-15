@@ -1,0 +1,16 @@
+# a res:// path is relative to the folder holding project.godot, and a narrowed run still knows every named script
+spec: Finders
+args: gdscan class-by-name --files-from list.txt
+-- list.txt --
+game/src/main.gd
+-- game/project.godot --
+config_version=5
+-- game/actors/actor.gd --
+class_name Actor
+extends Node
+-- game/src/main.gd --
+extends "res://actors/actor.gd"
+-- game/src/other.gd --
+extends "res://actors/actor.gd"
+-- @stdout --
+game/src/main.gd:1:10-30: Actor
