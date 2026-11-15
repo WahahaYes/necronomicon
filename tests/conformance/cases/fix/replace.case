@@ -1,5 +1,5 @@
 # --replace makes grep's hits fixable: each label says what the match becomes, with $1 for a group
-spec: Finders; Fixes
+behavior: replace-makes-hits-fixable
 args: grep --replace 'mule$1' '(d)onkey' -- 'src/*'
 -- src/a.gd --
 var a = donkey

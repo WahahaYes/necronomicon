@@ -1,5 +1,5 @@
 # godot-arch/parent-call flags a child reaching up through get_parent() or owner; a signal emit stays silent
-spec: Packs
+behavior: godot-arch-pack
 args: --format terse --rule godot-arch/parent-call
 exit: 1
 -- necro.yaml --

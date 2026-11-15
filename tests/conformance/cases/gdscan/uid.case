@@ -1,5 +1,5 @@
 # uid: once a repo tracks .gd.uid files, each script and its .uid are tracked together
-spec: Finders
+behavior: uid-files-are-tracked-together
 args: gdscan uid
 -- src/a.gd --
 extends Node

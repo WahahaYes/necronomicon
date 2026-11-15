@@ -1,5 +1,5 @@
 # commands find the repo from the root, not from GIT_DIR and GIT_WORK_TREE, which git sets for hooks in a worktree
-spec: Commands (where it runs)
+behavior: command-runs-at-the-root
 args: -C sub --format terse
 exit: 1
 env: GIT_DIR=<root>/.git

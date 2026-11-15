@@ -1,5 +1,5 @@
 # every output form: path, path:line, path:line:col, path:line:col-endcol, each with or without a label
-spec: Commands (what it prints)
+behavior: command-hits-in-any-form
 args: --format terse
 exit: 1
 -- necro.yaml --

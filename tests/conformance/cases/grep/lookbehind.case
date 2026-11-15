@@ -1,5 +1,5 @@
 # lookaround works, so a match can exclude what comes before it without starting early
-spec: Finders
+behavior: grep-regex-alternation-and-lookaround
 args: grep '(?<![.\w])randf\(' -- 'src/*'
 -- src/a.gd --
 var a = randf()

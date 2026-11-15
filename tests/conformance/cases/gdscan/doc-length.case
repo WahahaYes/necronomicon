@@ -1,5 +1,5 @@
 # doc-length: the header run after the preamble gets --header lines, any other own-line ## run --item
-spec: Finders
+behavior: doc-length-limits-header-and-item-runs
 args: gdscan --header 2 --item 1 doc-length
 -- src/a.gd --
 @tool

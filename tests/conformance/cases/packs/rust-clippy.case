@@ -1,5 +1,5 @@
 # rust/clippy reports every other warning, labelled with its lint; override skip drops lints by name
-spec: Packs
+behavior: rust-clippy-pack
 args: --format terse
 exit: 1
 -- necro.yaml --

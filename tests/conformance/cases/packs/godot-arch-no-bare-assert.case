@@ -1,5 +1,5 @@
 # godot-arch/no-bare-assert-in-tests flags a bare assert() under test dirs; assert_eq and non-test files stay silent
-spec: Packs
+behavior: godot-arch-pack
 args: --format terse --rule godot-arch/no-bare-assert-in-tests
 exit: 1
 -- necro.yaml --

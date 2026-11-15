@@ -1,5 +1,5 @@
 # override replaces a pack rule's exclude: hits in the excluded files are dropped in a full run
-spec: Packs
+behavior: pack-override
 args: --format terse
 exit: 1
 -- necro.yaml --

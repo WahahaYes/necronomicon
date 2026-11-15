@@ -1,5 +1,5 @@
 # lint: each gdlint problem at its line, the check in parentheses; max-returns at its func line; hits sort by line number, so 20 comes after 4
-spec: Finders
+behavior: lint-reports-problems-at-their-lines
 args: gdtoolkit lint
 -- src/a.gd --
 extends Node

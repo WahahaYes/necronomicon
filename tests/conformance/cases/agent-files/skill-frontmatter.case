@@ -1,5 +1,5 @@
 # skill-frontmatter: frontmatter with the folder's name and a description
-spec: Finders
+behavior: agent-files-skill-frontmatter-validates
 args: agent-files skill-frontmatter
 -- .agents/skills/good/SKILL.md --
 ---

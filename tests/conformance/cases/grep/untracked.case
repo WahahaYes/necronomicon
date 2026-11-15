@@ -1,5 +1,5 @@
 # a file finder checks untracked files git doesn't ignore, so a new file counts before it's staged
-spec: Finders
+behavior: grep-checks-untracked-files
 args: grep donkey -- 'src/*'
 untracked: src/new.gd src/ignored.gd
 -- .gitignore --

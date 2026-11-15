@@ -1,5 +1,5 @@
 # parse: a file gdtoolkit can't parse, at the position it gives; lint and format leave it to this check
-spec: Finders
+behavior: parse-reports-unparseable-files
 args: gdtoolkit parse
 -- src/a.gd --
 extends Node

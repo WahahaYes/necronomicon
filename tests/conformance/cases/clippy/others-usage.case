@@ -1,5 +1,5 @@
 # --others takes no lints of its own
-spec: Finders
+behavior: clippy-rejects-bad-lint-arguments
 args: clippy --others unwrap_used
 exit: 2
 -- @stderr --

@@ -1,5 +1,5 @@
 # --rule names a rule that exists
-spec: CLI
+behavior: cli-rule-filter-validates-name
 args: --rule nope
 exit: 2
 -- @stderr --

@@ -1,5 +1,5 @@
 # --write and --only-at need --replace
-spec: Finders; Fixes
+behavior: write-rewrites-matches
 args: grep --write donkey -- 'src/*'
 exit: 2
 -- @stderr --

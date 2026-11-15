@@ -1,5 +1,5 @@
 # a list parameter given as a whole word fills the header's lines
-spec: Finders; Parameters
+behavior: header-params-fill-lines
 args: --format terse
 exit: 1
 -- necro.yaml --

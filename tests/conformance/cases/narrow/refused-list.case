@@ -1,5 +1,5 @@
 # --list takes no files
-spec: Narrowed runs; CLI
+behavior: unscoped-flags-refuse-files
 args: --list src/a.ts
 exit: 2
 -- @stderr --

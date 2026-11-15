@@ -1,5 +1,5 @@
 # a res:// path is relative to the folder holding project.godot, and a narrowed run still knows every named script
-spec: Finders
+behavior: class-by-name-finds-scripts-used-by-path
 args: gdscan class-by-name --files-from list.txt
 -- list.txt --
 game/src/main.gd

@@ -1,5 +1,5 @@
 # a checker command plus autofix re-copies a drifted skill copy; {files} are the hit files
-spec: Fixes
+behavior: fix-autofix-fills-files
 args: --fix --format terse
 exit: 1
 -- necro.yaml --

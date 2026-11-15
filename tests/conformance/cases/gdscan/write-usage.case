@@ -1,5 +1,5 @@
 # only spacing can write
-spec: Finders
+behavior: only-spacing-can-write
 args: gdscan --write export-doc
 exit: 2
 -- @stderr --

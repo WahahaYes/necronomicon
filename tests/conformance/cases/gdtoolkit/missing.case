@@ -1,5 +1,5 @@
 # without gdtoolkit on PATH, the finder names the extra that installs it
-spec: Finders; Packs
+behavior: missing-gdtoolkit-names-the-extra
 args: gdtoolkit lint
 env: PATH=/usr/bin:/bin
 exit: 2

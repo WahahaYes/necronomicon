@@ -1,5 +1,5 @@
 # a missing required key points at its rule
-spec: A rule
+behavior: config-required-fields-checked
 -- necro.yaml --
 version: 0
 rules:

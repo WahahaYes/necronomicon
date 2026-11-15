@@ -1,5 +1,5 @@
 # --fix makes two blank lines above each block, attached comments included, and first joins a top-level comment that blank lines keep from its function
-spec: Finders; Fixes
+behavior: spacing-fix-adds-the-blank-lines
 args: --fix --format terse
 exit: 1
 -- necro.yaml --

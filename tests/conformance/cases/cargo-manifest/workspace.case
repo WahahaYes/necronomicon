@@ -1,5 +1,5 @@
 # inherited fields resolve through the workspace, the hit is the member's own edition line, and every workspace runs
-spec: Finders
+behavior: cargo-manifest-resolves-workspace-inheritance
 args: cargo-manifest
 -- Cargo.toml --
 [workspace]

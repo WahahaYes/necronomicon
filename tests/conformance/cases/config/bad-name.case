@@ -1,5 +1,5 @@
 # rule names are lowercase words joined by hyphens
-spec: A rule
+behavior: config-rule-name-format
 -- necro.yaml --
 version: 0
 rules:

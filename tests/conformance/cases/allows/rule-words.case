@@ -1,5 +1,5 @@
 # the files rules are read from may quote the allow syntax: necro.yaml, its includes and {file: …} texts aren't searched for allows
-spec: Allows
+behavior: quoted-syntax-is-not-an-allow
 args: --format terse
 exit: 1
 -- necro.yaml --

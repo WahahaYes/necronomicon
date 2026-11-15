@@ -1,5 +1,5 @@
 # a hit is the primary span of a lint's diagnostic, with clippy's message; test code is skipped
-spec: Finders
+behavior: clippy-reports-primary-spans
 args: clippy unwrap_used
 -- Cargo.toml --
 [package]

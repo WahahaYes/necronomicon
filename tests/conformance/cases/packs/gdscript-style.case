@@ -1,5 +1,5 @@
 # necro:gdscript-style: deep $ paths and get_node() through .., and a signal wired straight to another emit
-spec: Packs
+behavior: gdscript-style-pack
 args: --format terse
 exit: 1
 -- necro.yaml --

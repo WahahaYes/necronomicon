@@ -1,5 +1,5 @@
 # inline-lambda: each func( lambda inside an open bracket, opened on that line or an earlier one; a lambda outside brackets is fine
-spec: Finders
+behavior: inline-lambdas-in-brackets
 args: gdscan inline-lambda
 -- src/a.gd --
 func f() -> void:

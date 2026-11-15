@@ -1,5 +1,5 @@
 # one comment may carry allows for two rules; each reason ends at the next allow
-spec: Allows
+behavior: allow-suppresses-hit
 args: --format terse
 exit: 1
 -- src/d.ts --

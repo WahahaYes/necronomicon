@@ -1,5 +1,5 @@
 # an overridden parameter must be one the rule declares, with a value of the default's kind
-spec: Packs; Parameters
+behavior: pack-override
 -- necro.yaml --
 version: 0
 include: [necro:rust, necro:rust-style]

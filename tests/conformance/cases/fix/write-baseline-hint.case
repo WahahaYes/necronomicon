@@ -1,5 +1,5 @@
 # --write-baseline says how many of the entries it wrote a fix could clear
-spec: Fixes; Baseline
+behavior: fix-write-baseline-hints-at-fixable
 args: --write-baseline
 -- necro.yaml --
 version: 0

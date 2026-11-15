@@ -1,5 +1,5 @@
 # a whole-file hit takes an allow on line 1, or line 2 after #!
-spec: Allows
+behavior: allow-suppresses-hit
 args: --format terse
 -- necro.yaml --
 version: 0

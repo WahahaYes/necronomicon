@@ -1,5 +1,5 @@
 # the header comes from --template or the line words, exactly one of them
-spec: Finders
+behavior: header-requires-template-or-lines
 args: header --template necro/header.txt 'SPDX-License-Identifier: Apache-2.0' -- 'src/*'
 exit: 2
 -- @stderr --

@@ -1,5 +1,5 @@
 # --fix runs gdformat through the gdscript pack and reports what's left
-spec: Packs; Fixes
+behavior: gdscript-fix
 args: --fix --format terse
 exit: 1
 -- necro.yaml --

@@ -1,5 +1,5 @@
 # class-by-name finds a named script used by path in preload, load, extends and a path const; unnamed scripts, comments, other strings and other files are fine
-spec: Finders
+behavior: class-by-name-finds-scripts-used-by-path
 args: gdscan class-by-name
 -- project.godot --
 config_version=5

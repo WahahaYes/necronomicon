@@ -1,5 +1,5 @@
 # --others: every other warning, rustc's and clippy's defaults, labelled with the lint; necro's own lints stay out; a lint the crate denies is still a hit; --tests adds test code
-spec: Finders
+behavior: clippy-others-reports-other-warnings
 args: clippy --tests --others
 -- Cargo.toml --
 [package]

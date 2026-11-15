@@ -1,5 +1,5 @@
 # a lookaround's text isn't required of a match, so a file without it is still searched
-spec: Finders
+behavior: grep-regex-alternation-and-lookaround
 args: grep 'donkey(?!s)|(?<=a )mule' -- 'src/*'
 -- src/a.gd --
 var a = donkey

@@ -1,5 +1,5 @@
 # without --similar nothing is an old header: --fix puts the header above what was there
-spec: Finders; Fixes
+behavior: header-fix-writes-header
 args: --fix --format terse
 exit: 1
 -- necro.yaml --

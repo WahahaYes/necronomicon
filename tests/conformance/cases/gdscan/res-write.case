@@ -1,5 +1,5 @@
 # res-write finds ResourceSaver in code, but not in a @tool script, a string or a comment
-spec: Finders
+behavior: res-write-flags-resourcesaver
 args: gdscan res-write
 -- src/gen.gd --
 extends SceneTree

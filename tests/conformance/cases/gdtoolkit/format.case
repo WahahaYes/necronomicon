@@ -1,5 +1,5 @@
 # format: each file gdformat would change is a whole-file hit; one with a lambda gdformat corrupts says --fix skips it
-spec: Finders
+behavior: format-flags-files-gdformat-would-change
 args: gdtoolkit format
 -- src/fmt.gd --
 extends Node

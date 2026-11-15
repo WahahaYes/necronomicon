@@ -1,5 +1,5 @@
 # a text field may point at a file, printed as is
-spec: A rule
+behavior: config-text-file-resolved
 exit: 1
 -- docs/why.txt --
 Bad words spread:

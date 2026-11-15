@@ -1,5 +1,5 @@
 # gdscript/literal-load flags a load() of a constant path; ResourceLoader.load(variable) and %-formatted paths stay silent
-spec: Packs
+behavior: gdscript-pack
 args: --format terse --rule gdscript/literal-load
 exit: 1
 -- necro.yaml --

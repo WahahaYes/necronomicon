@@ -1,5 +1,5 @@
 # a pack sits beside globs and the repo's own rules, and --rule takes a pack rule's full name
-spec: Packs
+behavior: pack-alongside-repo-rules
 args: --format terse --rule rust-style/weasel-type-names
 exit: 1
 -- necro.yaml --

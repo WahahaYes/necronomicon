@@ -1,5 +1,5 @@
 # a lint is required
-spec: Finders
+behavior: clippy-rejects-bad-lint-arguments
 args: clippy --tests
 exit: 2
 -- @stderr --
