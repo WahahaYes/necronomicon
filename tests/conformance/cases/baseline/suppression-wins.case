@@ -1,5 +1,5 @@
 # allows apply before the snapshot: each silences its own hit and the run is clean
-spec: Baseline
+behavior: baseline-allows-before-snapshot
 args: --format terse
 -- src/a.ts --
 const a = "donkey";

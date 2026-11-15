@@ -1,5 +1,5 @@
 # skills install writes at the top of a git work tree, so outside one it stops
-spec: Skills
+behavior: skills-outside-git-fails
 args: skills install
 git: false
 exit: 2

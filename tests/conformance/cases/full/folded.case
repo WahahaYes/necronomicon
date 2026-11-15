@@ -1,5 +1,5 @@
 # past 4 repeats per rule, the rest are counted per file
-spec: Messages
+behavior: messages-folded-repeats
 exit: 1
 -- src/a.ts --
 donkey

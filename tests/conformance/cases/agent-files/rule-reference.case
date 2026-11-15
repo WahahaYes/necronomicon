@@ -1,5 +1,5 @@
 # rule-reference: a rule named in agent instructions that necro.yaml doesn't turn on
-spec: Finders
+behavior: agent-files-rule-reference-checks
 args: agent-files rule-reference
 -- necro.yaml --
 version: 0

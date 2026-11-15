@@ -1,5 +1,5 @@
 # a --rule run matches only its own slice: other rules' leftovers never warn as stale
-spec: Baseline
+behavior: baseline-scoped-run-no-stale
 args: --format terse --rule banned-word
 -- src/a.ts --
 const a = "donkey";

@@ -1,5 +1,5 @@
 # other-instructions: another harness's instruction file with text that doesn't point to AGENTS.md
-spec: Finders
+behavior: agent-files-other-instructions-detects
 args: agent-files other-instructions
 -- .cursorrules --
 Use tabs.

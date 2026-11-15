@@ -1,5 +1,5 @@
 # skill-misplaced: a real folder in .claude/skills, or a link there to no skill
-spec: Finders
+behavior: agent-files-skill-misplaced-detects
 args: agent-files skill-misplaced
 -- .claude/skills/real/SKILL.md --
 x

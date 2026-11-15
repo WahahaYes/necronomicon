@@ -1,5 +1,5 @@
 # skill-frontmatter: frontmatter that isn't one YAML mapping says why
-spec: Finders
+behavior: agent-files-skill-frontmatter-validates
 args: agent-files skill-frontmatter
 -- .agents/skills/bad/SKILL.md --
 ---
