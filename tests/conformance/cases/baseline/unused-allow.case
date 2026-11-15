@@ -1,5 +1,5 @@
 # an allow that suppresses nothing still errors: the snapshot covers the named rule, not necro/unused-allow
-spec: Baseline
+behavior: baseline-unused-allow-errors
 args: --format terse
 exit: 1
 -- src/a.ts --

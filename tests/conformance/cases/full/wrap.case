@@ -1,5 +1,5 @@
 # why and fix wrap at 88 columns, continuation aligned under the text
-spec: Messages
+behavior: messages-wrap
 exit: 1
 -- necro.yaml --
 version: 0

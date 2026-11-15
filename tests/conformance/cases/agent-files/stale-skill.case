@@ -1,5 +1,5 @@
 # stale-skill: a skill stamped with another necro version
-spec: Finders
+behavior: agent-files-stale-skill-detects
 args: agent-files stale-skill
 -- .agents/skills/old/SKILL.md --
 ---

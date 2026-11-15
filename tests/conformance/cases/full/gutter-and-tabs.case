@@ -1,5 +1,5 @@
 # the gutter widens with the line number; tabs show as 4 spaces, the underline moved to match
-spec: Messages
+behavior: messages-gutter-and-tabs
 exit: 1
 -- src/a.gd --
 1

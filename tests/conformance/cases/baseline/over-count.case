@@ -1,5 +1,5 @@
 # identical lines share one bucket: one entry silences one hit, the excess fails
-spec: Baseline
+behavior: baseline-fingerprint-matching
 args: --format terse
 exit: 1
 -- src/a.ts --

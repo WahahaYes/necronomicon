@@ -1,5 +1,5 @@
 # col-endcol sets the underline; a label that isn't the underlined text is shown beside it; else one caret
-spec: Messages (the underline)
+behavior: messages-underline-and-label
 exit: 1
 -- necro.yaml --
 version: 0

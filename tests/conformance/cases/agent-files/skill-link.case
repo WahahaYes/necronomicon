@@ -1,5 +1,5 @@
 # skill-link: each skill in .agents/skills has a .claude/skills link to it, the hit on its SKILL.md
-spec: Finders
+behavior: agent-files-skill-link-checks
 args: agent-files skill-link
 -- .agents/skills/linked/SKILL.md --
 x

@@ -1,5 +1,5 @@
 # only claude-md and skill-link can write
-spec: Finders; Fixes
+behavior: agent-files-usage-valid-checks
 args: agent-files --write stale-skill
 exit: 2
 -- @stderr --

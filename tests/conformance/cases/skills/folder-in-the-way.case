@@ -1,5 +1,5 @@
 # a real folder where a skill's link goes stops the install before anything is written
-spec: Skills
+behavior: skills-folder-in-way-stops
 args: skills install
 exit: 2
 -- .claude/skills/necro-rules/SKILL.md --

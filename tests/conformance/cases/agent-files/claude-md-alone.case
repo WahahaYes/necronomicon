@@ -1,5 +1,5 @@
 # claude-md-alone: a CLAUDE.md with no AGENTS.md beside it
-spec: Finders
+behavior: agent-files-claude-md-alone
 args: agent-files claude-md-alone
 -- CLAUDE.md --
 Only Claude reads this.

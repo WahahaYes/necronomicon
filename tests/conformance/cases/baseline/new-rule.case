@@ -1,5 +1,5 @@
 # a hit the snapshot doesn't cover still fails; only the uncovered hit is shown
-spec: Baseline
+behavior: baseline-new-hits-fail
 args: --format terse
 exit: 1
 -- src/a.ts --

@@ -1,5 +1,5 @@
 # --fix rewrites a stale skill this necro carries; one it doesn't carry stays
-spec: Packs; Fixes
+behavior: agent-files-fix-updates-stale-skill
 args: --fix --format terse
 exit: 1
 -- necro.yaml --

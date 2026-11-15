@@ -1,5 +1,5 @@
 # a missing snapshot file means no baseline: the run behaves exactly as without one
-spec: Baseline
+behavior: baseline-new-hits-fail
 args: --format terse
 exit: 1
 -- src/a.ts --

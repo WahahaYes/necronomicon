@@ -1,5 +1,5 @@
 # on the first hit, a label that isn't the underlined text sits beside the caret
-spec: Messages (the underline)
+behavior: messages-underline-and-label
 exit: 1
 -- necro.yaml --
 version: 0

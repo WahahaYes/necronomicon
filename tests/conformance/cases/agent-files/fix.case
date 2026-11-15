@@ -1,5 +1,5 @@
 # --fix creates the missing CLAUDE.md and skill link, then checks again; a CLAUDE.md with more in it stays for a person
-spec: Packs; Fixes
+behavior: agent-files-fix-creates-missing
 args: --fix --format terse
 exit: 1
 -- necro.yaml --

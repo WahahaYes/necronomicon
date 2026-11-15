@@ -1,5 +1,5 @@
 # skills install writes each skill stamped with this necro's version, replacing an older copy, and links it from .claude/skills, replacing a link that points elsewhere
-spec: Skills
+behavior: skills-install-writes-and-links
 args: skills install
 -- .agents/skills/necro/SKILL.md --
 ---
