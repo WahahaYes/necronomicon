@@ -1,5 +1,5 @@
 //! Exceptions written in the code (spec: Allows): `necro-allow <rule>: <reason>`
-//! on a raw line, in any comment style, found with `git grep`.
+//! after a comment marker of the file's type, found with `git grep`.
 
 use std::path::Path;
 
@@ -51,8 +51,12 @@ pub fn find(root: &Path) -> Result<Vec<Allow>, String> {
         };
         let text = String::from_utf8_lossy(&bytes);
         let shebang = text.starts_with("#!");
+        let markers = comment_markers(file);
         for (i, line) in text.lines().enumerate() {
             for found in parse_line(line) {
+                if markers.is_some_and(|m| !m.iter().any(|mk| line[..found.start].contains(mk))) {
+                    continue;
+                }
                 allows.push(Allow {
                     file: file.to_string(),
                     line: i + 1,
@@ -95,6 +99,24 @@ pub fn parse_line(line: &str) -> Vec<Found> {
         });
     }
     out
+}
+
+/// The comment markers of `file`'s extension; `None` for an extension necro
+/// doesn't know, which takes an allow anywhere on the line.
+fn comment_markers(file: &str) -> Option<&'static [&'static str]> {
+    let name = file.rsplit('/').next().unwrap_or(file);
+    let ext = name.rsplit_once('.').map(|(_, e)| e)?;
+    Some(match ext {
+        "py" | "gd" | "sh" | "bash" | "zsh" | "rb" | "pl" | "r" | "toml" | "yaml" | "yml" => &["#"],
+        "rs" | "c" | "h" | "cc" | "cpp" | "hpp" | "cs" | "go" | "java" | "kt" | "kts" | "swift"
+        | "dart" | "scala" | "js" | "jsx" | "mjs" | "cjs" | "ts" | "tsx" | "gdshader" | "css"
+        | "scss" => &["//", "/*"],
+        "md" | "markdown" | "html" | "htm" | "xml" | "svg" => &["<!--"],
+        "ini" | "cfg" | "godot" | "tscn" | "tres" | "gdextension" | "import" => &[";"],
+        "sql" | "lua" | "hs" => &["--"],
+        "json" | "jsonl" | "csv" | "txt" => &[],
+        _ => return None,
+    })
 }
 
 fn trim_reason(r: &str) -> String {

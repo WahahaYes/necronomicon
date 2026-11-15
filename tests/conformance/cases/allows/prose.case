@@ -1,0 +1,23 @@
+# an allow counts only after a comment marker the file's extension uses: prose and data that quote the syntax hold none, and an unknown extension takes it anywhere
+spec: Allows
+args: --format terse
+exit: 1
+-- docs/guide.md --
+Keep it with `necro-allow banned-word: a reason`, on the hit's line.
+
+```python
+x = 1  # necro-allow banned-word: shown in a fence
+```
+<!-- necro-allow no-such-rule: a real comment -->
+-- notes/issues.jsonl --
+{"note": "necro-allow banned-word: quoted in data"}
+-- src/a.py --
+x = "necro-allow banned-word: inside a string, before any comment"
+-- src/b.ts --
+const ok = 1; // necro-allow banned-word: nothing here
+-- src/c.weird --
+necro-allow no-such-rule: an unknown type takes it anywhere
+-- @stdout --
+docs/guide.md:6:6: necro/unused-allow the allow for no-such-rule suppresses nothing
+src/b.ts:1:18: necro/unused-allow the allow for banned-word suppresses nothing
+src/c.weird:1:1: necro/unused-allow the allow for no-such-rule suppresses nothing
