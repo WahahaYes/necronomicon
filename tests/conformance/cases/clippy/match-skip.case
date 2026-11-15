@@ -1,5 +1,5 @@
 # --match keeps and --skip drops hits by the span's text
-spec: Finders
+behavior: clippy-match-skip-filter-hits
 args: clippy --match '"kept' --skip 'kept not' expect_used
 -- Cargo.toml --
 [package]

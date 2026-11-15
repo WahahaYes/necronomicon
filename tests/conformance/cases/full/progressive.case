@@ -1,5 +1,5 @@
 # the first hit teaches; repeats show the location, label and fix; allows are listed
-spec: Messages
+behavior: messages-progressive-repeats
 exit: 1
 -- src/a.ts --
 const a = "donkey";

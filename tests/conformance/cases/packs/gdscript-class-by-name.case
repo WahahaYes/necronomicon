@@ -1,5 +1,5 @@
 # gdscript/class-by-name flags a preload of a script that has a class_name
-spec: Packs
+behavior: gdscript-pack
 args: --format terse --rule gdscript/class-by-name
 exit: 1
 -- necro.yaml --

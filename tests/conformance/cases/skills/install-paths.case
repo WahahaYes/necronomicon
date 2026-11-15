@@ -1,5 +1,5 @@
 # given SKILL.md paths, skills install rewrites only the carried skills they name and skips the rest
-spec: Skills
+behavior: skills-install-paths-selective
 args: skills install .agents/skills/necro/SKILL.md .agents/skills/mine/SKILL.md
 -- .agents/skills/mine/SKILL.md --
 ---

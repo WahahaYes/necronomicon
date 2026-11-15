@@ -1,5 +1,5 @@
 # --list: every rule by name, where it comes from, and for a pack rule whether necro.yaml turns it off or overrides it
-spec: CLI; Packs
+behavior: cli-list-rules
 args: --list
 -- necro.yaml --
 version: 0

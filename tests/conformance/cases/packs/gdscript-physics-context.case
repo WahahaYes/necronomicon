@@ -1,5 +1,5 @@
 # gdscript/physics-context flags a physics-step call inside _process; the same call in _physics_process stays silent
-spec: Packs
+behavior: gdscript-pack
 args: --format terse --rule gdscript/physics-context
 exit: 1
 -- necro.yaml --

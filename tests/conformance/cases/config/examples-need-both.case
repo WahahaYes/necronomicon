@@ -1,5 +1,5 @@
 # examples show at least one bad and one good
-spec: A rule
+behavior: config-rule-examples-complete
 -- necro.yaml --
 version: 0
 rules:

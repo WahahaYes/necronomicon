@@ -1,5 +1,5 @@
 # a whole-file hit names the file and shows no source
-spec: Messages
+behavior: messages-whole-file
 exit: 1
 -- necro.yaml --
 version: 0

@@ -1,5 +1,5 @@
 # --marker adds an extension or changes its marker
-spec: Finders
+behavior: header-custom-marker
 args: header --marker tres=';' --marker gd=// 'SPDX-License-Identifier: Apache-2.0' -- 'src/*'
 -- src/a.tres --
 ; SPDX-License-Identifier: Apache-2.0

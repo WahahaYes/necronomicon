@@ -1,5 +1,5 @@
 # disable takes only rules of an included pack: a repo rule, a typo or a pack that isn't included is a config error
-spec: Packs
+behavior: pack-disable
 -- necro.yaml --
 version: 0
 include: [necro:rust]

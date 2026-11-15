@@ -1,5 +1,5 @@
 # necro:gdscript runs gdtoolkit's formatter, linter and parser and its own guards; necro:gdscript-style adds the house style
-spec: Packs
+behavior: gdscript-pack
 args: --format terse
 exit: 1
 -- necro.yaml --

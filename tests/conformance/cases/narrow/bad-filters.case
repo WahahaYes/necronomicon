@@ -1,5 +1,5 @@
 # files: and exclude: take a regex string or {glob: <glob or list>}
-spec: Narrowed runs
+behavior: files-and-exclude-take-a-regex-or-glob
 -- necro.yaml --
 version: 0
 rules:

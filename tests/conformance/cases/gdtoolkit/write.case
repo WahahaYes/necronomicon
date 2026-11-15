@@ -1,5 +1,5 @@
 # --write reformats the files gdformat would change, except one with a lambda it corrupts, and names those it reformatted
-spec: Finders; Fixes
+behavior: write-reformats-files
 args: gdtoolkit --write format
 -- src/fmt.gd --
 extends Node

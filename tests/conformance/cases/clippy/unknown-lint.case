@@ -1,5 +1,5 @@
 # a lint outside necro clippy's set is a usage error
-spec: Finders
+behavior: clippy-rejects-bad-lint-arguments
 args: clippy unwrap_used print_stdout
 exit: 2
 -- @stderr --

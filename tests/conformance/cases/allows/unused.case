@@ -1,5 +1,5 @@
 # an allow that suppresses nothing, or names no rule, is a necro/unused-allow error, wherever it is
-spec: Allows
+behavior: unused-allow-fails
 args: --format terse
 exit: 1
 -- src/d.ts --

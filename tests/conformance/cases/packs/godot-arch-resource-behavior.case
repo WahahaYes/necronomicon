@@ -1,5 +1,5 @@
 # godot-arch/resource-behavior flags engine callbacks and scene-tree calls in a Resource; the same lines in a Node stay silent
-spec: Packs
+behavior: godot-arch-pack
 args: --format terse --rule godot-arch/resource-behavior
 exit: 1
 -- necro.yaml --

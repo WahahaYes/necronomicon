@@ -1,5 +1,5 @@
 # a parameter's name is lowercase words joined by hyphens, and its value a string, number, boolean or a list of them
-spec: Parameters
+behavior: config-parameters-format
 -- necro.yaml --
 version: 0
 rules:

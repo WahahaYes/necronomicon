@@ -1,5 +1,5 @@
 # cargo-manifest takes no arguments
-spec: Finders
+behavior: cargo-manifest-rejects-arguments
 args: cargo-manifest src
 exit: 2
 -- @stderr --

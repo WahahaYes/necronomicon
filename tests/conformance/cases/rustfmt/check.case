@@ -1,5 +1,5 @@
 # rustfmt: a whole-file hit for each file under the working folder that cargo fmt --check would change
-spec: Finders
+behavior: rustfmt-reports-unformatted-files
 args: rustfmt
 -- Cargo.toml --
 [package]

@@ -1,5 +1,5 @@
 # the root must be inside a git work tree
-spec: Commands
+behavior: config-git-worktree-required
 git: false
 exit: 2
 -- @stderr --

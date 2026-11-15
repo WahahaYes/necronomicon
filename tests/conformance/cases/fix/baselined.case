@@ -1,5 +1,5 @@
 # --fix leaves baselined hits alone
-spec: Fixes; Baseline
+behavior: fix-leaves-baselined-hits
 args: --fix --format terse
 -- necro.yaml --
 version: 0

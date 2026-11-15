@@ -1,5 +1,5 @@
 # pathspecs narrow the files, and only tracked .rs files are read
-spec: Finders
+behavior: rust-docs-pathspecs-narrow-files
 args: rust-docs module -- 'src/keep/*'
 -- src/keep/a.rs --
 fn a() {}

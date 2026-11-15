@@ -1,5 +1,5 @@
 # with no edition key cargo uses 2015: a whole-file hit
-spec: Finders
+behavior: cargo-manifest-checks-edition
 args: cargo-manifest
 -- Cargo.toml --
 [package]

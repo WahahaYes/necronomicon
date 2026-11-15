@@ -1,5 +1,5 @@
 # a regex with no fixed text every match must contain still searches every file
-spec: Finders
+behavior: grep-regex-alternation-and-lookaround
 args: grep '\d{3}' -- 'src/*'
 -- src/a.gd --
 var a = 1

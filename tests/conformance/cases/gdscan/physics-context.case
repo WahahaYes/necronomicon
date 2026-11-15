@@ -1,5 +1,5 @@
 # physics-context: a physics-step call inside func _process; the same call in _physics_process, a longer identifier, a string or a comment is fine
-spec: Finders
+behavior: physics-calls-only-in-physics-process
 args: gdscan physics-context
 -- src/a.gd --
 extends CharacterBody2D

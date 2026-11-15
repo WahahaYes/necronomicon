@@ -1,5 +1,5 @@
 # given files, necro grep searches only those
-spec: Narrowed runs
+behavior: finders-take-the-given-files
 args: --format terse src/a.ts
 exit: 1
 -- src/a.ts --

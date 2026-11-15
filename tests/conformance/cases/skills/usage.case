@@ -1,5 +1,5 @@
 # skills takes one action, install
-spec: Skills
+behavior: skills-usage-requires-action
 args: skills
 exit: 2
 -- @stderr --

@@ -1,5 +1,5 @@
 # --edition sets the edition a member must be on
-spec: Finders
+behavior: cargo-manifest-checks-edition
 args: cargo-manifest --edition 2021
 -- Cargo.toml --
 [package]

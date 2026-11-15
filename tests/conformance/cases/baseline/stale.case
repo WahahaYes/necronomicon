@@ -1,5 +1,5 @@
 # entries nothing consumes warn on stderr without failing
-spec: Baseline
+behavior: baseline-stale-entries-warn
 args: --format terse
 -- src/a.ts --
 const ok = 1;

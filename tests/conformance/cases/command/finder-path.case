@@ -1,5 +1,5 @@
 # necro puts its own folder on a command's PATH, so a rule can call necro grep when necro isn't installed
-spec: Commands (runtime)
+behavior: command-finds-necro-on-path
 args: --format terse
 env: PATH=/usr/bin:/bin
 exit: 1

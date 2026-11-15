@@ -1,5 +1,5 @@
 # an allow counts only after a comment marker the file's extension uses: prose and data that quote the syntax hold none, and an unknown extension takes it anywhere
-spec: Allows
+behavior: quoted-syntax-is-not-an-allow
 args: --format terse
 exit: 1
 -- docs/guide.md --

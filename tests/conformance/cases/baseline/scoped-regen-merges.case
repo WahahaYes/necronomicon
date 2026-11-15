@@ -1,5 +1,5 @@
 # scoped regen replaces only that rule's entries: siblings carry over
-spec: Baseline
+behavior: baseline-scoped-regen-merges
 args: --write-baseline --rule banned-word
 -- src/a.ts --
 const a = "donkey";

@@ -1,5 +1,5 @@
 # an unknown option is a usage error
-spec: CLI
+behavior: cli-unknown-option-error
 args: --nope
 exit: 2
 -- @stderr --

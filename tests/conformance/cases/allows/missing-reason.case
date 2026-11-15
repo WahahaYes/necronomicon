@@ -1,5 +1,5 @@
 # an allow with no reason is a necro/allow-reason error; it still suppresses
-spec: Allows
+behavior: allow-needs-a-reason
 args: --format terse
 exit: 1
 -- src/d.ts --

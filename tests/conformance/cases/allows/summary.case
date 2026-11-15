@@ -1,5 +1,5 @@
 # full lists every allow with the hit's location and the reason (closers trimmed)
-spec: Allows; Messages
+behavior: summary-lists-allows
 -- src/d.ts --
 const d = "donkey"; /* necro-allow banned-word: a quoted example */
 -- @stdout --

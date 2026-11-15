@@ -1,5 +1,5 @@
 # --tests adds test targets and #[cfg(test)] code
-spec: Finders
+behavior: clippy-tests-includes-test-code
 args: clippy --tests unwrap_used
 -- Cargo.toml --
 [package]

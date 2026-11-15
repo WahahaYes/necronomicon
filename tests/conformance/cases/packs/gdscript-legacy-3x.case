@@ -1,5 +1,5 @@
 # gdscript/legacy-3x-api flags deprecated Godot 3 spellings: string connect, yield, instance(), emit_signal
-spec: Packs
+behavior: gdscript-pack
 args: --format terse --rule gdscript/legacy-3x-api
 exit: 1
 -- necro.yaml --

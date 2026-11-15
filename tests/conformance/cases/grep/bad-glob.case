@@ -1,5 +1,5 @@
 # a glob that doesn't parse is a usage error
-spec: Finders
+behavior: grep-usage-errors
 args: grep --glob 'src/[' donkey
 exit: 2
 -- @stderr --

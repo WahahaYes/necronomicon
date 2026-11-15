@@ -1,5 +1,5 @@
 # --fix runs rustfmt on the files with hits, and leaves an allowed one alone
-spec: Finders; Fixes
+behavior: rustfmt-fix-reformats-hit-files
 args: --fix --format terse
 exit: 1
 -- necro.yaml --

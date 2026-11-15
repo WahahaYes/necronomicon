@@ -1,5 +1,5 @@
 # params: {name} in the command and the words takes the value, a list word expands to one word per item, and other braces stay as written
-spec: Parameters
+behavior: config-parameters-substitute
 args: --format terse
 exit: 1
 -- necro.yaml --

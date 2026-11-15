@@ -1,5 +1,5 @@
 # files covering canonical and copies runs the rule in full when only the canonical changes
-spec: Narrowed runs
+behavior: files-and-exclude-choose-what-a-rule-checks
 args: --format terse .agents/skills/necro/SKILL.md
 exit: 1
 -- necro.yaml --

@@ -1,5 +1,5 @@
 # exclude: drops files a rule would otherwise take; a rule with only exclude: takes every other file
-spec: Narrowed runs
+behavior: files-and-exclude-choose-what-a-rule-checks
 args: --format terse src/gen/a.ts
 -- necro.yaml --
 version: 0

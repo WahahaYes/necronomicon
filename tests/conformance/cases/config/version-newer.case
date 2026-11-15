@@ -1,5 +1,5 @@
 # another spec version names both versions
-spec: Versioning
+behavior: config-version-supported
 -- necro.yaml --
 version: 1
 rules: {}

@@ -1,5 +1,5 @@
 # a command that isn't a fixing finder names its fix in autofix; {files} becomes the files with hits
-spec: Fixes
+behavior: fix-autofix-fills-files
 args: --fix --format terse
 exit: 1
 -- necro.yaml --

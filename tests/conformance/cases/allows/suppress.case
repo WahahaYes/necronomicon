@@ -1,5 +1,5 @@
 # an allow on the hit's line or the line above suppresses it, in any comment style
-spec: Allows
+behavior: allow-suppresses-hit
 args: --format terse
 -- src/d.ts --
 // necro-allow banned-word: quoting the banned word

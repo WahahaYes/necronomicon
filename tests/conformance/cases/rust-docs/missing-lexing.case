@@ -1,5 +1,5 @@
 # missing: brackets in strings, raw strings, block comments and char literals don't skew the cfg(test) module depth
-spec: Finders
+behavior: rust-docs-missing-item-docs
 args: rust-docs missing
 -- src/lib.rs --
 //! The crate.

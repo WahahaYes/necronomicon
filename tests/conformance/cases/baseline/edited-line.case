@@ -1,5 +1,5 @@
 # editing a line relitigates it: extra whitespace still matches, a token change fails and leaves its entry stale
-spec: Baseline
+behavior: baseline-fingerprint-matching
 args: --format terse
 exit: 1
 -- src/a.ts --

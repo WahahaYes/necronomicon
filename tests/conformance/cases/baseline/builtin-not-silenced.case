@@ -1,5 +1,5 @@
 # a snapshot entry for a builtin never silences it: the broken allow still fails
-spec: Baseline
+behavior: baseline-builtins-never-snapshotted
 args: --format terse
 exit: 1
 -- src/a.ts --

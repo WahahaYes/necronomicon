@@ -1,5 +1,5 @@
 # disable turns a pack rule off for the whole repo
-spec: Packs
+behavior: pack-disable
 args: --format terse
 -- necro.yaml --
 version: 0

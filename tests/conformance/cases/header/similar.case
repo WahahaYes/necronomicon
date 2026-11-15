@@ -1,5 +1,5 @@
 # --similar takes as many comment lines as the header has for an earlier version of it when they are alike enough, with the percent rounded down
-spec: Finders
+behavior: header-similar-recognizes-old
 args: header --similar 80 'SPDX-License-Identifier: Apache-2.0' 'https://github.com/me/proj' -- 'src/*'
 -- src/a.gd --
 # SPDX-License-Identifier: MIT

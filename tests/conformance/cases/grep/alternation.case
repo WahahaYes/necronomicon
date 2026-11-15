@@ -1,5 +1,5 @@
 # a match in any file is found, whichever branch of the regex it takes and whatever its case
-spec: Finders
+behavior: grep-regex-alternation-and-lookaround
 args: grep '(?i)\bdonkey\b|mülé' -- 'src/*'
 -- src/a.gd --
 var a = DONKEY

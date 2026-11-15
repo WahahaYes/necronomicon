@@ -1,5 +1,5 @@
 # export-doc: an @export needs an own-line ## comment right above it; @export_range and the like count too, a plain # doesn't
-spec: Finders
+behavior: exports-need-a-doc-comment
 args: gdscan export-doc
 -- src/a.gd --
 extends Node

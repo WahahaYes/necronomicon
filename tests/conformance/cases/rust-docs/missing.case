@@ -1,5 +1,5 @@
 # missing: a public item with no /// above it, past blank and attribute lines; restricted visibility, test items and a pub mod whose file opens with //! are exempt
-spec: Finders
+behavior: rust-docs-missing-item-docs
 args: rust-docs missing
 -- src/lib.rs --
 //! The crate.

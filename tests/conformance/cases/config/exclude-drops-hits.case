@@ -1,5 +1,5 @@
 # exclude puts files outside a rule in every run: a full run drops its hits there, and an allow there suppresses nothing
-spec: A rule
+behavior: config-rule-exclude-drops-hits
 args: --format terse
 exit: 1
 -- necro.yaml --
