@@ -1,5 +1,5 @@
 # spacing: a top-level func and its attached comments need two blank lines above, except the first; a func inside a triple-quoted string isn't one
-spec: Finders
+behavior: top-level-funcs-need-two-blank-lines
 args: gdscan spacing
 -- src/a.gd --
 extends Node

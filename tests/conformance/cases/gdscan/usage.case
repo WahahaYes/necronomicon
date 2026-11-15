@@ -1,5 +1,5 @@
 # gdscan needs a check it knows
-spec: Finders
+behavior: gdscan-rejects-an-unknown-check
 args: gdscan nope
 exit: 2
 -- @stderr --

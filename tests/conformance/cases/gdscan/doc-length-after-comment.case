@@ -1,5 +1,5 @@
 # plain # comments, such as a license header, are preamble: the class doc after them keeps the header limit
-spec: Finders
+behavior: doc-length-limits-header-and-item-runs
 args: gdscan doc-length -- 'src/*'
 -- src/a.gd --
 # SPDX-License-Identifier: Apache-2.0
