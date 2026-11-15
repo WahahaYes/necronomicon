@@ -1,5 +1,5 @@
 # --clean-cache removes the Cargo finders' build folder in each workspace and names it with its size
-spec: CLI
+behavior: cli-clean-cache-removes-build
 args: --clean-cache
 -- necro.yaml --
 version: 0

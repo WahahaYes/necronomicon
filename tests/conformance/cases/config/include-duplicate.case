@@ -1,5 +1,5 @@
 # rule names are unique across necro.yaml and its includes
-spec: A rule
+behavior: config-include-merges-rules
 -- necro/more.yaml --
 rules:
   banned-word:

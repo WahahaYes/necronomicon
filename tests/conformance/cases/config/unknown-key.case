@@ -1,5 +1,5 @@
 # unknown keys are errors, each one reported, in order
-spec: A rule
+behavior: config-unknown-keys-rejected
 -- necro.yaml --
 version: 0
 colour: red

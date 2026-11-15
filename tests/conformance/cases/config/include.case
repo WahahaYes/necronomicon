@@ -1,5 +1,5 @@
 # include globs pull in more files holding rules
-spec: A rule
+behavior: config-include-merges-rules
 args: --format terse
 exit: 1
 -- necro/style.yaml --

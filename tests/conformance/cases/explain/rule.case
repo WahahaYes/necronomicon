@@ -1,5 +1,5 @@
 # --explain: message, why, fix, details, examples, command
-spec: CLI
+behavior: explain-rule-details
 args: --explain banned-word
 -- docs/banned-word.md --
 Words carry tone into reviews and logs.

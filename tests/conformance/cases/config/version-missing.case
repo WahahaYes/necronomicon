@@ -1,5 +1,5 @@
 # version is required
-spec: Versioning
+behavior: config-version-required
 -- necro.yaml --
 rules: {}
 -- @config-error --
