@@ -19,6 +19,7 @@ args: --format terse        # shell-split
 exit: 1                     # default 0
 env: KEY=value …            # optional
 git: false                  # optional: leave it outside git
+untracked: <path> …         # optional: lay these files over but leave them untracked
 -- src/a.ts --              # a file laid over base/; an empty body deletes it
 …
 -- .claude/skills/a -> ../../.agents/skills/a --  # a symlink to the target

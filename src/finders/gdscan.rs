@@ -7,7 +7,7 @@ use super::gdscript::{self, Kind, Source, Span};
 use crate::command::Hit;
 
 use super::grep::read_list;
-use super::tracked;
+use super::{known, tracked};
 use crate::args::{self, Spec};
 
 const USAGE: &str = "necro gdscan [--files-from <file>] [--header <n>] [--item <n>] \
@@ -165,7 +165,7 @@ pub(super) fn gd_files(
     } else {
         pathspecs.to_vec()
     };
-    Ok(tracked(&specs, None)?
+    Ok(known(&specs, None)?
         .into_iter()
         .filter(|p| p.ends_with(".gd"))
         .filter(|p| only.is_none_or(|o| o.contains(p)))
@@ -680,7 +680,7 @@ fn data_comment(pathspecs: &[String], only: Option<&HashSet<String>>) -> Result<
         pathspecs.to_vec()
     };
     let mut hits = Vec::new();
-    for path in tracked(&specs, None)? {
+    for path in known(&specs, None)? {
         if only.is_some_and(|o| !o.contains(&path)) {
             continue;
         }

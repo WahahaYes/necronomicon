@@ -12,7 +12,7 @@ use globset::{GlobBuilder, GlobSet, GlobSetBuilder};
 use regex_syntax::hir::literal::{ExtractKind, Extractor};
 
 use super::gdscript;
-use super::{regex_error, text_lines, tracked};
+use super::{known, regex_error, text_lines};
 
 const USAGE: &str = "necro grep [--skip-comments <marker>]… [--glob <glob>]… \
      [--files-from <file>] [--replace <text> [--write] [--only-at <file>]] <regex> \
@@ -96,7 +96,7 @@ pub fn run(args: &[String]) -> Result<Vec<Hit>, String> {
     };
     let mut specs = parsed.pathspecs.clone();
     specs.extend(globs.pushdown(parsed.pathspecs.is_empty()));
-    let files: Vec<String> = tracked(&specs, required_text(pattern).as_deref())?
+    let files: Vec<String> = known(&specs, required_text(pattern).as_deref())?
         .into_iter()
         .filter(|path| globs.keeps(path))
         .filter(|path| only.as_ref().is_none_or(|o| o.contains(path)))

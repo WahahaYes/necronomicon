@@ -21,7 +21,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 SECTION = re.compile(r"^-- (.+?) --$")
-HEADER_KEYS = {"spec", "args", "exit", "env", "git", "needs", "stdin"}
+HEADER_KEYS = {"spec", "args", "exit", "env", "git", "needs", "stdin", "untracked"}
 
 
 def parse(path):
@@ -67,7 +67,7 @@ def normalise(text, root, version=None):
     return "\n".join(lines)
 
 
-def build_tree(root, files, git):
+def build_tree(root, files, git, untracked=()):
     shutil.copytree(HERE / "base", root, dirs_exist_ok=True)
     for rel, text in files.items():
         if " -> " in rel:
@@ -86,6 +86,8 @@ def build_tree(root, files, git):
         quiet = {"cwd": root, "check": True, "stdout": subprocess.DEVNULL}
         subprocess.run(["git", "init", "-q"], **quiet)
         subprocess.run(["git", "add", "-A"], **quiet)
+        if untracked:
+            subprocess.run(["git", "rm", "-q", "--cached", "--ignore-unmatch", "--", *untracked], **quiet)
 
 
 def file_after(root, rel, version):
@@ -123,7 +125,9 @@ def run_case(path, engine, bin_dir, version):
     header, files, expect = parse(path)
     with tempfile.TemporaryDirectory(prefix="necro-case-") as tmp:
         root = Path(tmp).resolve() / "repo"
-        build_tree(root, files, header.get("git") != "false")
+        build_tree(
+            root, files, header.get("git") != "false", shlex.split(header.get("untracked", ""))
+        )
         env = {k: v for k, v in os.environ.items() if k not in ("CI", "NO_COLOR")}
         env["NO_COLOR"] = "1"
         env["PATH"] = f"{bin_dir}{os.pathsep}{env.get('PATH', '')}"
