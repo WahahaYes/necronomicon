@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- **`gdscript/class-by-name`** flags a script that declares a `class_name` but is used by its `res://` path (in `preload`/`load`, `extends`, or a path `const`), through a new `necro gdscan class-by-name` check that reads the named scripts from the repo. Use the class name instead.
 - **Allows count only inside comments.** An allow must follow a comment marker of the file's type (`#`, `//` or `/*`, `<!--`, `;`, `--`; none in `.json`, `.jsonl`, `.csv` and `.txt`), so notes, docs and data that quote the syntax no longer raise `necro/allow-reason` or `necro/unused-allow`. An extension necro doesn't know still takes one anywhere on the line.
 - **File finders check new files before they're staged.** `grep`, `rust-docs`, `gdscan`, `gdtoolkit` and `header` read untracked files git doesn't ignore as well as tracked ones, so a clean `necro` run covers the change you're about to commit. `gdscan uid` still judges only what git tracks.
 - **`godot-arch/no-res-writes`** flags `ResourceSaver` in game code, outside `addons/` and `@tool` scripts, through a new `necro gdscan res-write` check: data is authored as `.tres` in the editor, and `res://` is read-only in an exported game.
