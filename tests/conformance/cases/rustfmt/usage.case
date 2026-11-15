@@ -1,5 +1,5 @@
 # rustfmt takes only --write and --only-at
-spec: Finders
+behavior: rustfmt-rejects-unknown-options
 args: rustfmt --nope
 exit: 2
 -- @stderr --

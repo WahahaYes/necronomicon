@@ -1,5 +1,5 @@
 # length: a //! run or a doc above a type gets --header lines, any other doc --item; //// isn't a doc
-spec: Finders
+behavior: rust-docs-length-limits
 args: rust-docs length --header 3 --item 2
 -- src/a.rs --
 //! One.

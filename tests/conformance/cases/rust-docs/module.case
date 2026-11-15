@@ -1,5 +1,5 @@
 # module: a file whose first line past blanks and inner attributes isn't //!; an empty file passes
-spec: Finders
+behavior: rust-docs-module-doc-required
 args: rust-docs module
 -- src/a.rs --
 #![allow(dead_code)]

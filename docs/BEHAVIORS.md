@@ -53,3 +53,155 @@ A bug fix adds a case to the behavior it broke. If no entry fits, add the entry 
 **Spec:** [Allows](../spec/v0.md#allows)
 
 **Proved by:** `allows/summary.case`
+
+## Clippy
+
+### `clippy-checks-each-workspace`
+
+**Scenario:** Given a working folder with Cargo workspaces below it or enclosing it, when necro clippy runs, then it checks every one, keeps only hits under the working folder, and finds nothing when there is no workspace.
+
+**Spec:** [Finders](../spec/v0.md#finders)
+
+**Proved by:** `clippy/enclosing.case`, `clippy/no-workspace.case`, `clippy/workspaces.case`
+
+### `clippy-reports-primary-spans`
+
+**Scenario:** Given a lint hit, when necro clippy runs, then each hit is the diagnostic's primary span with clippy's message, and two hits on one line are one at the leftmost column.
+
+**Spec:** [Finders](../spec/v0.md#finders)
+
+**Proved by:** `clippy/one-per-line.case`, `clippy/unwrap.case`
+
+### `clippy-tests-includes-test-code`
+
+**Scenario:** Given test targets and `#[cfg(test)]` code, when necro clippy runs with `--tests`, then it reports hits in them too.
+
+**Spec:** [Finders](../spec/v0.md#finders)
+
+**Proved by:** `clippy/tests.case`
+
+### `clippy-match-skip-filter-hits`
+
+**Scenario:** Given hits, when necro clippy runs with `--match` and `--skip`, then it keeps hits whose span text matches the first regex and drops those matching the second.
+
+**Spec:** [Finders](../spec/v0.md#finders)
+
+**Proved by:** `clippy/match-skip.case`
+
+### `clippy-others-reports-other-warnings`
+
+**Scenario:** Given a workspace, when necro clippy runs with `--others`, then it reports every other warning labelled with its lint, leaving out necro's own lints, and `--except` drops lints by name with or without `clippy::`.
+
+**Spec:** [Finders](../spec/v0.md#finders)
+
+**Proved by:** `clippy/others-except.case`, `clippy/others.case`
+
+### `clippy-rejects-bad-lint-arguments`
+
+**Scenario:** Given a missing, unknown or out-of-place lint argument, when necro clippy runs, then it exits 2 with a usage message.
+
+**Spec:** [Finders](../spec/v0.md#finders)
+
+**Proved by:** `clippy/no-lint.case`, `clippy/others-usage.case`, `clippy/unknown-lint.case`
+
+## Cargo manifest
+
+### `cargo-manifest-checks-edition`
+
+**Scenario:** Given Cargo members, when necro cargo-manifest runs, then each member older than the target edition (2024, or `--edition`) is a hit at its edition line, or the whole manifest when it has none, and a member on the target is clean.
+
+**Spec:** [Finders](../spec/v0.md#finders)
+
+**Proved by:** `cargo-manifest/clean.case`, `cargo-manifest/edition.case`, `cargo-manifest/no-edition.case`
+
+### `cargo-manifest-requires-rust-version`
+
+**Scenario:** Given a publishable member with no `rust-version`, when necro cargo-manifest runs, then it is a whole-file hit.
+
+**Spec:** [Finders](../spec/v0.md#finders)
+
+**Proved by:** `cargo-manifest/old.case`
+
+### `cargo-manifest-resolves-workspace-inheritance`
+
+**Scenario:** Given members that inherit `edition` and `rust-version` through a workspace, when necro cargo-manifest runs, then it resolves them, hits each member's own edition line, and checks every workspace.
+
+**Spec:** [Finders](../spec/v0.md#finders)
+
+**Proved by:** `cargo-manifest/workspace.case`
+
+### `cargo-manifest-rejects-arguments`
+
+**Scenario:** Given an argument, when necro cargo-manifest runs, then it exits 2 with a usage message.
+
+**Spec:** [Finders](../spec/v0.md#finders)
+
+**Proved by:** `cargo-manifest/usage.case`
+
+## Rustfmt
+
+### `rustfmt-reports-unformatted-files`
+
+**Scenario:** Given a Cargo workspace, when necro rustfmt runs, then it prints a whole-file hit for each file under the working folder that `cargo fmt --check` would change.
+
+**Spec:** [Finders](../spec/v0.md#finders)
+
+**Proved by:** `rustfmt/check.case`
+
+### `rustfmt-fix-reformats-hit-files`
+
+**Scenario:** Given unformatted files and an allowed one, when necro runs with `--fix`, then rustfmt reformats the hit files and leaves the allowed one alone.
+
+**Spec:** [Finders](../spec/v0.md#finders), [Fixes](../spec/v0.md#fixes)
+
+**Proved by:** `rustfmt/fix.case`
+
+### `rustfmt-rejects-unknown-options`
+
+**Scenario:** Given an unknown option, when necro rustfmt runs, then it exits 2 with a usage message naming `--write` and `--only-at`.
+
+**Spec:** [Finders](../spec/v0.md#finders)
+
+**Proved by:** `rustfmt/usage.case`
+
+## Rust docs
+
+### `rust-docs-missing-item-docs`
+
+**Scenario:** Given `.rs` files, when necro rust-docs checks `missing`, then each public item without a `///` doc is a hit, restricted and test items are exempt, and brackets inside strings, comments and character literals don't skew `#[cfg(test)]` depth.
+
+**Spec:** [Finders](../spec/v0.md#finders)
+
+**Proved by:** `rust-docs/missing-lexing.case`, `rust-docs/missing.case`
+
+### `rust-docs-module-doc-required`
+
+**Scenario:** Given `.rs` files, when necro rust-docs checks `module`, then a non-empty file whose first line past blanks and inner attributes isn't `//!` is a hit, while an empty file passes.
+
+**Spec:** [Finders](../spec/v0.md#finders)
+
+**Proved by:** `rust-docs/module.case`
+
+### `rust-docs-length-limits`
+
+**Scenario:** Given doc runs, when necro rust-docs checks `length`, then a run longer than its `--header` or `--item` limit is a hit at its first line, with `////` not counted as a doc.
+
+**Spec:** [Finders](../spec/v0.md#finders)
+
+**Proved by:** `rust-docs/length.case`
+
+### `rust-docs-pathspecs-narrow-files`
+
+**Scenario:** Given pathspecs, when necro rust-docs runs, then it reads only the tracked `.rs` files they match.
+
+**Spec:** [Finders](../spec/v0.md#finders)
+
+**Proved by:** `rust-docs/pathspecs.case`
+
+### `rust-docs-rejects-bad-arguments`
+
+**Scenario:** Given no check or a limit that isn't a whole number of lines, when necro rust-docs runs, then it exits 2 with a usage message.
+
+**Spec:** [Finders](../spec/v0.md#finders)
+
+**Proved by:** `rust-docs/usage.case`
