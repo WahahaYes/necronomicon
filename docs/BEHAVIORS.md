@@ -4,57 +4,7 @@ What necro's users rely on, one entry per behavior: a slug, a scenario, the spec
 
 A bug fix adds a case to the behavior it broke. If no entry fits, add the entry first.
 
-## Allows
-
-### `allow-suppresses-hit`
-
-**Scenario:** Given a hit, when the file has `necro-allow <rule>: <reason>` in a comment on the hit's line or the line above (line 1, or 2 after `#!`, for a whole-file hit), then the hit is suppressed; one comment may carry allows for two rules.
-
-**Spec:** [Allows](../spec/v0.md#allows)
-
-**Proved by:** `allows/suppress.case`, `allows/two-on-a-line.case`, `allows/whole-file.case`
-
-### `allow-needs-a-reason`
-
-**Scenario:** Given an allow with no reason after the rule, when necro runs, then it reports `necro/allow-reason`, and the allow still suppresses.
-
-**Spec:** [Allows](../spec/v0.md#allows)
-
-**Proved by:** `allows/missing-reason.case`
-
-### `unused-allow-fails`
-
-**Scenario:** Given an allow that suppresses nothing or names no rule, when necro runs, then it reports `necro/unused-allow` wherever the allow is.
-
-**Spec:** [Allows](../spec/v0.md#allows)
-
-**Proved by:** `allows/unused.case`
-
-### `quoted-syntax-is-not-an-allow`
-
-**Scenario:** Given text that quotes the allow syntax outside a comment (prose, data, a string) or in the files rules are read from, when necro runs, then it is not an allow and raises nothing.
-
-**Spec:** [Allows](../spec/v0.md#allows)
-
-**Proved by:** `allows/prose.case`, `allows/rule-words.case`
-
-### `allows-found-from-root`
-
-**Scenario:** Given a commit hook in a git worktree, which sets `GIT_DIR` and `GIT_WORK_TREE`, when necro runs, then it still finds the allows from the root.
-
-**Spec:** [Allows](../spec/v0.md#allows)
-
-**Proved by:** `allows/hook-git-env.case`
-
-### `summary-lists-allows`
-
-**Scenario:** Given suppressed hits, when necro prints in full, then it lists each allow with the hit's location and its reason, comment closers trimmed.
-
-**Spec:** [Allows](../spec/v0.md#allows)
-
-**Proved by:** `allows/summary.case`
-
-## Config
+## A rule
 
 ### `config-rule-name-format`
 
@@ -168,560 +118,6 @@ A bug fix adds a case to the behavior it broke. If no entry fits, add the entry 
 
 **Proved by:** `config/yaml-syntax.case`
 
-## CLI
-
-### `cli-clean-cache-reports-empty`
-
-**Scenario:** Given no cached build folders, when necro runs with `--clean-cache`, then it reports that there is no cache to clean.
-
-**Spec:** [CLI](../spec/v0.md#cli)
-
-**Proved by:** `cli/clean-cache-nothing.case`
-
-### `cli-clean-cache-removes-build`
-
-**Scenario:** Given cached Cargo finders' build folders in workspaces, when necro runs with `--clean-cache`, then it removes each `necro/` build folder and reports its size.
-
-**Spec:** [CLI](../spec/v0.md#cli)
-
-**Proved by:** `cli/clean-cache.case`
-
-### `cli-list-rules`
-
-**Scenario:** Given a config with repo rules, includes, and pack rules with disables and overrides, when necro runs with `--list`, then it prints every rule by name, its source, and for pack rules whether it is disabled or overridden.
-
-**Spec:** [CLI](../spec/v0.md#cli)
-
-**Proved by:** `cli/list.case`
-
-### `cli-rule-filter-runs-one`
-
-**Scenario:** Given `--rule <name>`, when necro runs, then only that rule runs and allows for rules that didn't run are not reported as unused.
-
-**Spec:** [CLI](../spec/v0.md#cli)
-
-**Proved by:** `cli/rule-filter.case`
-
-### `cli-rule-filter-validates-name`
-
-**Scenario:** Given `--rule` with a name that is not a rule, when necro runs, then it exits with a usage error listing the available rules.
-
-**Spec:** [CLI](../spec/v0.md#cli)
-
-**Proved by:** `cli/rule-unknown.case`
-
-### `cli-unknown-option-error`
-
-**Scenario:** Given an unknown command-line option, when necro runs, then it exits with a usage error.
-
-**Spec:** [CLI](../spec/v0.md#cli)
-
-**Proved by:** `cli/unknown-option.case`
-
-### `cli-version-prints`
-
-**Scenario:** Given `--version`, when necro runs, then it prints the engine version.
-
-**Spec:** [CLI](../spec/v0.md#cli)
-
-**Proved by:** `cli/version.case`
-
-## Explain
-
-### `explain-rule-details`
-
-**Scenario:** Given `--explain <rule>`, when necro runs, then it prints the rule's message, why, fix, details, examples, and command with files, exclude and parameters marked when overridden.
-
-**Spec:** [CLI](../spec/v0.md#cli)
-
-**Proved by:** `explain/rule.case`
-
-### `explain-unknown-error`
-
-**Scenario:** Given `--explain` with a name that is not a rule, when necro runs, then it exits with a usage error listing the available rules.
-
-**Spec:** [CLI](../spec/v0.md#cli)
-
-**Proved by:** `explain/unknown.case`
-
-## Commands
-
-### `command-errors-are-check-errors`
-
-**Scenario:** Given a command that exits other than 0 or 1, prints a line that doesn't parse, or names a path that isn't a file, when necro runs, then it reports a check error with the end of the command's stderr, and other rules still report.
-
-**Spec:** [Commands](../spec/v0.md#commands)
-
-**Proved by:** `command/bad-line.case`, `command/exit-code.case`, `command/not-a-file.case`
-
-### `clean-command-run-is-silent`
-
-**Scenario:** Given a command whose exit 1 means no match, when necro runs and finds nothing, then it prints nothing.
-
-**Spec:** [Commands](../spec/v0.md#commands)
-
-**Proved by:** `command/clean.case`
-
-### `command-split-without-a-shell`
-
-**Scenario:** Given a command, when necro reads it, then it is split into POSIX shell words with quotes and backslashes but run directly, so variables and other expansions stay as written.
-
-**Spec:** [Commands](../spec/v0.md#commands)
-
-**Proved by:** `command/words.case`
-
-### `command-runs-at-the-root`
-
-**Scenario:** Given `-C <dir>` or git's `GIT_DIR` and `GIT_WORK_TREE`, when a command runs, then it runs in the nearest folder at or above the start that holds `necro.yaml`, with git finding the repo from there.
-
-**Spec:** [Commands](../spec/v0.md#commands)
-
-**Proved by:** `command/hook-git-env.case`, `command/root-dir.case`
-
-### `no-config-is-a-setup-error`
-
-**Scenario:** Given no `necro.yaml` at or above the start, when necro runs, then it reports a setup error naming the folder.
-
-**Spec:** [Commands](../spec/v0.md#commands)
-
-**Proved by:** `command/no-root.case`
-
-### `command-finds-necro-on-path`
-
-**Scenario:** Given a rule that calls `necro grep`, when necro runs it with a `PATH` that doesn't have necro installed, then the command still finds the same necro first on its `PATH`.
-
-**Spec:** [Commands](../spec/v0.md#commands)
-
-**Proved by:** `command/finder-path.case`
-
-### `missing-command-is-a-setup-error`
-
-**Scenario:** Given a command whose program isn't on `PATH`, when necro runs it, then it reports a setup error naming the rule and the program.
-
-**Spec:** [Commands](../spec/v0.md#commands)
-
-**Proved by:** `command/missing-program.case`
-
-### `command-hits-in-any-form`
-
-**Scenario:** Given a command's non-empty stdout lines in any of `path[:line[:col[-endcol]]][:label]` forms, when necro prints a terse run, then each line is one hit, from any command including `git grep`, sorted by rule, path, line and column.
-
-**Spec:** [Commands](../spec/v0.md#commands)
-
-**Proved by:** `command/git-grep.case`, `command/output-forms.case`
-
-## Narrowed runs
-
-### `files-and-exclude-choose-what-a-rule-checks`
-
-**Scenario:** Given files, when a rule has `files` or `exclude`, then it runs in full when any given file passes both (a glob matches the whole path, `*` crossing folders) and is skipped otherwise, while a rule with only `exclude` takes every file it doesn't exclude and one with neither always runs.
-
-**Spec:** [Narrowed runs](../spec/v0.md#narrowed-runs)
-
-**Proved by:** `narrow/exclude.case`, `narrow/filters.case`, `narrow/globs.case`, `narrow/sync-skills-files.case`
-
-### `files-and-exclude-take-a-regex-or-glob`
-
-**Scenario:** Given a rule's `files` or `exclude`, when it is a regex string or `{glob: <glob or list>}`, then the config loads, and anything else is a config error naming the key and its position.
-
-**Spec:** [Narrowed runs](../spec/v0.md#narrowed-runs)
-
-**Proved by:** `narrow/bad-filters.case`
-
-### `narrowed-paths-reach-the-root`
-
-**Scenario:** Given file arguments relative to the working folder, when necro runs, then it re-anchors them to the root and drops ones that aren't files or that the top-level `exclude` leaves out.
-
-**Spec:** [Narrowed runs](../spec/v0.md#narrowed-runs)
-
-**Proved by:** `narrow/reanchor.case`, `narrow/top-exclude.case`
-
-### `finders-take-the-given-files`
-
-**Scenario:** Given files, when necro's file finders such as `necro grep` and `necro rust-docs` run in a narrowed run, then they search only those files.
-
-**Spec:** [Narrowed runs](../spec/v0.md#narrowed-runs)
-
-**Proved by:** `narrow/finder.case`, `narrow/rust-docs.case`
-
-### `allows-and-baseline-count-only-given-files`
-
-**Scenario:** Given files, when necro judges allows and stale baseline entries, then it counts only those inside the given files.
-
-**Spec:** [Narrowed runs](../spec/v0.md#narrowed-runs)
-
-**Proved by:** `narrow/allows.case`, `narrow/stale.case`
-
-### `unscoped-flags-refuse-files`
-
-**Scenario:** Given file arguments, when necro is asked to `--explain`, `--list` or `--write-baseline`, then it is a usage error telling the caller to drop them.
-
-**Spec:** [Narrowed runs](../spec/v0.md#narrowed-runs)
-
-**Proved by:** `narrow/refused-list.case`, `narrow/refused.case`, `narrow/write-baseline.case`
-
-## Header
-
-### `header-similar-range`
-
-**Scenario:** Given a `--similar` value outside 1 to 100, when necro header runs, then it reports a usage error naming the invalid value.
-
-**Spec:** [Finders](../spec/v0.md#necro-header)
-
-**Proved by:** `header/bad-similar.case`
-
-### `header-check-finds-missing`
-
-**Scenario:** Given files with missing or wrong headers, when necro header runs, then it reports hits at line 1 (or line 2 after `#!`), and nothing after the header is checked.
-
-**Spec:** [Finders](../spec/v0.md#necro-header)
-
-**Proved by:** `header/check.case`
-
-### `header-fix-writes-header`
-
-**Scenario:** Given a file without a header, when necro header runs with `--fix`, then it writes the header with a blank line after it unless one follows, after any `#!` line.
-
-**Spec:** [Fixes](../spec/v0.md#fixes)
-
-**Proved by:** `header/fix-no-similar.case`
-
-### `header-fix-replaces-old`
-
-**Scenario:** Given a file with an old header recognized by `--similar`, when necro header runs with `--fix`, then it replaces the old header with the new one, keeping a blank line after unless one follows.
-
-**Spec:** [Fixes](../spec/v0.md#fixes)
-
-**Proved by:** `header/fix.case`
-
-### `header-custom-marker`
-
-**Scenario:** Given a file extension without a default marker or with a custom one, when necro header runs with `--marker`, then it uses the given marker for that extension.
-
-**Spec:** [Finders](../spec/v0.md#necro-header)
-
-**Proved by:** `header/marker.case`
-
-### `header-requires-template-or-lines`
-
-**Scenario:** Given no header source, when necro header runs, then it reports a usage error; given both `--template` and line words, it also reports a usage error.
-
-**Spec:** [Finders](../spec/v0.md#necro-header)
-
-**Proved by:** `header/no-header.case`, `header/usage.case`
-
-### `header-params-fill-lines`
-
-**Scenario:** Given a list parameter used as the header lines, when necro header runs, then the parameter's items fill the header one line each.
-
-**Spec:** [Parameters](../spec/v0.md#parameters)
-
-**Proved by:** `header/params.case`
-
-### `header-similar-recognizes-old`
-
-**Scenario:** Given an old header at the expected place with enough similarity, when necro header runs with `--similar`, then it reports `old header, <n>% alike` instead of `no header`.
-
-**Spec:** [Finders](../spec/v0.md#necro-header)
-
-**Proved by:** `header/similar.case`
-
-### `header-template-reads-file`
-
-**Scenario:** Given a `--template` file, when necro header runs, then it reads the header lines from it, drops trailing blank lines, and treats a blank line in the file as the comment marker alone.
-
-**Spec:** [Finders](../spec/v0.md#necro-header)
-
-**Proved by:** `header/template.case`
-
-### `header-unknown-extension-error`
-
-**Scenario:** Given a file whose extension has no known comment marker and no `--marker` override, when necro header runs, then it reports a usage error naming the file.
-
-**Spec:** [Finders](../spec/v0.md#necro-header)
-
-**Proved by:** `header/unknown-extension.case`
-
-## Grep
-
-### `grep-finds-every-match`
-
-**Scenario:** Given files with matches, when necro grep runs, then every non-empty match on a line is a hit with columns in code points, sorted by path, line and column.
-
-**Spec:** [Finders](../spec/v0.md#necro-grep)
-
-**Proved by:** `grep/columns.case`
-
-### `grep-nothing-is-success`
-
-**Scenario:** Given files with no match, when necro grep runs, then it exits 0 with no output.
-
-**Spec:** [Finders](../spec/v0.md#finders)
-
-**Proved by:** `grep/nothing.case`
-
-### `grep-regex-alternation-and-lookaround`
-
-**Scenario:** Given a regex with alternation, case folding, lookaround or no fixed text, when necro grep runs, then it finds every match each file holds.
-
-**Spec:** [Finders](../spec/v0.md#necro-grep)
-
-**Proved by:** `grep/alternation.case`, `grep/lookaround-files.case`, `grep/lookbehind.case`, `grep/no-literal.case`
-
-### `grep-globs-narrow-files`
-
-**Scenario:** Given `--glob`s, when necro grep runs, then it keeps files matching the whole-path globs (`*` crossing `/`, a leading `!` excluding) that also pass the pathspecs.
-
-**Spec:** [Finders](../spec/v0.md#necro-grep)
-
-**Proved by:** `grep/globs.case`, `grep/glob-pathspecs.case`
-
-### `grep-pathspecs-read-as-git-grep`
-
-**Scenario:** Given pathspecs, when necro grep runs, then it reads them as git grep does, a leading wildcard excluding as expected.
-
-**Spec:** [Finders](../spec/v0.md#finders)
-
-**Proved by:** `grep/pathspecs.case`
-
-### `grep-skip-comments`
-
-**Scenario:** Given `--skip-comments` markers, when necro grep runs, then it ignores the rest of a line from the first marker outside a string, a triple-quoted string may span lines, and a file whose only match is a comment has no hit.
-
-**Spec:** [Finders](../spec/v0.md#necro-grep)
-
-**Proved by:** `grep/skip-comments.case`, `grep/skip-comments-string.case`, `grep/comment-only.case`
-
-### `grep-checks-untracked-files`
-
-**Scenario:** Given untracked files git doesn't ignore, when necro grep runs, then it searches them before they are staged.
-
-**Spec:** [Finders](../spec/v0.md#finders)
-
-**Proved by:** `grep/untracked.case`
-
-### `grep-usage-errors`
-
-**Scenario:** Given a missing regex, an invalid regex or an invalid glob, when necro grep runs, then it reports a usage error and exits 2.
-
-**Spec:** [Finders](../spec/v0.md#finders)
-
-**Proved by:** `grep/usage.case`, `grep/bad-regex.case`, `grep/bad-glob.case`
-
-## Fixes
-
-### `fix-fixes-reported-hits`
-
-**Scenario:** Given fixable hits, when necro --fix runs, then it fixes the hits the run reports, leaves allowed hits alone, checks again and says what it changed and what is left.
-
-**Spec:** [Fixes](../spec/v0.md#fixes)
-
-**Proved by:** `fix/fix.case`
-
-### `fix-leaves-baselined-hits`
-
-**Scenario:** Given a hit covered by the baseline, when necro --fix runs, then it leaves that hit alone.
-
-**Spec:** [Fixes](../spec/v0.md#fixes)
-
-**Proved by:** `fix/baselined.case`
-
-### `fix-autofix-fills-files`
-
-**Scenario:** Given a rule whose command is not a fixing finder and whose `autofix` uses `{files}`, when necro --fix runs, then `{files}` becomes the files with hits to fix.
-
-**Spec:** [Fixes](../spec/v0.md#fixes)
-
-**Proved by:** `fix/autofix.case`, `fix/sync-skills.case`
-
-### `fix-autofix-needs-files-word`
-
-**Scenario:** Given an `autofix` with no `{files}` word or a parameter named `files`, when necro reads the config, then it reports config errors.
-
-**Spec:** [Fixes](../spec/v0.md#fixes)
-
-**Proved by:** `fix/autofix-config.case`
-
-### `fix-hints-at-fixable-hits`
-
-**Scenario:** Given a full run without `--fix` whose hits a fix could clear, when necro prints, then it ends by saying how many hits can be fixed automatically.
-
-**Spec:** [Fixes](../spec/v0.md#fixes)
-
-**Proved by:** `fix/hint.case`
-
-### `fix-needs-a-check-run`
-
-**Scenario:** Given `--fix` with `--explain`, when necro runs, then it refuses with a usage error.
-
-**Spec:** [Fixes](../spec/v0.md#fixes)
-
-**Proved by:** `fix/refused.case`
-
-### `replace-makes-hits-fixable`
-
-**Scenario:** Given `--replace`, when necro grep runs, then each hit's label says what the match becomes, with `$1` standing for a group.
-
-**Spec:** [Finders](../spec/v0.md#necro-grep)
-
-**Proved by:** `fix/replace.case`
-
-### `write-rewrites-matches`
-
-**Scenario:** Given `--replace` and `--write`, when necro grep runs, then it rewrites the matches and prints the hits it replaced; `--write` or `--only-at` without `--replace` is a usage error.
-
-**Spec:** [Finders](../spec/v0.md#necro-grep)
-
-**Proved by:** `fix/write.case`, `fix/write-needs-replace.case`
-
-### `fix-write-baseline-hints-at-fixable`
-
-**Scenario:** Given `--write-baseline`, when necro writes entries a fix could clear, then it says how many can be fixed automatically and how to keep them out of the baseline.
-
-**Spec:** [Fixes](../spec/v0.md#fixes)
-
-**Proved by:** `fix/write-baseline-hint.case`
-
-## Gdscan
-
-### `class-by-name-finds-scripts-used-by-path`
-
-**Scenario:** Given a script that declares a `class_name`, when another script uses its `res://` path in `preload`, `load`, `extends` or a const, then `class-by-name` reports each such path, relative to the folder holding `project.godot` and including paths outside a narrowed run's files.
-
-**Spec:** [Finders](../spec/v0.md#finders)
-
-**Proved by:** `gdscan/class-by-name.case`, `gdscan/class-by-name-project.case`
-
-### `godot-data-files-hold-no-comments`
-
-**Scenario:** Given a full-line `;` comment in a Godot data file, when `data-comment` runs, then it reports the comment's line, but a `;` inside a multi-line string value and the header Godot writes atop `project.godot` are not comments.
-
-**Spec:** [Finders](../spec/v0.md#finders)
-
-**Proved by:** `gdscan/data-comment.case`
-
-### `doc-length-limits-header-and-item-runs`
-
-**Scenario:** Given own-line `##` runs, when `doc-length` runs, then the run after only plain `#` preamble gets `--header` while any other gets `--item`, each over-limit run reported at its first line.
-
-**Spec:** [Finders](../spec/v0.md#finders)
-
-**Proved by:** `gdscan/doc-length.case`, `gdscan/doc-length-after-comment.case`
-
-### `exports-need-a-doc-comment`
-
-**Scenario:** Given an `@export` line, when no own-line `##` comment sits directly above it, then `export-doc` reports it, counting `@export_range` and the like but not a plain `#`.
-
-**Spec:** [Finders](../spec/v0.md#finders)
-
-**Proved by:** `gdscan/export-doc.case`
-
-### `inline-lambdas-in-brackets`
-
-**Scenario:** Given a `func(` lambda inside an open bracket, when `inline-lambda` runs, then it reports the lambda whether the bracket opened on that line or an earlier one, while a lambda outside brackets or a bracket inside a triple-quoted string is fine.
-
-**Spec:** [Finders](../spec/v0.md#finders)
-
-**Proved by:** `gdscan/inline-lambda.case`, `gdscan/inline-lambda-string-bracket.case`
-
-### `physics-calls-only-in-physics-process`
-
-**Scenario:** Given a physics-step call inside `func _process`, when `physics-context` runs, then it reports the call, while the same call in `_physics_process`, a longer identifier, a string or a comment is fine.
-
-**Spec:** [Finders](../spec/v0.md#finders)
-
-**Proved by:** `gdscan/physics-context.case`
-
-### `resource-saver-only-in-code`
-
-**Scenario:** Given `ResourceSaver` in code, when `res-write` runs, then it reports it, but not in a top-level `@tool` script, a string or a comment.
-
-**Spec:** [Finders](../spec/v0.md#finders)
-
-**Proved by:** `gdscan/res-write.case`
-
-### `top-level-funcs-need-two-blank-lines`
-
-**Scenario:** Given a top-level `func` or `static func` with the comments attached above it, when `spacing` runs, then it reports fewer than two blank lines before it, except the first, and a bracket inside a triple-quoted string doesn't change that.
-
-**Spec:** [Finders](../spec/v0.md#finders)
-
-**Proved by:** `gdscan/spacing.case`, `gdscan/spacing-string-bracket.case`
-
-### `spacing-fix-adds-the-blank-lines`
-
-**Scenario:** Given `spacing` hits, when `necro --fix` runs, then it puts two blank lines above each block, attached comments included, and joins a top-level comment that blank lines keep from its function.
-
-**Spec:** [Finders](../spec/v0.md#finders), [Fixes](../spec/v0.md#fixes)
-
-**Proved by:** `gdscan/spacing-fix.case`
-
-### `uid-files-are-tracked-together`
-
-**Scenario:** Given a repo that tracks `.gd.uid` files, when `uid` runs, then each tracked `.gd` needs a tracked `.gd.uid` and each tracked `.gd.uid` its `.gd`, while a repo tracking none or an untracked script finds nothing.
-
-**Spec:** [Finders](../spec/v0.md#finders)
-
-**Proved by:** `gdscan/uid.case`, `gdscan/uid-none.case`, `gdscan/uid-untracked.case`
-
-### `gdscan-rejects-an-unknown-check`
-
-**Scenario:** Given a check `gdscan` doesn't know, when `gdscan` runs, then it exits 2 with the usage line naming the checks it takes.
-
-**Spec:** [Finders](../spec/v0.md#finders)
-
-**Proved by:** `gdscan/usage.case`
-
-### `only-spacing-can-write`
-
-**Scenario:** Given `--write` with a check other than `spacing`, when `gdscan` runs, then it exits 2 saying `--write` goes with `spacing`.
-
-**Spec:** [Finders](../spec/v0.md#finders)
-
-**Proved by:** `gdscan/write-usage.case`
-
-## Gdtoolkit
-
-### `format-flags-files-gdformat-would-change`
-
-**Scenario:** Given a `.gd` file `gdformat` would change, when `gdtoolkit format` runs, then it is a whole-file hit, and one holding a lambda inside brackets says `--fix` skips it.
-
-**Spec:** [Finders](../spec/v0.md#finders)
-
-**Proved by:** `gdtoolkit/format.case`
-
-### `lint-reports-problems-at-their-lines`
-
-**Scenario:** Given `gdlint` problems, when `gdtoolkit lint` runs, then each is at its line with the check in parentheses, `max-returns` at the function's `func` line, and hits sort by line number.
-
-**Spec:** [Finders](../spec/v0.md#finders)
-
-**Proved by:** `gdtoolkit/lint.case`
-
-### `missing-gdtoolkit-names-the-extra`
-
-**Scenario:** Given no `gdlint` on `PATH`, when `gdtoolkit lint` runs, then it exits 2 naming the extra that installs gdtoolkit beside necro.
-
-**Spec:** [Finders](../spec/v0.md#finders), [Packs](../spec/v0.md#packs)
-
-**Proved by:** `gdtoolkit/missing.case`
-
-### `parse-reports-unparseable-files`
-
-**Scenario:** Given a file `gdtoolkit` can't parse, when `gdtoolkit parse` runs, then it reports the position `gdtoolkit` gives, leaving that file to this check rather than lint or format.
-
-**Spec:** [Finders](../spec/v0.md#finders)
-
-**Proved by:** `gdtoolkit/parse.case`
-
-### `write-reformats-files`
-
-**Scenario:** Given files `gdformat` would change, when `gdtoolkit --write format` runs, then it reformats them except one with a lambda it corrupts, naming each file it reformatted.
-
-**Spec:** [Finders](../spec/v0.md#finders), [Fixes](../spec/v0.md#fixes)
-
-**Proved by:** `gdtoolkit/write.case`
-
 ## Packs
 
 ### `pack-include`
@@ -828,7 +224,139 @@ A bug fix adds a case to the behavior it broke. If no entry fits, add the entry 
 
 **Proved by:** `packs/godot-arch-data-comment.case`, `packs/godot-arch-no-bare-assert.case`, `packs/godot-arch-no-res-writes.case`, `packs/godot-arch-parent-call.case`, `packs/godot-arch-resource-behavior.case`
 
-## Clippy
+## Commands
+
+### `command-errors-are-check-errors`
+
+**Scenario:** Given a command that exits other than 0 or 1, prints a line that doesn't parse, or names a path that isn't a file, when necro runs, then it reports a check error with the end of the command's stderr, and other rules still report.
+
+**Spec:** [Commands](../spec/v0.md#commands)
+
+**Proved by:** `command/bad-line.case`, `command/exit-code.case`, `command/not-a-file.case`
+
+### `clean-command-run-is-silent`
+
+**Scenario:** Given a command whose exit 1 means no match, when necro runs and finds nothing, then it prints nothing.
+
+**Spec:** [Commands](../spec/v0.md#commands)
+
+**Proved by:** `command/clean.case`
+
+### `command-split-without-a-shell`
+
+**Scenario:** Given a command, when necro reads it, then it is split into POSIX shell words with quotes and backslashes but run directly, so variables and other expansions stay as written.
+
+**Spec:** [Commands](../spec/v0.md#commands)
+
+**Proved by:** `command/words.case`
+
+### `command-runs-at-the-root`
+
+**Scenario:** Given `-C <dir>` or git's `GIT_DIR` and `GIT_WORK_TREE`, when a command runs, then it runs in the nearest folder at or above the start that holds `necro.yaml`, with git finding the repo from there.
+
+**Spec:** [Commands](../spec/v0.md#commands)
+
+**Proved by:** `command/hook-git-env.case`, `command/root-dir.case`
+
+### `no-config-is-a-setup-error`
+
+**Scenario:** Given no `necro.yaml` at or above the start, when necro runs, then it reports a setup error naming the folder.
+
+**Spec:** [Commands](../spec/v0.md#commands)
+
+**Proved by:** `command/no-root.case`
+
+### `command-finds-necro-on-path`
+
+**Scenario:** Given a rule that calls `necro grep`, when necro runs it with a `PATH` that doesn't have necro installed, then the command still finds the same necro first on its `PATH`.
+
+**Spec:** [Commands](../spec/v0.md#commands)
+
+**Proved by:** `command/finder-path.case`
+
+### `missing-command-is-a-setup-error`
+
+**Scenario:** Given a command whose program isn't on `PATH`, when necro runs it, then it reports a setup error naming the rule and the program.
+
+**Spec:** [Commands](../spec/v0.md#commands)
+
+**Proved by:** `command/missing-program.case`
+
+### `command-hits-in-any-form`
+
+**Scenario:** Given a command's non-empty stdout lines in any of `path[:line[:col[-endcol]]][:label]` forms, when necro prints a terse run, then each line is one hit, from any command including `git grep`, sorted by rule, path, line and column.
+
+**Spec:** [Commands](../spec/v0.md#commands)
+
+**Proved by:** `command/git-grep.case`, `command/output-forms.case`
+
+## `necro grep`
+
+### `grep-finds-every-match`
+
+**Scenario:** Given files with matches, when necro grep runs, then every non-empty match on a line is a hit with columns in code points, sorted by path, line and column.
+
+**Spec:** [Finders](../spec/v0.md#necro-grep)
+
+**Proved by:** `grep/columns.case`
+
+### `grep-nothing-is-success`
+
+**Scenario:** Given files with no match, when necro grep runs, then it exits 0 with no output.
+
+**Spec:** [Finders](../spec/v0.md#finders)
+
+**Proved by:** `grep/nothing.case`
+
+### `grep-regex-alternation-and-lookaround`
+
+**Scenario:** Given a regex with alternation, case folding, lookaround or no fixed text, when necro grep runs, then it finds every match each file holds.
+
+**Spec:** [Finders](../spec/v0.md#necro-grep)
+
+**Proved by:** `grep/alternation.case`, `grep/lookaround-files.case`, `grep/lookbehind.case`, `grep/no-literal.case`
+
+### `grep-globs-narrow-files`
+
+**Scenario:** Given `--glob`s, when necro grep runs, then it keeps files matching the whole-path globs (`*` crossing `/`, a leading `!` excluding) that also pass the pathspecs.
+
+**Spec:** [Finders](../spec/v0.md#necro-grep)
+
+**Proved by:** `grep/globs.case`, `grep/glob-pathspecs.case`
+
+### `grep-pathspecs-read-as-git-grep`
+
+**Scenario:** Given pathspecs, when necro grep runs, then it reads them as git grep does, a leading wildcard excluding as expected.
+
+**Spec:** [Finders](../spec/v0.md#finders)
+
+**Proved by:** `grep/pathspecs.case`
+
+### `grep-skip-comments`
+
+**Scenario:** Given `--skip-comments` markers, when necro grep runs, then it ignores the rest of a line from the first marker outside a string, a triple-quoted string may span lines, and a file whose only match is a comment has no hit.
+
+**Spec:** [Finders](../spec/v0.md#necro-grep)
+
+**Proved by:** `grep/skip-comments.case`, `grep/skip-comments-string.case`, `grep/comment-only.case`
+
+### `grep-checks-untracked-files`
+
+**Scenario:** Given untracked files git doesn't ignore, when necro grep runs, then it searches them before they are staged.
+
+**Spec:** [Finders](../spec/v0.md#finders)
+
+**Proved by:** `grep/untracked.case`
+
+### `grep-usage-errors`
+
+**Scenario:** Given a missing regex, an invalid regex or an invalid glob, when necro grep runs, then it reports a usage error and exits 2.
+
+**Spec:** [Finders](../spec/v0.md#finders)
+
+**Proved by:** `grep/usage.case`, `grep/bad-regex.case`, `grep/bad-glob.case`
+
+## `necro clippy`
 
 ### `clippy-checks-each-workspace`
 
@@ -878,7 +406,7 @@ A bug fix adds a case to the behavior it broke. If no entry fits, add the entry 
 
 **Proved by:** `clippy/no-lint.case`, `clippy/others-usage.case`, `clippy/unknown-lint.case`
 
-## Cargo manifest
+## `necro cargo-manifest`
 
 ### `cargo-manifest-checks-edition`
 
@@ -912,7 +440,7 @@ A bug fix adds a case to the behavior it broke. If no entry fits, add the entry 
 
 **Proved by:** `cargo-manifest/usage.case`
 
-## Rustfmt
+## `necro rustfmt`
 
 ### `rustfmt-reports-unformatted-files`
 
@@ -938,7 +466,7 @@ A bug fix adds a case to the behavior it broke. If no entry fits, add the entry 
 
 **Proved by:** `rustfmt/usage.case`
 
-## Rust docs
+## `necro rust-docs`
 
 ### `rust-docs-missing-item-docs`
 
@@ -966,7 +494,7 @@ A bug fix adds a case to the behavior it broke. If no entry fits, add the entry 
 
 ### `rust-docs-pathspecs-narrow-files`
 
-**Scenario:** Given pathspecs, when necro rust-docs runs, then it reads only the tracked `.rs` files they match.
+**Scenario:** Given pathspecs, when necro rust-docs runs, then it reads only the `.rs` files they match.
 
 **Spec:** [Finders](../spec/v0.md#finders)
 
@@ -980,181 +508,229 @@ A bug fix adds a case to the behavior it broke. If no entry fits, add the entry 
 
 **Proved by:** `rust-docs/usage.case`
 
-## Baseline
+## `necro gdscan`
 
-### `baseline-fingerprint-matching`
+### `class-by-name-finds-scripts-used-by-path`
 
-**Scenario:** Given a baseline entry, when a hit's source line matches the fingerprint (trimmed, before any allow), then it is silenced; a token change fails and leaves the entry stale; identical lines share one bucket so one entry silences one hit and the excess fails.
+**Scenario:** Given a script that declares a `class_name`, when another script uses its `res://` path in `preload`, `load`, `extends` or a const, then `class-by-name` reports each such path, relative to the folder holding `project.godot` and including paths outside a narrowed run's files.
 
-**Spec:** [Baseline](../spec/v0.md#baseline)
+**Spec:** [Finders](../spec/v0.md#finders)
 
-**Proved by:** `baseline/edited-line.case`, `baseline/over-count.case`
+**Proved by:** `gdscan/class-by-name.case`, `gdscan/class-by-name-project.case`
 
-### `baseline-line-is-hint`
+### `godot-data-files-hold-no-comments`
 
-**Scenario:** Given a baseline entry with a stored line, when the matching line moves to a different line number, then it is still silenced because the line is only a hint.
+**Scenario:** Given a full-line `;` comment in a Godot data file, when `data-comment` runs, then it reports the comment's line, but a `;` inside a multi-line string value and the header Godot writes atop `project.godot` are not comments.
 
-**Spec:** [Baseline](../spec/v0.md#baseline)
+**Spec:** [Finders](../spec/v0.md#finders)
 
-**Proved by:** `baseline/line-shift.case`
+**Proved by:** `gdscan/data-comment.case`
 
-### `baseline-new-hits-fail`
+### `doc-length-limits-header-and-item-runs`
 
-**Scenario:** Given a baseline, when a hit appears that the snapshot doesn't cover, then it fails; a missing snapshot file means no baseline and the run behaves exactly as without one.
+**Scenario:** Given own-line `##` runs, when `doc-length` runs, then the first run, when only the preamble (blank lines, `#!`, plain `#` comments, `@tool`, `@icon`, `class_name`, `extends`) comes before it, gets `--header` while any other gets `--item`, each over-limit run reported at its first line.
 
-**Spec:** [Baseline](../spec/v0.md#baseline)
+**Spec:** [Finders](../spec/v0.md#finders)
 
-**Proved by:** `baseline/new-rule.case`, `baseline/missing.case`
+**Proved by:** `gdscan/doc-length.case`, `gdscan/doc-length-after-comment.case`
 
-### `baseline-scoped-regen-merges`
+### `exports-need-a-doc-comment`
 
-**Scenario:** Given a baseline with entries for multiple rules, when `necro --write-baseline --rule <name>` runs, then only that rule's entries are replaced and every other rule's entries carry over.
+**Scenario:** Given an `@export` line, when no own-line `##` comment sits directly above it, then `export-doc` reports it, counting `@export_range` and the like but not a plain `#`.
 
-**Spec:** [Baseline](../spec/v0.md#baseline)
+**Spec:** [Finders](../spec/v0.md#finders)
 
-**Proved by:** `baseline/scoped-regen-merges.case`
+**Proved by:** `gdscan/export-doc.case`
 
-### `baseline-scoped-run-no-stale`
+### `inline-lambdas-in-brackets`
 
-**Scenario:** Given a baseline with entries for multiple rules, when `necro --rule <name>` runs, then only that rule's entries are matched and other rules' leftover entries never warn as stale.
+**Scenario:** Given a `func(` lambda inside an open bracket, when `inline-lambda` runs, then it reports the lambda whether the bracket opened on that line or an earlier one, while a lambda outside brackets or a bracket inside a triple-quoted string is fine.
 
-**Spec:** [Baseline](../spec/v0.md#baseline)
+**Spec:** [Finders](../spec/v0.md#finders)
 
-**Proved by:** `baseline/rule-filter-no-stale.case`
+**Proved by:** `gdscan/inline-lambda.case`, `gdscan/inline-lambda-string-bracket.case`
 
-### `baseline-allows-before-snapshot`
+### `physics-calls-only-in-physics-process`
 
-**Scenario:** Given a hit with an allow comment, when necro runs, then the allow applies before the snapshot so the hit never reaches it and the run is clean.
+**Scenario:** Given a physics-step call inside `func _process`, when `physics-context` runs, then it reports the call, while the same call in `_physics_process`, a longer identifier, a string or a comment is fine.
 
-**Spec:** [Baseline](../spec/v0.md#baseline)
+**Spec:** [Finders](../spec/v0.md#finders)
 
-**Proved by:** `baseline/suppression-wins.case`
+**Proved by:** `gdscan/physics-context.case`
 
-### `baseline-builtins-never-snapshotted`
+### `res-write-flags-resourcesaver`
 
-**Scenario:** Given a broken allow that produces a builtin diagnostic, when `necro --write-baseline` runs, then the builtin is never snapshotted and the broken allow still fails on the next run.
+**Scenario:** Given `ResourceSaver` in code, when `res-write` runs, then it reports it, but not in a top-level `@tool` script, a string or a comment.
 
-**Spec:** [Baseline](../spec/v0.md#baseline)
+**Spec:** [Finders](../spec/v0.md#finders)
 
-**Proved by:** `baseline/regen-skips-builtins.case`, `baseline/builtin-not-silenced.case`
+**Proved by:** `gdscan/res-write.case`
 
-### `baseline-empty-regen-writes-empty`
+### `top-level-funcs-need-two-blank-lines`
 
-**Scenario:** Given a clean tree with no hits, when `necro --write-baseline` runs, then it writes an empty snapshot `entries: []` instead of deleting the file.
+**Scenario:** Given a top-level `func` or `static func` with the comments attached above it, when `spacing` runs, then it reports fewer than two blank lines before it, except the first, and a bracket inside a triple-quoted string doesn't change that.
 
-**Spec:** [Baseline](../spec/v0.md#baseline)
+**Spec:** [Finders](../spec/v0.md#finders)
 
-**Proved by:** `baseline/empty-regen.case`
+**Proved by:** `gdscan/spacing.case`, `gdscan/spacing-string-bracket.case`
 
-### `baseline-unused-allow-errors`
+### `spacing-fix-adds-the-blank-lines`
 
-**Scenario:** Given an allow that suppresses nothing, when necro runs with a baseline covering the named rule, then it still reports `necro/unused-allow` because the baseline covers the named rule, not the builtin.
+**Scenario:** Given `spacing` hits, when `necro --fix` runs, then it puts two blank lines above each block, attached comments included, and joins a top-level comment that blank lines keep from its function.
 
-**Spec:** [Baseline](../spec/v0.md#baseline)
+**Spec:** [Finders](../spec/v0.md#finders), [Fixes](../spec/v0.md#fixes)
 
-**Proved by:** `baseline/unused-allow.case`
+**Proved by:** `gdscan/spacing-fix.case`
 
-### `baseline-stale-entries-warn`
+### `uid-files-are-tracked-together`
 
-**Scenario:** Given baseline entries that nothing consumes, when necro runs, then they warn on stderr without failing the run.
+**Scenario:** Given a repo that tracks `.gd.uid` files, when `uid` runs, then each tracked `.gd` needs a tracked `.gd.uid` and each tracked `.gd.uid` its `.gd`, while a repo tracking none or an untracked script finds nothing.
 
-**Spec:** [Baseline](../spec/v0.md#baseline)
+**Spec:** [Finders](../spec/v0.md#finders)
 
-**Proved by:** `baseline/stale.case`
+**Proved by:** `gdscan/uid.case`, `gdscan/uid-none.case`, `gdscan/uid-untracked.case`
 
-## Messages
+### `gdscan-rejects-an-unknown-check`
 
-### `messages-progressive-repeats`
+**Scenario:** Given a check `gdscan` doesn't know, when `gdscan` runs, then it exits 2 with the usage line naming the checks it takes.
 
-**Scenario:** Given multiple hits for the same rule, when necro prints in full, then the first hit teaches with source, underline, label, why, fix and explain; repeats show the location, label and fix; allows are listed in the summary.
+**Spec:** [Finders](../spec/v0.md#finders)
 
-**Spec:** [Messages](../spec/v0.md#messages)
+**Proved by:** `gdscan/usage.case`
 
-**Proved by:** `full/progressive.case`
+### `only-spacing-can-write`
 
-### `messages-underline-and-label`
+**Scenario:** Given `--write` with a check other than `spacing`, when `gdscan` runs, then it exits 2 saying `--write` goes with `spacing`.
 
-**Scenario:** Given a hit with `col-endcol`, when necro prints in full, then the underline spans the columns; a label that isn't the underlined text sits beside the caret on the first hit and after the location on repeats; with only `col` a single caret is shown.
+**Spec:** [Finders](../spec/v0.md#finders)
 
-**Spec:** [Messages](../spec/v0.md#messages)
+**Proved by:** `gdscan/write-usage.case`
 
-**Proved by:** `full/underline-and-label.case`, `full/label-beside.case`
+## `necro gdtoolkit`
 
-### `messages-wrap`
+### `format-flags-files-gdformat-would-change`
 
-**Scenario:** Given a rule with long `why` and `fix` texts, when necro prints in full, then they wrap at 88 columns with continuation lines aligned under the text.
+**Scenario:** Given a `.gd` file `gdformat` would change, when `gdtoolkit format` runs, then it is a whole-file hit, and one holding a lambda inside brackets says `--fix` skips it.
 
-**Spec:** [Messages](../spec/v0.md#messages)
+**Spec:** [Finders](../spec/v0.md#finders)
 
-**Proved by:** `full/wrap.case`
+**Proved by:** `gdtoolkit/format.case`
 
-### `messages-gutter-and-tabs`
+### `lint-reports-problems-at-their-lines`
 
-**Scenario:** Given a hit on a line with a high line number or tabs, when necro prints in full, then the gutter widens to fit the line number and tabs show as 4 spaces with the underline moved to match.
+**Scenario:** Given `gdlint` problems, when `gdtoolkit lint` runs, then each is at its line with the check in parentheses, `max-returns` at the function's `func` line, and hits sort by line number.
 
-**Spec:** [Messages](../spec/v0.md#messages)
+**Spec:** [Finders](../spec/v0.md#finders)
 
-**Proved by:** `full/gutter-and-tabs.case`
+**Proved by:** `gdtoolkit/lint.case`
 
-### `messages-whole-file`
+### `missing-gdtoolkit-names-the-extra`
 
-**Scenario:** Given a whole-file hit (no line number), when necro prints in full, then it names the file with the label in parentheses and shows no source line.
+**Scenario:** Given no `gdlint` on `PATH`, when `gdtoolkit lint` runs, then it exits 2 naming the extra that installs gdtoolkit beside necro.
 
-**Spec:** [Messages](../spec/v0.md#messages)
+**Spec:** [Finders](../spec/v0.md#finders), [Packs](../spec/v0.md#packs)
 
-**Proved by:** `full/whole-file.case`
+**Proved by:** `gdtoolkit/missing.case`
 
-### `messages-folded-repeats`
+### `parse-reports-unparseable-files`
 
-**Scenario:** Given more than 4 repeats of a rule in a file, when necro prints in full, then the first 4 are shown with location and fix and the rest are counted as `N more in <file>`.
+**Scenario:** Given a file `gdtoolkit` can't parse, when `gdtoolkit parse` runs, then it reports the position `gdtoolkit` gives, leaving that file to this check rather than lint or format.
 
-**Spec:** [Messages](../spec/v0.md#messages)
+**Spec:** [Finders](../spec/v0.md#finders)
 
-**Proved by:** `full/folded.case`
+**Proved by:** `gdtoolkit/parse.case`
 
-## Skills
+### `write-reformats-files`
 
-### `skills-usage-requires-action`
+**Scenario:** Given files `gdformat` would change, when `gdtoolkit --write format` runs, then it reformats them except one with a lambda it corrupts, naming each file it reformatted.
 
-**Scenario:** Given `necro skills` with no action, when necro runs, then it exits 2 and tells the user to name an action.
+**Spec:** [Finders](../spec/v0.md#finders), [Fixes](../spec/v0.md#fixes)
 
-**Spec:** [Skills](../spec/v0.md#skills)
+**Proved by:** `gdtoolkit/write.case`
 
-**Proved by:** `skills/usage.case`
+## `necro header`
 
-### `skills-install-writes-and-links`
+### `header-similar-range`
 
-**Scenario:** Given skills to install, when `necro skills install` runs, then it writes each skill to `.agents/skills/<name>/SKILL.md` stamped with this necro's version, replacing an older copy, and links `.claude/skills/<name>` to `../../.agents/skills/<name>`, replacing a link that points elsewhere.
+**Scenario:** Given a `--similar` value outside 1 to 100, when necro header runs, then it reports a usage error naming the invalid value.
 
-**Spec:** [Skills](../spec/v0.md#skills)
+**Spec:** [Finders](../spec/v0.md#necro-header)
 
-**Proved by:** `skills/install.case`
+**Proved by:** `header/bad-similar.case`
 
-### `skills-install-paths-selective`
+### `header-check-finds-missing`
 
-**Scenario:** Given `SKILL.md` paths as arguments, when `necro skills install` runs, then it rewrites only the carried skills they name and skips the rest.
+**Scenario:** Given files with missing or wrong headers, when necro header runs, then it reports hits at line 1 (or line 2 after `#!`), and nothing after the header is checked.
 
-**Spec:** [Skills](../spec/v0.md#skills)
+**Spec:** [Finders](../spec/v0.md#necro-header)
 
-**Proved by:** `skills/install-paths.case`
+**Proved by:** `header/check.case`
 
-### `skills-folder-in-way-stops`
+### `header-fix-writes-header`
 
-**Scenario:** Given a real folder at `.claude/skills/<name>`, when `necro skills install` runs, then it stops before anything is written and tells the user to move or remove the folder.
+**Scenario:** Given a file without a header, when necro header runs with `--fix`, then it writes the header with a blank line after it unless one follows, after any `#!` line.
 
-**Spec:** [Skills](../spec/v0.md#skills)
+**Spec:** [Fixes](../spec/v0.md#fixes)
 
-**Proved by:** `skills/folder-in-the-way.case`
+**Proved by:** `header/fix-no-similar.case`
 
-### `skills-outside-git-fails`
+### `header-fix-replaces-old`
 
-**Scenario:** Given a directory that is not a git work tree, when `necro skills install` runs, then it exits 2 because skills install writes at the top of the git work tree.
+**Scenario:** Given a file with an old header recognized by `--similar`, when necro header runs with `--fix`, then it replaces the old header with the new one, keeping a blank line after unless one follows.
 
-**Spec:** [Skills](../spec/v0.md#skills)
+**Spec:** [Fixes](../spec/v0.md#fixes)
 
-**Proved by:** `skills/not-git.case`
+**Proved by:** `header/fix.case`
 
-## Agent files
+### `header-custom-marker`
+
+**Scenario:** Given a file extension without a default marker or with a custom one, when necro header runs with `--marker`, then it uses the given marker for that extension.
+
+**Spec:** [Finders](../spec/v0.md#necro-header)
+
+**Proved by:** `header/marker.case`
+
+### `header-requires-template-or-lines`
+
+**Scenario:** Given no header source, when necro header runs, then it reports a usage error; given both `--template` and line words, it also reports a usage error.
+
+**Spec:** [Finders](../spec/v0.md#necro-header)
+
+**Proved by:** `header/no-header.case`, `header/usage.case`
+
+### `header-params-fill-lines`
+
+**Scenario:** Given a list parameter used as the header lines, when necro header runs, then the parameter's items fill the header one line each.
+
+**Spec:** [Parameters](../spec/v0.md#parameters)
+
+**Proved by:** `header/params.case`
+
+### `header-similar-recognizes-old`
+
+**Scenario:** Given an old header at the expected place with enough similarity, when necro header runs with `--similar`, then it reports `old header, <n>% alike` instead of `no header`.
+
+**Spec:** [Finders](../spec/v0.md#necro-header)
+
+**Proved by:** `header/similar.case`
+
+### `header-template-reads-file`
+
+**Scenario:** Given a `--template` file, when necro header runs, then it reads the header lines from it, drops trailing blank lines, and treats a blank line in the file as the comment marker alone.
+
+**Spec:** [Finders](../spec/v0.md#necro-header)
+
+**Proved by:** `header/template.case`
+
+### `header-unknown-extension-error`
+
+**Scenario:** Given a file whose extension has no known comment marker and no `--marker` override, when necro header runs, then it reports a usage error naming the file.
+
+**Spec:** [Finders](../spec/v0.md#necro-header)
+
+**Proved by:** `header/unknown-extension.case`
+
+## `necro agent-files`
 
 ### `agent-files-usage-valid-checks`
 
@@ -1243,3 +819,427 @@ A bug fix adds a case to the behavior it broke. If no entry fits, add the entry 
 **Spec:** [Packs](../spec/v0.md#packs)
 
 **Proved by:** `agent-files/stale-skill-fix.case`
+
+## Skills
+
+### `skills-usage-requires-action`
+
+**Scenario:** Given `necro skills` with no action, when necro runs, then it exits 2 and tells the user to name an action.
+
+**Spec:** [Skills](../spec/v0.md#skills)
+
+**Proved by:** `skills/usage.case`
+
+### `skills-install-writes-and-links`
+
+**Scenario:** Given skills to install, when `necro skills install` runs, then it writes each skill to `.agents/skills/<name>/SKILL.md` stamped with this necro's version, replacing an older copy, and links `.claude/skills/<name>` to `../../.agents/skills/<name>`, replacing a link that points elsewhere.
+
+**Spec:** [Skills](../spec/v0.md#skills)
+
+**Proved by:** `skills/install.case`
+
+### `skills-install-paths-selective`
+
+**Scenario:** Given `SKILL.md` paths as arguments, when `necro skills install` runs, then it rewrites only the carried skills they name and skips the rest.
+
+**Spec:** [Skills](../spec/v0.md#skills)
+
+**Proved by:** `skills/install-paths.case`
+
+### `skills-folder-in-way-stops`
+
+**Scenario:** Given a real folder at `.claude/skills/<name>`, when `necro skills install` runs, then it stops before anything is written and tells the user to move or remove the folder.
+
+**Spec:** [Skills](../spec/v0.md#skills)
+
+**Proved by:** `skills/folder-in-the-way.case`
+
+### `skills-outside-git-fails`
+
+**Scenario:** Given a directory that is not a git work tree, when `necro skills install` runs, then it exits 2 because skills install writes at the top of the git work tree.
+
+**Spec:** [Skills](../spec/v0.md#skills)
+
+**Proved by:** `skills/not-git.case`
+
+## Allows
+
+### `allow-suppresses-hit`
+
+**Scenario:** Given a hit, when the file has `necro-allow <rule>: <reason>` in a comment on the hit's line or the line above (line 1, or 2 after `#!`, for a whole-file hit), then the hit is suppressed; one comment may carry allows for two rules.
+
+**Spec:** [Allows](../spec/v0.md#allows)
+
+**Proved by:** `allows/suppress.case`, `allows/two-on-a-line.case`, `allows/whole-file.case`
+
+### `allow-needs-a-reason`
+
+**Scenario:** Given an allow with no reason after the rule, when necro runs, then it reports `necro/allow-reason`, and the allow still suppresses.
+
+**Spec:** [Allows](../spec/v0.md#allows)
+
+**Proved by:** `allows/missing-reason.case`
+
+### `unused-allow-fails`
+
+**Scenario:** Given an allow that suppresses nothing or names no rule, when necro runs, then it reports `necro/unused-allow` wherever the allow is.
+
+**Spec:** [Allows](../spec/v0.md#allows)
+
+**Proved by:** `allows/unused.case`
+
+### `quoted-syntax-is-not-an-allow`
+
+**Scenario:** Given text that quotes the allow syntax outside a comment (prose, data, a string) or in the files rules are read from, when necro runs, then it is not an allow and raises nothing.
+
+**Spec:** [Allows](../spec/v0.md#allows)
+
+**Proved by:** `allows/prose.case`, `allows/rule-words.case`
+
+### `allows-found-from-root`
+
+**Scenario:** Given a commit hook in a git worktree, which sets `GIT_DIR` and `GIT_WORK_TREE`, when necro runs, then it still finds the allows from the root.
+
+**Spec:** [Allows](../spec/v0.md#allows)
+
+**Proved by:** `allows/hook-git-env.case`
+
+### `summary-lists-allows`
+
+**Scenario:** Given suppressed hits, when necro prints in full, then it lists each allow with the hit's location and its reason, comment closers trimmed.
+
+**Spec:** [Allows](../spec/v0.md#allows)
+
+**Proved by:** `allows/summary.case`
+
+## Baseline
+
+### `baseline-fingerprint-matching`
+
+**Scenario:** Given a baseline entry, when a hit's source line matches the fingerprint (trimmed, before any allow), then it is silenced; a token change fails and leaves the entry stale; identical lines share one bucket so one entry silences one hit and the excess fails.
+
+**Spec:** [Baseline](../spec/v0.md#baseline)
+
+**Proved by:** `baseline/edited-line.case`, `baseline/over-count.case`
+
+### `baseline-line-is-hint`
+
+**Scenario:** Given a baseline entry with a stored line, when the matching line moves to a different line number, then it is still silenced because the line is only a hint.
+
+**Spec:** [Baseline](../spec/v0.md#baseline)
+
+**Proved by:** `baseline/line-shift.case`
+
+### `baseline-new-hits-fail`
+
+**Scenario:** Given a baseline, when a hit appears that the snapshot doesn't cover, then it fails; a missing snapshot file means no baseline and the run behaves exactly as without one.
+
+**Spec:** [Baseline](../spec/v0.md#baseline)
+
+**Proved by:** `baseline/new-rule.case`, `baseline/missing.case`
+
+### `baseline-scoped-regen-merges`
+
+**Scenario:** Given a baseline with entries for multiple rules, when `necro --write-baseline --rule <name>` runs, then only that rule's entries are replaced and every other rule's entries carry over.
+
+**Spec:** [Baseline](../spec/v0.md#baseline)
+
+**Proved by:** `baseline/scoped-regen-merges.case`
+
+### `baseline-scoped-run-no-stale`
+
+**Scenario:** Given a baseline with entries for multiple rules, when `necro --rule <name>` runs, then only that rule's entries are matched and other rules' leftover entries never warn as stale.
+
+**Spec:** [Baseline](../spec/v0.md#baseline)
+
+**Proved by:** `baseline/rule-filter-no-stale.case`
+
+### `baseline-allows-before-snapshot`
+
+**Scenario:** Given a hit with an allow comment, when necro runs, then the allow applies before the snapshot so the hit never reaches it and the run is clean.
+
+**Spec:** [Baseline](../spec/v0.md#baseline)
+
+**Proved by:** `baseline/suppression-wins.case`
+
+### `baseline-builtins-never-snapshotted`
+
+**Scenario:** Given a broken allow that produces a builtin diagnostic, when `necro --write-baseline` runs, then the builtin is never snapshotted and the broken allow still fails on the next run.
+
+**Spec:** [Baseline](../spec/v0.md#baseline)
+
+**Proved by:** `baseline/regen-skips-builtins.case`, `baseline/builtin-not-silenced.case`
+
+### `baseline-empty-regen-writes-empty`
+
+**Scenario:** Given a clean tree with no hits, when `necro --write-baseline` runs, then it writes an empty snapshot `entries: []` instead of deleting the file.
+
+**Spec:** [Baseline](../spec/v0.md#baseline)
+
+**Proved by:** `baseline/empty-regen.case`
+
+### `baseline-unused-allow-errors`
+
+**Scenario:** Given an allow that suppresses nothing, when necro runs with a baseline covering the named rule, then it still reports `necro/unused-allow` because the baseline covers the named rule, not the builtin.
+
+**Spec:** [Baseline](../spec/v0.md#baseline)
+
+**Proved by:** `baseline/unused-allow.case`
+
+### `baseline-stale-entries-warn`
+
+**Scenario:** Given baseline entries that nothing consumes, when necro runs, then they warn on stderr without failing the run.
+
+**Spec:** [Baseline](../spec/v0.md#baseline)
+
+**Proved by:** `baseline/stale.case`
+
+## Narrowed runs
+
+### `files-and-exclude-choose-what-a-rule-checks`
+
+**Scenario:** Given files, when a rule has `files` or `exclude`, then it runs in full when any given file passes both (a glob matches the whole path, `*` crossing folders) and is skipped otherwise, while a rule with only `exclude` takes every file it doesn't exclude and one with neither always runs.
+
+**Spec:** [Narrowed runs](../spec/v0.md#narrowed-runs)
+
+**Proved by:** `narrow/exclude.case`, `narrow/filters.case`, `narrow/globs.case`, `narrow/sync-skills-files.case`
+
+### `files-and-exclude-take-a-regex-or-glob`
+
+**Scenario:** Given a rule's `files` or `exclude`, when it is a regex string or `{glob: <glob or list>}`, then the config loads, and anything else is a config error naming the key and its position.
+
+**Spec:** [Narrowed runs](../spec/v0.md#narrowed-runs)
+
+**Proved by:** `narrow/bad-filters.case`
+
+### `narrowed-paths-reach-the-root`
+
+**Scenario:** Given file arguments relative to the working folder, when necro runs, then it re-anchors them to the root and drops ones that aren't files or that the top-level `exclude` leaves out.
+
+**Spec:** [Narrowed runs](../spec/v0.md#narrowed-runs)
+
+**Proved by:** `narrow/reanchor.case`, `narrow/top-exclude.case`
+
+### `finders-take-the-given-files`
+
+**Scenario:** Given files, when necro's file finders such as `necro grep` and `necro rust-docs` run in a narrowed run, then they search only those files.
+
+**Spec:** [Narrowed runs](../spec/v0.md#narrowed-runs)
+
+**Proved by:** `narrow/finder.case`, `narrow/rust-docs.case`
+
+### `allows-and-baseline-count-only-given-files`
+
+**Scenario:** Given files, when necro judges allows and stale baseline entries, then it counts only those inside the given files.
+
+**Spec:** [Narrowed runs](../spec/v0.md#narrowed-runs)
+
+**Proved by:** `narrow/allows.case`, `narrow/stale.case`
+
+### `unscoped-flags-refuse-files`
+
+**Scenario:** Given file arguments, when necro is asked to `--explain`, `--list` or `--write-baseline`, then it is a usage error telling the caller to drop them.
+
+**Spec:** [Narrowed runs](../spec/v0.md#narrowed-runs)
+
+**Proved by:** `narrow/refused-list.case`, `narrow/refused.case`, `narrow/write-baseline.case`
+
+## Fixes
+
+### `fix-fixes-reported-hits`
+
+**Scenario:** Given fixable hits, when necro --fix runs, then it fixes the hits the run reports, leaves allowed hits alone, checks again and says what it changed and what is left.
+
+**Spec:** [Fixes](../spec/v0.md#fixes)
+
+**Proved by:** `fix/fix.case`
+
+### `fix-leaves-baselined-hits`
+
+**Scenario:** Given a hit covered by the baseline, when necro --fix runs, then it leaves that hit alone.
+
+**Spec:** [Fixes](../spec/v0.md#fixes)
+
+**Proved by:** `fix/baselined.case`
+
+### `fix-autofix-fills-files`
+
+**Scenario:** Given a rule whose command is not a fixing finder and whose `autofix` uses `{files}`, when necro --fix runs, then `{files}` becomes the files with hits to fix.
+
+**Spec:** [Fixes](../spec/v0.md#fixes)
+
+**Proved by:** `fix/autofix.case`, `fix/sync-skills.case`
+
+### `fix-autofix-needs-files-word`
+
+**Scenario:** Given an `autofix` with no `{files}` word or a parameter named `files`, when necro reads the config, then it reports config errors.
+
+**Spec:** [Fixes](../spec/v0.md#fixes)
+
+**Proved by:** `fix/autofix-config.case`
+
+### `fix-hints-at-fixable-hits`
+
+**Scenario:** Given a full run without `--fix` whose hits a fix could clear, when necro prints, then it ends by saying how many hits can be fixed automatically.
+
+**Spec:** [Fixes](../spec/v0.md#fixes)
+
+**Proved by:** `fix/hint.case`
+
+### `fix-needs-a-check-run`
+
+**Scenario:** Given `--fix` with `--explain`, when necro runs, then it refuses with a usage error.
+
+**Spec:** [Fixes](../spec/v0.md#fixes)
+
+**Proved by:** `fix/refused.case`
+
+### `replace-makes-hits-fixable`
+
+**Scenario:** Given `--replace`, when necro grep runs, then each hit's label says what the match becomes, with `$1` standing for a group.
+
+**Spec:** [Finders](../spec/v0.md#necro-grep)
+
+**Proved by:** `fix/replace.case`
+
+### `write-rewrites-matches`
+
+**Scenario:** Given `--replace` and `--write`, when necro grep runs, then it rewrites the matches and prints the hits it replaced; `--write` or `--only-at` without `--replace` is a usage error.
+
+**Spec:** [Finders](../spec/v0.md#necro-grep)
+
+**Proved by:** `fix/write.case`, `fix/write-needs-replace.case`
+
+### `fix-write-baseline-hints-at-fixable`
+
+**Scenario:** Given `--write-baseline`, when necro writes entries a fix could clear, then it says how many can be fixed automatically and how to keep them out of the baseline.
+
+**Spec:** [Fixes](../spec/v0.md#fixes)
+
+**Proved by:** `fix/write-baseline-hint.case`
+
+## Messages
+
+### `messages-progressive-repeats`
+
+**Scenario:** Given multiple hits for the same rule, when necro prints in full, then the first hit teaches with source, underline, label, why, fix and explain; repeats show the location, label and fix; allows are listed in the summary.
+
+**Spec:** [Messages](../spec/v0.md#messages)
+
+**Proved by:** `full/progressive.case`
+
+### `messages-underline-and-label`
+
+**Scenario:** Given a hit with `col-endcol`, when necro prints in full, then the underline spans the columns; a label that isn't the underlined text sits beside the caret on the first hit and after the location on repeats; with only `col` a single caret is shown.
+
+**Spec:** [Messages](../spec/v0.md#messages)
+
+**Proved by:** `full/underline-and-label.case`, `full/label-beside.case`
+
+### `messages-wrap`
+
+**Scenario:** Given a rule with long `why` and `fix` texts, when necro prints in full, then they wrap at 88 columns with continuation lines aligned under the text.
+
+**Spec:** [Messages](../spec/v0.md#messages)
+
+**Proved by:** `full/wrap.case`
+
+### `messages-gutter-and-tabs`
+
+**Scenario:** Given a hit on a line with a high line number or tabs, when necro prints in full, then the gutter widens to fit the line number and tabs show as 4 spaces with the underline moved to match.
+
+**Spec:** [Messages](../spec/v0.md#messages)
+
+**Proved by:** `full/gutter-and-tabs.case`
+
+### `messages-whole-file`
+
+**Scenario:** Given a whole-file hit (no line number), when necro prints in full, then it names the file with the label in parentheses and shows no source line.
+
+**Spec:** [Messages](../spec/v0.md#messages)
+
+**Proved by:** `full/whole-file.case`
+
+### `messages-folded-repeats`
+
+**Scenario:** Given more than 4 repeats of a rule in a file, when necro prints in full, then the first 4 are shown with location and fix and the rest are counted as `N more in <file>`.
+
+**Spec:** [Messages](../spec/v0.md#messages)
+
+**Proved by:** `full/folded.case`
+
+## CLI
+
+### `cli-clean-cache-reports-empty`
+
+**Scenario:** Given no cached build folders, when necro runs with `--clean-cache`, then it reports that there is no cache to clean.
+
+**Spec:** [CLI](../spec/v0.md#cli)
+
+**Proved by:** `cli/clean-cache-nothing.case`
+
+### `cli-clean-cache-removes-build`
+
+**Scenario:** Given cached Cargo finders' build folders in workspaces, when necro runs with `--clean-cache`, then it removes each `necro/` build folder and reports its size.
+
+**Spec:** [CLI](../spec/v0.md#cli)
+
+**Proved by:** `cli/clean-cache.case`
+
+### `cli-list-rules`
+
+**Scenario:** Given a config with repo rules, includes, and pack rules with disables and overrides, when necro runs with `--list`, then it prints every rule by name, its source, and for pack rules whether it is disabled or overridden.
+
+**Spec:** [CLI](../spec/v0.md#cli)
+
+**Proved by:** `cli/list.case`
+
+### `cli-rule-filter-runs-one`
+
+**Scenario:** Given `--rule <name>`, when necro runs, then only that rule runs and allows for rules that didn't run are not reported as unused.
+
+**Spec:** [CLI](../spec/v0.md#cli)
+
+**Proved by:** `cli/rule-filter.case`
+
+### `cli-rule-filter-validates-name`
+
+**Scenario:** Given `--rule` with a name that is not a rule, when necro runs, then it exits with a usage error listing the available rules.
+
+**Spec:** [CLI](../spec/v0.md#cli)
+
+**Proved by:** `cli/rule-unknown.case`
+
+### `cli-unknown-option-error`
+
+**Scenario:** Given an unknown command-line option, when necro runs, then it exits with a usage error.
+
+**Spec:** [CLI](../spec/v0.md#cli)
+
+**Proved by:** `cli/unknown-option.case`
+
+### `cli-version-prints`
+
+**Scenario:** Given `--version`, when necro runs, then it prints the engine version.
+
+**Spec:** [CLI](../spec/v0.md#cli)
+
+**Proved by:** `cli/version.case`
+
+## Explain
+
+### `explain-rule-details`
+
+**Scenario:** Given `--explain <rule>`, when necro runs, then it prints the rule's message, why, fix, details, examples, and command with files, exclude and parameters marked when overridden.
+
+**Spec:** [CLI](../spec/v0.md#cli)
+
+**Proved by:** `explain/rule.case`
+
+### `explain-unknown-error`
+
+**Scenario:** Given `--explain` with a name that is not a rule, when necro runs, then it exits with a usage error listing the available rules.
+
+**Spec:** [CLI](../spec/v0.md#cli)
+
+**Proved by:** `explain/unknown.case`

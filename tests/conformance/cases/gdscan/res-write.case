@@ -1,5 +1,5 @@
 # res-write finds ResourceSaver in code, but not in a @tool script, a string or a comment
-behavior: resource-saver-only-in-code
+behavior: res-write-flags-resourcesaver
 args: gdscan res-write
 -- src/gen.gd --
 extends SceneTree
