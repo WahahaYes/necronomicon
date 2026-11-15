@@ -16,6 +16,7 @@
 ### For contributors
 
 - **Failed CI jobs upload their step logs** (artifact `logs-<job>`).
+- **A release builds its commit once less.** The tag's `release.yml` waits for main's `build.yml` run of the release merge commit and reuses its result, running `build.yml` itself only when there is none or it failed.
 
 ## 0.5.2 - 2026-11-10
 
