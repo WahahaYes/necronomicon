@@ -1,5 +1,5 @@
 # a crate on 2024 with a rust-version is clean
-spec: Finders
+behavior: cargo-manifest-checks-edition
 args: cargo-manifest
 -- Cargo.toml --
 [package]

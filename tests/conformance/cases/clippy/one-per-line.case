@@ -1,5 +1,5 @@
 # two of the given lints on one line are one hit, at the leftmost column
-spec: Finders
+behavior: clippy-reports-primary-spans
 args: clippy allow_attributes allow_attributes_without_reason
 -- Cargo.toml --
 [package]

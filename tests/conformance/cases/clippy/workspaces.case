@@ -1,5 +1,5 @@
 # every workspace below the working folder runs, a nested one with its own [workspace] included
-spec: Finders
+behavior: clippy-checks-each-workspace
 args: clippy unwrap_used
 -- app/Cargo.toml --
 [package]

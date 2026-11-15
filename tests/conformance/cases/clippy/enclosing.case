@@ -1,5 +1,5 @@
 # a root inside a workspace runs the enclosing one, and keeps only hits under the root
-spec: Finders
+behavior: clippy-checks-each-workspace
 args: -C src --format terse
 exit: 1
 -- Cargo.toml --

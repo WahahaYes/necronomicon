@@ -1,5 +1,5 @@
 # a check is required, and limits are whole numbers of lines
-spec: Finders
+behavior: rust-docs-rejects-bad-arguments
 args: rust-docs length --item 0
 exit: 2
 -- @stderr --
