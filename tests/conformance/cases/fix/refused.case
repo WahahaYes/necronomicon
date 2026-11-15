@@ -1,5 +1,5 @@
 # --fix only goes with a check run
-spec: CLI; Fixes
+behavior: fix-needs-a-check-run
 args: --fix --explain banned-word
 exit: 2
 -- @stderr --

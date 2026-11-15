@@ -1,5 +1,5 @@
 # --glob follows prek: matched against the whole path, * crosses folders, ! excludes
-spec: Finders
+behavior: grep-globs-narrow-files
 args: grep --glob '*.ts' --glob 'lib/*' --glob '!src/gen/*' donkey
 -- src/a.ts --
 donkey
