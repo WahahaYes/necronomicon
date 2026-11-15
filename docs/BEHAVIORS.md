@@ -53,3 +53,85 @@ A bug fix adds a case to the behavior it broke. If no entry fits, add the entry 
 **Spec:** [Allows](../spec/v0.md#allows)
 
 **Proved by:** `allows/summary.case`
+
+## Header
+
+### `header-similar-range`
+
+**Scenario:** Given a `--similar` value outside 1 to 100, when necro header runs, then it reports a usage error naming the invalid value.
+
+**Spec:** [Finders](../spec/v0.md#necro-header)
+
+**Proved by:** `header/bad-similar.case`
+
+### `header-check-finds-missing`
+
+**Scenario:** Given files with missing or wrong headers, when necro header runs, then it reports hits at line 1 (or line 2 after `#!`), and nothing after the header is checked.
+
+**Spec:** [Finders](../spec/v0.md#necro-header)
+
+**Proved by:** `header/check.case`
+
+### `header-fix-writes-header`
+
+**Scenario:** Given a file without a header, when necro header runs with `--fix`, then it writes the header with a blank line after it unless one follows, after any `#!` line.
+
+**Spec:** [Fixes](../spec/v0.md#fixes)
+
+**Proved by:** `header/fix-no-similar.case`
+
+### `header-fix-replaces-old`
+
+**Scenario:** Given a file with an old header recognized by `--similar`, when necro header runs with `--fix`, then it replaces the old header with the new one, keeping a blank line after unless one follows.
+
+**Spec:** [Fixes](../spec/v0.md#fixes)
+
+**Proved by:** `header/fix.case`
+
+### `header-custom-marker`
+
+**Scenario:** Given a file extension without a default marker or with a custom one, when necro header runs with `--marker`, then it uses the given marker for that extension.
+
+**Spec:** [Finders](../spec/v0.md#necro-header)
+
+**Proved by:** `header/marker.case`
+
+### `header-requires-template-or-lines`
+
+**Scenario:** Given no header source, when necro header runs, then it reports a usage error; given both `--template` and line words, it also reports a usage error.
+
+**Spec:** [Finders](../spec/v0.md#necro-header)
+
+**Proved by:** `header/no-header.case`, `header/usage.case`
+
+### `header-params-fill-lines`
+
+**Scenario:** Given a list parameter used as the header lines, when necro header runs, then the parameter's items fill the header one line each.
+
+**Spec:** [Parameters](../spec/v0.md#parameters)
+
+**Proved by:** `header/params.case`
+
+### `header-similar-recognizes-old`
+
+**Scenario:** Given an old header at the expected place with enough similarity, when necro header runs with `--similar`, then it reports `old header, <n>% alike` instead of `no header`.
+
+**Spec:** [Finders](../spec/v0.md#necro-header)
+
+**Proved by:** `header/similar.case`
+
+### `header-template-reads-file`
+
+**Scenario:** Given a `--template` file, when necro header runs, then it reads the header lines from it, drops trailing blank lines, and treats a blank line in the file as the comment marker alone.
+
+**Spec:** [Finders](../spec/v0.md#necro-header)
+
+**Proved by:** `header/template.case`
+
+### `header-unknown-extension-error`
+
+**Scenario:** Given a file whose extension has no known comment marker and no `--marker` override, when necro header runs, then it reports a usage error naming the file.
+
+**Spec:** [Finders](../spec/v0.md#necro-header)
+
+**Proved by:** `header/unknown-extension.case`

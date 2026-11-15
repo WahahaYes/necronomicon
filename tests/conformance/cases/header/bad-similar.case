@@ -1,5 +1,5 @@
 # --similar is a percent from 1 to 100
-spec: Finders
+behavior: header-similar-range
 args: header --similar 0 'SPDX-License-Identifier: Apache-2.0' -- 'src/*'
 exit: 2
 -- @stderr --

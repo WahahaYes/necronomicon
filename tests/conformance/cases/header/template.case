@@ -1,5 +1,5 @@
 # --template reads the header from a file, one line each, trailing blank lines dropped; a blank line in it is the marker alone
-spec: Finders
+behavior: header-template-reads-file
 args: header --template necro/header.txt -- 'src/*'
 -- necro/header.txt --
 SPDX-License-Identifier: Apache-2.0

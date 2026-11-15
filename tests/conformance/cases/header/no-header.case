@@ -1,5 +1,5 @@
 # with neither --template nor line words there is no header to keep
-spec: Finders
+behavior: header-requires-template-or-lines
 args: header -- 'src/*'
 exit: 2
 -- @stderr --

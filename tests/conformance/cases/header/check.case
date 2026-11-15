@@ -1,5 +1,5 @@
 # a file whose top lines aren't the header is a hit; after a #! line the header starts on line 2, and nothing after it is checked
-spec: Finders
+behavior: header-check-finds-missing
 args: header 'SPDX-License-Identifier: Apache-2.0' 'https://github.com/me/proj' -- 'src/*'
 -- src/a.gd --
 extends Node

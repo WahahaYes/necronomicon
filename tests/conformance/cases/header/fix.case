@@ -1,5 +1,5 @@
 # --fix writes the header with a blank line after it unless one follows, after a #! line, and replaces an old header --similar recognizes
-spec: Finders; Fixes
+behavior: header-fix-replaces-old
 args: --fix --format terse
 exit: 1
 -- necro.yaml --

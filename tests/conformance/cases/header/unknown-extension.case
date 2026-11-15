@@ -1,5 +1,5 @@
 # a file whose extension has no comment marker is a usage error naming it
-spec: Finders
+behavior: header-unknown-extension-error
 args: header 'SPDX-License-Identifier: Apache-2.0' -- 'src/*'
 exit: 2
 -- src/a.gd --
