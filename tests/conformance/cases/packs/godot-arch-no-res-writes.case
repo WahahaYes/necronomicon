@@ -1,0 +1,21 @@
+# godot-arch/no-res-writes flags ResourceSaver in game code; addons/ are left alone
+spec: Packs
+args: --format terse --rule godot-arch/no-res-writes
+exit: 1
+-- necro.yaml --
+version: 0
+include: [necro:godot-arch]
+-- src/gen.gd --
+extends SceneTree
+
+
+func _initialize() -> void:
+	ResourceSaver.save(preset, "res://data/baseline.tres")
+-- addons/tool/export.gd --
+extends Node
+
+
+func write() -> void:
+	ResourceSaver.save(preset, "res://out.tres")
+-- @stdout --
+src/gen.gd:5:2: godot-arch/no-res-writes game code writes a resource

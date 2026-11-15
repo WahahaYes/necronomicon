@@ -75,3 +75,23 @@ rules:
         [gd_scene format=3]
       good: |
         [gd_scene format=3]
+  no-res-writes:
+    command: necro gdscan res-write -- '*.gd'
+    files: '\.gd$'
+    exclude: {glob: 'addons/*'}
+    message: game code writes a resource
+    why: game data is authored in the inspector as .tres; a script that writes resources makes generated copies of data held somewhere else, which drift from the source and leave the inspector editing outputs, and res:// is read-only in an exported game anyway.
+    fix: author the .tres in the editor and load it (preload, or through a catalog resource); a runtime save belongs under user:// in a save system, which keeps an allow comment saying so.
+    details: |
+      Scripts outside `addons/` may not name `ResourceSaver`; editor tools
+      (`@tool` scripts) are skipped. `FileAccess` writes are out of scope. A
+      repo with its editor code elsewhere changes the paths:
+      `override: {godot-arch/no-res-writes: {exclude: {glob: 'editor/*'}}}`.
+    examples:
+      bad: |
+        extends SceneTree
+        func _initialize() -> void:
+        	ResourceSaver.save(preset_from_dict(PRESETS[0]), "res://data/presets/baseline.tres")
+      good: |
+        extends Node
+        const CATALOG: Resource = preload("res://data/presets/catalog.tres")
