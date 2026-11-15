@@ -1,5 +1,5 @@
 # --explain shows a pack rule's files, exclude and parameters as the repo set them, marked (override)
-spec: Packs; CLI
+behavior: pack-explain
 args: --explain rust-style/weasel-type-names
 -- necro.yaml --
 version: 0

@@ -1,5 +1,5 @@
 # override sets a pack rule's parameters: here the role words the weasel rule looks for
-spec: Packs; Parameters
+behavior: pack-override
 args: --format terse
 exit: 1
 -- necro.yaml --

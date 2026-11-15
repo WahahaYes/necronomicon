@@ -1,5 +1,5 @@
 # a disabled rule is gone, so an allow naming it suppresses nothing
-spec: Packs
+behavior: pack-disable
 args: --format terse
 exit: 1
 -- necro.yaml --

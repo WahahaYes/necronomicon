@@ -1,5 +1,5 @@
 # --explain shows a pack rule's words and names the pack it comes from
-spec: Packs; CLI
+behavior: pack-explain
 args: --explain rust-style/weasel-type-names
 -- necro.yaml --
 version: 0

@@ -1,5 +1,5 @@
 # necro:rust-style: a doc on every public item, a //! on every file, doc blocks within their parameters, no comment borders, no role-word names
-spec: Packs; Parameters
+behavior: rust-style-pack
 args: --format terse
 exit: 1
 -- necro.yaml --

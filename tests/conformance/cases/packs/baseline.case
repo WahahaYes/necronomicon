@@ -1,5 +1,5 @@
 # pack hits go into the baseline under their full names, unlike necro's own rules
-spec: Packs
+behavior: pack-baseline
 args: --write-baseline
 -- necro.yaml --
 version: 0

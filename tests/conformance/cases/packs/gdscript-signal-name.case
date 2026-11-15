@@ -1,5 +1,5 @@
 # gdscript/signal-name-prefix flags a signal named like a handler; a past-tense event stays silent
-spec: Packs
+behavior: gdscript-pack
 args: --format terse --rule gdscript/signal-name-prefix
 exit: 1
 -- necro.yaml --

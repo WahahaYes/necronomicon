@@ -1,5 +1,5 @@
 # godot-arch/no-res-writes flags ResourceSaver in game code; addons/ are left alone
-spec: Packs
+behavior: godot-arch-pack
 args: --format terse --rule godot-arch/no-res-writes
 exit: 1
 -- necro.yaml --

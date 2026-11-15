@@ -1,5 +1,5 @@
 # godot-arch/data-comment flags a comment in a scene or config file
-spec: Packs
+behavior: godot-arch-pack
 args: --format terse --rule godot-arch/data-comment
 exit: 1
 -- necro.yaml --
