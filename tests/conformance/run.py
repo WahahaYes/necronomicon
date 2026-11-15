@@ -21,7 +21,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 SECTION = re.compile(r"^-- (.+?) --$")
-HEADER_KEYS = {"spec", "args", "exit", "env", "git", "needs", "stdin", "untracked"}
+HEADER_KEYS = {"spec", "behavior", "args", "exit", "env", "git", "needs", "stdin", "untracked"}
 
 
 def parse(path):
@@ -177,6 +177,38 @@ def diff(name, want, got):
     return f"{name} differs:\n" + "\n".join(lines)
 
 
+CATALOG = HERE.parent.parent / "docs" / "BEHAVIORS.md"
+ENTRY = re.compile(r"^### `([a-z0-9-]+)`$")
+PROVED = re.compile(r"^\*\*Proved by:\*\* (.+)$")
+
+
+def catalog_problems():
+    """Where docs/BEHAVIORS.md and the cases' behavior: headers disagree."""
+    proved, slug = {}, None
+    for line in CATALOG.read_text(encoding="utf-8").split("\n"):
+        if m := ENTRY.match(line):
+            slug = m.group(1)
+            if slug in proved:
+                yield f"BEHAVIORS.md: {slug} is listed twice"
+            proved[slug] = set()
+        elif (m := PROVED.match(line)) and slug:
+            proved[slug] = set(re.findall(r"`([^`]+\.case)`", m.group(1)))
+    named = {}
+    for case in sorted((HERE / "cases").rglob("*.case")):
+        rel = case.relative_to(HERE / "cases").as_posix()
+        slug = parse(case)[0].get("behavior")
+        if slug is None:
+            continue
+        if slug not in proved:
+            yield f"{rel}: behavior {slug} isn't in BEHAVIORS.md"
+        named.setdefault(slug, set()).add(rel)
+    for slug, listed in proved.items():
+        for rel in sorted(named.get(slug, set()) - listed):
+            yield f"BEHAVIORS.md: {slug} doesn't list {rel}, which names it"
+        for rel in sorted(listed - named.get(slug, set())):
+            yield f"BEHAVIORS.md: {slug} lists {rel}, which doesn't name it"
+
+
 def main(argv):
     if "--" not in argv:
         sys.exit(__doc__.split("\n")[0])
@@ -204,7 +236,10 @@ def main(argv):
             print(f"ok   {name}")
     shutil.rmtree(bin_dir)
     print(f"conformance: {len(cases) - failed} of {len(cases)} passed")
-    return 1 if failed else 0
+    catalog = list(catalog_problems())
+    for problem in catalog:
+        print(f"FAIL catalog: {problem}")
+    return 1 if failed or catalog else 0
 
 
 if __name__ == "__main__":

@@ -14,7 +14,7 @@ One file per case, `cases/<area>/<name>.case`, read top to bottom:
 
 ```
 # what the case shows
-spec: <section>
+behavior: <slug>            # the docs/BEHAVIORS.md entry it proves (cases not yet moved say spec: <section>)
 args: --format terse        # shell-split
 exit: 1                     # default 0
 env: KEY=value …            # optional
@@ -30,6 +30,8 @@ untracked: <path> …         # optional: lay these files over but leave them un
 ```
 
 An `@file` body is the file's text, `-> <target>` for a symlink, or empty for no file at all; a line of `…` matches any number of lines.
+
+After the cases, the suite checks the catalog: each `behavior:` slug is an entry of [docs/BEHAVIORS.md](../../docs/BEHAVIORS.md), and each entry's **Proved by** list is exactly the cases naming it.
 
 Comparison drops `\r`, trailing whitespace and trailing blank lines, and writes the temp root as `<root>` and the engine's version (`--engine-version`) as `<version>`; nothing else is normalised. `@config-error` expects exit 2, empty stdout, and stderr lines `necro: config error: <file:line:col: key.path>: <any message>`, in order.
 

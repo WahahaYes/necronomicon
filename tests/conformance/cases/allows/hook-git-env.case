@@ -1,5 +1,5 @@
 # allows are found from the root, not from GIT_DIR and GIT_WORK_TREE, which git sets for hooks in a worktree
-spec: Allows
+behavior: allows-found-from-root
 args: -C sub --format terse
 env: GIT_DIR=<root>/.git
 -- necro.yaml --
