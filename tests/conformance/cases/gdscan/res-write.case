@@ -1,0 +1,23 @@
+# res-write finds ResourceSaver in code, but not in a @tool script, a string or a comment
+spec: Finders
+args: gdscan res-write
+-- src/gen.gd --
+extends SceneTree
+
+
+func _initialize() -> void:
+	ResourceSaver.save(preset, "res://data/baseline.tres")  # ResourceSaver again
+	print("ResourceSaver is not code here")
+-- src/editor_tool.gd --
+@tool
+extends EditorScript
+
+
+func _run() -> void:
+	ResourceSaver.save(preset, "res://data/baseline.tres")
+-- src/saver.gd --
+extends Node
+
+var MyResourceSaver := 1
+-- @stdout --
+src/gen.gd:5:2-14: ResourceSaver

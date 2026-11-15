@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- **`godot-arch/no-res-writes`** flags `ResourceSaver` in game code, outside `addons/` and `@tool` scripts, through a new `necro gdscan res-write` check: data is authored as `.tres` in the editor, and `res://` is read-only in an exported game.
 - **`godot-arch/data-comment`** flags full-line `;` comments in Godot's data files (`.tscn`, `.tres`, `.godot`, `.cfg`, `.gdextension`, `.import`), through a new `necro gdscan data-comment` check; Godot's own `project.godot` header and `;` lines inside multi-line string values are left alone.
 - **`gdscan doc-length` counts plain `#` comments as preamble**, so a class doc below a license header keeps the header limit (`--header`, 10 lines) rather than the item limit.
 - **`necro header`** keeps a fixed header, such as an SPDX license id and the project's link, at the top of each file, behind the comment marker for the file's extension (`--marker` adds one), above `@tool`, `extends` and `//!` docs; `--fix` writes it with a blank line after. The lines come from `--template <file>` or the command's words, so a list parameter can hold them; `--similar <percent>` recognizes and replaces an earlier version of the header.

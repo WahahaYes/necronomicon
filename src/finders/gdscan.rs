@@ -11,7 +11,7 @@ use super::tracked;
 use crate::args::{self, Spec};
 
 const USAGE: &str = "necro gdscan [--files-from <file>] [--header <n>] [--item <n>] \
-                     [--write [--only-at <file>]] (spacing|inline-lambda|doc-length|export-doc|uid|physics-context|resource-behavior|data-comment) [-- <pathspec>…]";
+                     [--write [--only-at <file>]] (spacing|inline-lambda|doc-length|export-doc|uid|physics-context|resource-behavior|res-write|data-comment) [-- <pathspec>…]";
 
 /// The checks `gdscan` knows.
 const CHECKS: &[&str] = &[
@@ -22,6 +22,7 @@ const CHECKS: &[&str] = &[
     "uid",
     "physics-context",
     "resource-behavior",
+    "res-write",
     "data-comment",
 ];
 
@@ -72,6 +73,7 @@ pub fn run(args: &[String]) -> Result<Vec<Hit>, String> {
         "export-doc" => export_doc,
         "physics-context" => physics_context,
         "resource-behavior" => resource_behavior,
+        "res-write" => res_write,
         _ => unreachable!("args::check accepted {check}"),
     };
     let markers = ["#".to_string()];
@@ -610,6 +612,42 @@ fn uid(pathspecs: &[String], only: Option<&HashSet<String>>) -> Result<Vec<Hit>,
         .collect();
     hits.sort_by(|a, b| a.path.cmp(&b.path));
     Ok(hits)
+}
+
+/// `res-write`: each `ResourceSaver` in the code of a file that isn't a `@tool` script.
+fn res_write(path: &str, src: &Source, _: usize, _: usize, hits: &mut Vec<Hit>) {
+    if is_tool(src) {
+        return;
+    }
+    for (n, _) in src.code.iter().enumerate() {
+        if src.in_string[n] {
+            continue;
+        }
+        for (col, end, label) in call_hits(
+            &src.lines[n],
+            &src.spans[n],
+            &[("ResourceSaver", "ResourceSaver")],
+        ) {
+            hits.push(Hit {
+                path: path.to_string(),
+                line: n + 1,
+                col,
+                endcol: Some(end),
+                label: label.to_string(),
+            });
+        }
+    }
+}
+
+/// Whether a top-level line annotates the script `@tool`.
+fn is_tool(src: &Source) -> bool {
+    src.code.iter().enumerate().any(|(n, line)| {
+        let trimmed = line.trim();
+        !src.in_string[n]
+            && src.depth[n] == 0
+            && line.len() == line.trim_start().len()
+            && (trimmed == "@tool" || trimmed.starts_with("@tool "))
+    })
 }
 
 /// Godot's data files, the pathspecs `data-comment` takes by default.
