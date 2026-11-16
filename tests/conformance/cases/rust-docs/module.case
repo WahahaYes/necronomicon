@@ -1,4 +1,4 @@
-# module: a file whose first line past blanks and inner attributes isn't //!; an empty file passes
+# module: a file whose first line past blanks, plain // comments and inner attributes isn't //!; an empty file passes
 behavior: rust-docs-module-doc-required
 args: rust-docs module
 -- src/a.rs --
@@ -14,8 +14,18 @@ pub fn f() {}
     feature(doc_cfg)
 )]
 fn g() {}
+-- src/headed.rs --
+// SPDX-License-Identifier: MIT
+//// A plain comment too.
+
+//! The doc after a license header.
+-- src/headed_bare.rs --
+// SPDX-License-Identifier: MIT
+
+fn h() {}
 -- src/empty.rs --
 
 -- @stdout --
 src/b.rs:1:1: no //! module doc
 src/c.rs:1:1: no //! module doc
+src/headed_bare.rs:1:1: no //! module doc

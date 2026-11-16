@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **`rust-style/module-doc` reads past a license header.** Plain `//` comments before the `//!` doc, where `necro header` writes its lines, no longer count as the file's first line, so the header no longer fails `module-doc` or the `pub mod` exemption of `doc-missing`.
+
 ## 0.5.3 - 2026-11-15
 
 - **`necro header`** keeps a fixed header, such as an SPDX license id and the project's link, at the top of source files, behind each extension's comment marker; `--fix` writes it. The lines come from `--template <file>` or the command's words, and `--similar <percent>` replaces an earlier version of the header.

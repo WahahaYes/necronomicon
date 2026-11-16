@@ -1,4 +1,4 @@
-# missing: a public item with no /// above it, past blank and attribute lines; restricted visibility, test items and a pub mod whose file opens with //! are exempt
+# missing: a public item with no /// above it, past blank and attribute lines; restricted visibility, test items and a pub mod whose file opens with //! (past plain // comments) are exempt
 behavior: rust-docs-missing-item-docs
 args: rust-docs missing
 -- src/lib.rs --
@@ -23,6 +23,7 @@ pub const fn make() {}
 pub async unsafe fn run() {}
 
 pub mod documented;
+pub mod headed;
 pub mod undocumented;
 
 #[cfg(test)]
@@ -35,8 +36,12 @@ impl Doc {
 }
 -- src/documented.rs --
 //! Has its own doc.
+-- src/headed.rs --
+// SPDX-License-Identifier: MIT
+//! Has its own doc below a license header.
 -- src/undocumented.rs --
 // a plain comment
+fn private() {}
 -- @stdout --
 src/lib.rs:7:1: struct Bare
 src/lib.rs:12:1: enum AfterAttribute
@@ -44,5 +49,5 @@ src/lib.rs:16:1: const LIMIT
 src/lib.rs:17:1: static COUNT
 src/lib.rs:18:1: fn make
 src/lib.rs:19:1: fn run
-src/lib.rs:22:1: mod undocumented
-src/lib.rs:30:5: fn method
+src/lib.rs:23:1: mod undocumented
+src/lib.rs:31:5: fn method
