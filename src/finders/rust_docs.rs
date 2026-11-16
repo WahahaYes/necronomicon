@@ -383,13 +383,14 @@ fn module_file_has_doc(path: &str, name: &str) -> bool {
     })
 }
 
-/// The first line that isn't blank or an inner attribute.
+/// The first line that isn't blank, a plain `//` comment or an inner attribute.
 fn first_content<'a>(lex: &Lexed, lines: &'a [String]) -> Option<&'a String> {
     lines
         .iter()
         .enumerate()
         .find(|(i, l)| {
             !l.trim().is_empty()
+                && !(l.trim_start().starts_with("//") && !is_doc(l))
                 && !(lex.attr[*i] && l.trim_start().starts_with("#!"))
                 && !inner_attr_tail(lines, &lex.attr, *i)
         })

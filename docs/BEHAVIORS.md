@@ -478,7 +478,7 @@ A bug fix adds a case to the behavior it broke. If no entry fits, add the entry 
 
 ### `rust-docs-module-doc-required`
 
-**Scenario:** Given `.rs` files, when necro rust-docs checks `module`, then a non-empty file whose first line past blanks and inner attributes isn't `//!` is a hit, while an empty file passes.
+**Scenario:** Given `.rs` files, when necro rust-docs checks `module`, then a non-empty file whose first line past blanks, plain `//` comments (a license header) and inner attributes isn't `//!` is a hit, while an empty file passes.
 
 **Spec:** [Finders](../spec/v0.md#finders)
 
