@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.5.4 - 2026-11-15
+
 - **`rust-style/module-doc` reads past a license header.** Plain `//` comments before the `//!` doc, where `necro header` writes its lines, no longer count as the file's first line, so the header no longer fails `module-doc` or the `pub mod` exemption of `doc-missing`.
 
 ## 0.5.3 - 2026-11-15
