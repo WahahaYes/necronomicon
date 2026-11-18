@@ -200,6 +200,14 @@ A bug fix adds a case to the behavior it broke. If no entry fits, add the entry 
 
 **Proved by:** `packs/python.case`
 
+### `python-style-pack`
+
+**Scenario:** Given `include: [necro:python-style]`, when necro runs, then it reports public modules, classes and functions with no docstring outside tests, `os.path` calls pathlib covers, and functions over ruff's complexity limit, leaving private names alone.
+
+**Spec:** [Packs](../spec/v0.md#necropython-style)
+
+**Proved by:** `packs/python-style.case`
+
 ### `gdscript-pack`
 
 **Scenario:** Given `include: [necro:gdscript]`, when necro runs, then it runs gdtoolkit's formatter, linter and parser, and its own guards for inline lambdas, tracked `.uid` files, Godot 3 legacy API, physics context, literal loads, class-name preloads, signal-name prefixes, and legacy TileMap.
