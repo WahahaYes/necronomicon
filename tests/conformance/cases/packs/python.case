@@ -1,4 +1,4 @@
-# necro:python runs ruff's defaults and formatter and its own selection: raise-from, is-compare, star-import, blanket-ignore, logging-fstring, and annotations outside tests
+# necro:python runs ruff's defaults and formatter, ty's type checks, and its own selection: raise-from, is-compare, star-import, blanket-ignore, logging-fstring, and annotations outside tests
 behavior: python-pack
 args: --format terse
 exit: 1
@@ -27,6 +27,8 @@ def report(value) -> None:
         print(lambda: i)
 -- src/fmt.py --
 x = {  "a":1 }
+-- src/t.py --
+count: int = "three"
 -- tests/test_a.py --
 def test_load(tmp_path):
     assert tmp_path
@@ -44,3 +46,5 @@ src/a.py:19:23: python/ruff a ruff diagnostic
 src/fmt.py: python/ruff-format a Python file ruff format would change
 src/a.py:2:1: python/star-import a star import, or a name that may come from one
 src/a.py:17:9: python/star-import a star import, or a name that may come from one
+src/a.py:17:25: python/types a type error ty reports
+src/t.py:1:14: python/types a type error ty reports

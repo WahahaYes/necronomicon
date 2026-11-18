@@ -1,0 +1,36 @@
+# each ty diagnostic at its span with the rule in parentheses; the repo's ty config applies: an allowed unresolved import, an excluded folder and a ty: ignore comment report nothing
+behavior: ty-reports-diagnostics
+args: ty
+-- pyproject.toml --
+[project]
+name = "x"
+version = "0"
+requires-python = ">=3.12"
+
+[tool.ty.src]
+exclude = ["gen"]
+
+[tool.ty.analysis]
+allowed-unresolved-imports = ["bpy", "bpy.**"]
+-- src/a.py --
+import re
+
+import bpy
+import nosuchmodule
+
+
+def first(text: str) -> str:
+    return re.match(r"\w+", text).group(0)
+
+
+def n(x: int) -> int:
+    return x.upper()  # ty: ignore[missing-attribute]
+
+
+y: int = "a"
+-- gen/g.py --
+z: int = "b"
+-- @stdout --
+src/a.py:4:8-19: Cannot resolve imported module `nosuchmodule` (import-not-found)
+src/a.py:8:12-39: Attribute `group` is not defined on `None` in union `Match[str] | None` (missing-union-attribute)
+src/a.py:15:10-12: Object of type `Literal["a"]` is not assignable to `int` (invalid-assignment)

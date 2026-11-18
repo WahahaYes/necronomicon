@@ -96,3 +96,27 @@ rules:
     examples:
       bad: 'def scale(points, factor):'
       good: 'def scale(points: list[Point], factor: float) -> list[Point]:'
+  types:
+    command: necro ty --except={skip}
+    files: '\.pyi?$|(^|/)(pyproject\.toml|ty\.toml|uv\.lock)$'
+    params: { skip: [] }
+    message: a type error ty reports
+    why: a value that can be None, or the wrong type, is a crash waiting for the input that triggers it; ty finds it from the code, before a test or a user does.
+    fix: handle the case ty names (check for None, narrow the type, fix the call), as `ty explain rule <rule>` describes. An import ty can't resolve is setup, not code; see details.
+    details: |
+      Every diagnostic ty gives with the repo's `[tool.ty]` configuration
+      and environment (the active virtualenv, else `.venv`); necro never
+      syncs it. For an import ty can't resolve: install the dependency
+      into the environment, list a folder of sibling modules in
+      `environment.extra-paths`, or, for a module only a host program
+      provides (Blender's `bpy`), list it in
+      `analysis.allowed-unresolved-imports`. `ty: ignore[<rule>]` comments
+      apply. `skip` drops ty rules by name everywhere, as does setting them
+      to "ignore" in `[tool.ty.rules]`.
+    examples:
+      bad: 'name = re.match(r"\w+", text).group(0)'
+      good: |-
+        match = re.match(r"\w+", text)
+        if match is None:
+            raise ValueError(f"no word in {text!r}")
+        name = match.group(0)

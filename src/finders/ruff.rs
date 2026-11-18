@@ -127,7 +127,10 @@ fn wanted(codes: &[String], others: bool, except: Vec<String>) -> Result<Wanted,
 
 /// Known `.py` and `.pyi` files matching the pathspecs (all of them when
 /// there are none), kept to `only` when given.
-fn py_files(pathspecs: &[String], only: Option<&HashSet<String>>) -> Result<Vec<String>, String> {
+pub(super) fn py_files(
+    pathspecs: &[String],
+    only: Option<&HashSet<String>>,
+) -> Result<Vec<String>, String> {
     let specs = if pathspecs.is_empty() {
         vec!["*.py".to_string(), "*.pyi".to_string()]
     } else {
@@ -164,7 +167,13 @@ fn ruff(args: &[&str], files: &[String]) -> Result<Vec<(i32, String, String)>, S
 }
 
 /// The diagnostics in ruff's JSON output, or a check error quoting ruff.
-fn diagnostics(code: i32, stdout: &str, stderr: &str, ok: &[i32]) -> Result<Vec<Value>, String> {
+pub(super) fn diagnostics(
+    program: &str,
+    code: i32,
+    stdout: &str,
+    stderr: &str,
+    ok: &[i32],
+) -> Result<Vec<Value>, String> {
     let parsed = serde_json::from_str::<Value>(stdout).ok();
     match parsed {
         Some(Value::Array(items)) if ok.contains(&code) => Ok(items),
@@ -175,20 +184,20 @@ fn diagnostics(code: i32, stdout: &str, stderr: &str, ok: &[i32]) -> Result<Vec<
                 .map(str::trim)
                 .filter(|l| !l.is_empty() && !l.starts_with("warning: No Python files found"))
                 .collect();
-            Err(format!("ruff exited {code}: {}", tail.join(" / ")))
+            Err(format!("{program} exited {code}: {}", tail.join(" / ")))
         }
     }
 }
 
 /// The working folder, resolved, to make ruff's absolute paths relative.
-fn here() -> Result<PathBuf, String> {
+pub(super) fn here() -> Result<PathBuf, String> {
     std::env::current_dir()
         .and_then(|d| d.canonicalize())
         .map_err(|e| format!("can't read the working folder: {e}"))
 }
 
 /// A path ruff printed, relative to the working folder.
-fn relative(here: &Path, file: &str) -> String {
+pub(super) fn relative(here: &Path, file: &str) -> String {
     let path = Path::new(file);
     let resolved = path.canonicalize().unwrap_or_else(|_| path.to_path_buf());
     resolved
@@ -199,7 +208,7 @@ fn relative(here: &Path, file: &str) -> String {
 }
 
 /// A number at `key` of a JSON location.
-fn at(location: &Value, key: &str) -> usize {
+pub(super) fn at(location: &Value, key: &str) -> usize {
     location
         .get(key)
         .and_then(Value::as_u64)
@@ -222,7 +231,7 @@ fn lint(files: &[String], wanted: &Wanted) -> Result<Vec<Hit>, String> {
     let here = here()?;
     let mut hits = Vec::new();
     for (code, stdout, stderr) in ruff(&args, files)? {
-        for d in diagnostics(code, &stdout, &stderr, &[0, 1])? {
+        for d in diagnostics("ruff", code, &stdout, &stderr, &[0, 1])? {
             let rule = d.get("code").and_then(Value::as_str).unwrap_or(SYNTAX);
             let keep = match wanted {
                 Wanted::Codes(codes) => codes.iter().any(|c| rule.starts_with(c.as_str())),
@@ -268,7 +277,7 @@ fn format(files: &[String], write: bool) -> Result<Vec<Hit>, String> {
     let here = here()?;
     let mut changed = Vec::new();
     for (code, stdout, stderr) in ruff(&args, files)? {
-        for d in diagnostics(code, &stdout, &stderr, &[0, 1, 2])? {
+        for d in diagnostics("ruff", code, &stdout, &stderr, &[0, 1, 2])? {
             if d.get("code").and_then(Value::as_str) != Some("unformatted") {
                 continue;
             }

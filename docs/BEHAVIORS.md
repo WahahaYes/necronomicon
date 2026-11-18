@@ -714,6 +714,24 @@ A bug fix adds a case to the behavior it broke. If no entry fits, add the entry 
 
 **Proved by:** `ruff/missing.case`
 
+## `necro ty`
+
+### `ty-reports-diagnostics`
+
+**Scenario:** Given `.py` files and the repo's ty configuration, when `ty` runs, then each diagnostic ty gives is a hit at its span with the rule in parentheses; allowed unresolved imports, excluded folders and `ty: ignore` comments report nothing, and `--except` drops the rules it names.
+
+**Spec:** [Finders](../spec/v0.md#finders)
+
+**Proved by:** `ty/check.case`, `ty/except.case`
+
+### `missing-ty-names-the-extra`
+
+**Scenario:** Given no `ty` on `PATH`, when `ty` runs, then it exits 2 naming the extra that installs ty beside necro.
+
+**Spec:** [Finders](../spec/v0.md#finders), [Packs](../spec/v0.md#packs)
+
+**Proved by:** `ty/missing.case`
+
 ## `necro header`
 
 ### `header-similar-range`

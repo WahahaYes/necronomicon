@@ -17,6 +17,7 @@ mod manifest;
 mod ruff;
 mod rust_docs;
 mod rustfmt;
+mod ty;
 
 /// A finder: its arguments after the name, to its hits or a usage error.
 type Finder = fn(&[String]) -> Result<Vec<command::Hit>, String>;
@@ -107,6 +108,12 @@ pub const FINDER_REGISTRY: &[FinderCapability] = &[
         run: rustfmt::run,
         narrowable: false,
         fix: Fix::Always,
+    },
+    FinderCapability {
+        name: "ty",
+        run: ty::run,
+        narrowable: true,
+        fix: Fix::No,
     },
 ];
 
