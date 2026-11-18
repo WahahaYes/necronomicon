@@ -1,0 +1,6 @@
+# an allow in an untracked file git doesn't ignore suppresses its hit, as that file's hits count before it's staged
+behavior: allow-suppresses-hit
+args: --format terse
+untracked: src/new.gd
+-- src/new.gd --
+var b = "donkey"  # necro-allow banned-word: a new file, not staged yet
