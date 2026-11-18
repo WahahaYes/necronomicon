@@ -20,6 +20,7 @@ exit: 1                     # default 0
 env: KEY=value …            # optional
 git: false                  # optional: leave it outside git
 untracked: <path> …         # optional: lay these files over but leave them untracked
+exec: <path> …              # optional: make these files executable, such as a fake tool for `env: PATH=<root>/bin:…`
 -- src/a.ts --              # a file laid over base/; an empty body deletes it
 …
 -- .claude/skills/a -> ../../.agents/skills/a --  # a symlink to the target
