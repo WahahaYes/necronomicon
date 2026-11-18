@@ -108,7 +108,7 @@ As a hook for [prek](https://github.com/j178/prek) or pre-commit, which installs
       require_serial: true
 ```
 
-For `necro:gdscript`, install `necronomicon[gdscript]` instead, which pins gdtoolkit beside necro; its `compile` and `warnings` rules also need `godot` on `PATH`.
+For `necro:gdscript`, install `necronomicon[gdscript]` instead, which pins gdtoolkit beside necro; its `compile` and `warnings` rules also need the Godot version `project.godot` names, as `godot` on `PATH` or `$GODOT`.
 
 The runner passes the changed files, so a commit runs only the rules that concern them, and `--fix` applies the fixes rules carry, failing the commit until you re-stage, as a formatter does; in CI, `prek run --from-ref origin/main --to-ref HEAD` (or `pre-commit run`, the same) does it for a branch — that from-ref/to-ref form is the standard adopter pattern, and this repo dogfoods it through `make check` (every hook on every file) plus a full `make necro`. `necro` with no files checks everything.
 

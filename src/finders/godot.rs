@@ -88,6 +88,7 @@ pub fn run(args: &[String]) -> Result<Vec<Hit>, String> {
         .filter(|p| p.ends_with(".gd"))
         .collect();
     let mut hits = Vec::new();
+    let mut version: Option<(u32, u32)> = None;
     for project in &projects {
         let listed = only
             .as_ref()
@@ -102,6 +103,12 @@ pub fn run(args: &[String]) -> Result<Vec<Hit>, String> {
         files.sort();
         if files.is_empty() {
             continue;
+        }
+        if version.is_none() {
+            version = Some(godot_version()?);
+        }
+        if let Some(have) = version {
+            same_version(&here, project, have)?;
         }
         let wanted: HashSet<&String> = files.iter().collect();
         let res: Vec<String> = files
@@ -222,20 +229,80 @@ fn messages(project: &Path, res: &[String]) -> Result<Vec<Message>, String> {
     Ok(found)
 }
 
-/// Start `godot` with stdin closed, so its debugger never waits for input.
+/// The Godot to run: `$GODOT` when set, else `godot` on PATH.
+fn program() -> Option<String> {
+    std::env::var("GODOT").ok().filter(|g| !g.is_empty())
+}
+
+/// Start Godot with stdin closed, so its debugger never waits for input.
 fn godot(args: &[&str]) -> Result<std::process::Output, String> {
-    match Command::new("godot")
+    let named = program();
+    let run = Command::new(named.as_deref().unwrap_or("godot"))
         .args(args)
         .stdin(Stdio::null())
-        .output()
-    {
-        Ok(o) => Ok(o),
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Err(
-            "godot isn't on PATH; install the Godot version project.godot names, or disable gdscript/compile and gdscript/warnings"
+        .output();
+    match (run, named) {
+        (Ok(o), _) => Ok(o),
+        (Err(e), Some(g)) => Err(format!("can't run $GODOT ({g}): {e}")),
+        (Err(e), None) if e.kind() == std::io::ErrorKind::NotFound => Err(
+            "godot isn't on PATH; install the Godot version project.godot names (or set $GODOT to it), or disable gdscript/compile and gdscript/warnings"
                 .to_string(),
         ),
-        Err(e) => Err(format!("can't run godot: {e}")),
+        (Err(e), None) => Err(format!("can't run godot: {e}")),
     }
+}
+
+/// The oldest Godot whose analyzer prints warnings when a script loads.
+const FLOOR: (u32, u32) = (4, 5);
+
+/// The major.minor of a version string such as `4.7.2.stable.official`.
+fn major_minor(text: &str) -> Option<(u32, u32)> {
+    let mut parts = text.trim().split('.');
+    let major = parts.next()?.parse().ok()?;
+    let minor = parts.next()?.parse().ok()?;
+    Some((major, minor))
+}
+
+/// `godot --version`'s major.minor, at least the floor.
+fn godot_version() -> Result<(u32, u32), String> {
+    let out = godot(&["--version"])?;
+    let text = String::from_utf8_lossy(&out.stdout);
+    let line = text.lines().rev().find(|l| major_minor(l).is_some());
+    let Some(have) = line.and_then(major_minor) else {
+        return Err(format!(
+            "godot --version printed no version: {}",
+            text.trim()
+        ));
+    };
+    if have < FLOOR {
+        return Err(format!(
+            "godot is Godot {}.{}; necro needs {}.{} or later, which prints GDScript warnings",
+            have.0, have.1, FLOOR.0, FLOOR.1
+        ));
+    }
+    Ok(have)
+}
+
+/// That `project.godot` names the Godot that's running, by major.minor.
+fn same_version(here: &Path, project: &Path, have: (u32, u32)) -> Result<(), String> {
+    let file = project.join("project.godot");
+    let name = rel(here, &file);
+    let text = std::fs::read_to_string(&file).map_err(|e| format!("can't read {name}: {e}"))?;
+    let named = Regex::new(r#"config/features\s*=\s*PackedStringArray\(\s*"([0-9]+\.[0-9]+)"#)
+        .ok()
+        .and_then(|r| r.captures(&text).map(|c| c[1].to_string()));
+    let Some(want) = named.as_deref().and_then(major_minor) else {
+        return Err(format!(
+            "{name} names no Godot version (config/features); save it once in the Godot editor"
+        ));
+    };
+    if want != have {
+        return Err(format!(
+            "godot is Godot {}.{}, but {name} is edited with {}.{}; run that version, as `godot` on PATH or $GODOT",
+            have.0, have.1, want.0, want.1
+        ));
+    }
+    Ok(())
 }
 
 /// `godot --headless --import`, which writes the class cache under `.godot/`.

@@ -178,8 +178,9 @@ rules:
     why: Godot's analyzer is the only check that knows the types; a script it can't load fails the moment a scene uses it, and gdtoolkit's parser accepts it.
     fix: fix the error at the line shown; on a script whose dependency fails, fix that script first. `godot --headless --path . --check-only --script res://<file>` shows the full message.
     details: |
-      Each project's scripts load in one headless Godot (the repo's own
-      `godot` on PATH), as a running game would, so autoloads and
+      Each project's scripts load in one headless Godot (`$GODOT`, else
+      `godot` on PATH; 4.5 or later, the major.minor `project.godot`
+      names), as a running game would, so autoloads and
       `class_name`s resolve. Type errors, unknown identifiers and parse
       errors count. A narrowed run loads only the changed scripts. A
       project without its `.godot/` class cache is imported first. A

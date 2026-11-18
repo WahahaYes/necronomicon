@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- **`necro:gdscript` runs Godot's analyzer.** `gdscript/compile` reports scripts Godot can't load (type errors, unknown identifiers, a failing dependency) and `gdscript/warnings` the GDScript warnings `project.godot` turns on, which gdtoolkit never saw. Both load the scripts in one headless Godot through the new `necro godot` finder, using the repo's own `godot` on `PATH`; a commit-hook run loads only the changed scripts, and a project without its class cache is imported first. **A repo using `necro:gdscript` now needs `godot` on `PATH` wherever necro runs**, or `disable: [gdscript/compile, gdscript/warnings]`; existing warnings go in the baseline.
+- **`necro:gdscript` runs Godot's analyzer.** `gdscript/compile` reports scripts Godot can't load (type errors, unknown identifiers, a failing dependency) and `gdscript/warnings` the GDScript warnings `project.godot` turns on, which gdtoolkit never saw. Both load the scripts in one headless Godot through the new `necro godot` finder, using the repo's own Godot (`$GODOT`, else `godot` on `PATH`); a commit-hook run loads only the changed scripts, and a project without its class cache is imported first. The Godot must be 4.5 or later and match the major.minor `project.godot` names, since the analyzer's findings change between releases. **A repo using `necro:gdscript` now needs that Godot wherever necro runs**, or `disable: [gdscript/compile, gdscript/warnings]`; existing warnings go in the baseline.
 
 ## 0.5.4 - 2026-11-15
 

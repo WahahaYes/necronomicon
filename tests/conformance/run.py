@@ -134,7 +134,7 @@ def run_case(path, engine, bin_dir, version):
             shlex.split(header.get("untracked", "")),
             shlex.split(header.get("exec", "")),
         )
-        env = {k: v for k, v in os.environ.items() if k not in ("CI", "NO_COLOR")}
+        env = {k: v for k, v in os.environ.items() if k not in ("CI", "NO_COLOR", "GODOT")}
         env["NO_COLOR"] = "1"
         env["PATH"] = f"{bin_dir}{os.pathsep}{env.get('PATH', '')}"
         for pair in shlex.split(header.get("env", "")):

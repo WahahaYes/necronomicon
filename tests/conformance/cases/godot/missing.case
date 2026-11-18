@@ -5,7 +5,11 @@ env: PATH=/usr/bin:/bin
 exit: 2
 -- project.godot --
 config_version=5
+
+[application]
+
+config/features=PackedStringArray("4.7", "Forward Plus")
 -- src/a.gd --
 extends Node
 -- @stderr --
-necro: godot: godot isn't on PATH; install the Godot version project.godot names, or disable gdscript/compile and gdscript/warnings
+necro: godot: godot isn't on PATH; install the Godot version project.godot names (or set $GODOT to it), or disable gdscript/compile and gdscript/warnings

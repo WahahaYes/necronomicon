@@ -682,6 +682,14 @@ A bug fix adds a case to the behavior it broke. If no entry fits, add the entry 
 
 **Proved by:** `godot/import-exit.case`, `godot/import.case`, `godot/stale.case`
 
+### `godot-runs-the-version-the-project-names`
+
+**Scenario:** Given a Godot project, when `godot` runs, then it uses `$GODOT` or `godot` on `PATH`, and stops with an error naming both versions when that Godot's major.minor differs from the version `project.godot` names, when `project.godot` names none, or when the Godot is older than 4.5.
+
+**Spec:** [Finders](../spec/v0.md#finders)
+
+**Proved by:** `godot/godot-env.case`, `godot/version-floor.case`, `godot/version-mismatch.case`, `godot/version-unnamed.case`
+
 ### `missing-godot-says-what-to-do`
 
 **Scenario:** Given no `godot` on `PATH`, when `godot` runs, then it exits 2 saying to install Godot or disable the two rules.
