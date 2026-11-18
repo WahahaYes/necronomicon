@@ -44,6 +44,9 @@ const STALE: &[&str] = &[
     "Could not resolve class",
 ];
 
+/// The class cache an import writes, which the analyzer needs.
+const CACHE: &str = ".godot/global_script_class_cache.cfg";
+
 /// What a dependency's failure says on the scripts that load it.
 const DEPENDED: &str = "Failed to compile depended scripts";
 
@@ -204,10 +207,7 @@ fn rel(here: &Path, abs: &Path) -> String {
 /// when it has no class cache, or again when an error reads as a stale one.
 fn messages(project: &Path, res: &[String]) -> Result<Vec<Message>, String> {
     let mut imported = false;
-    if !project
-        .join(".godot/global_script_class_cache.cfg")
-        .is_file()
-    {
+    if !project.join(CACHE).is_file() {
         import(project)?;
         imported = true;
     }
@@ -242,7 +242,9 @@ fn godot(args: &[&str]) -> Result<std::process::Output, String> {
 fn import(project: &Path) -> Result<(), String> {
     let path = project.to_string_lossy();
     let out = godot(&["--headless", "--path", &path, "--import"])?;
-    if out.status.success() {
+    // Godot's .NET builds exit nonzero importing a project without C#, yet
+    // write the cache: the cache, not the exit code, says it worked.
+    if project.join(CACHE).is_file() {
         return Ok(());
     }
     let text = String::from_utf8_lossy(&out.stderr);

@@ -1,0 +1,45 @@
+# an import that exits nonzero but writes the class cache, as Godot's .NET builds do on a project without C#, counts as done
+behavior: godot-imports-when-the-cache-is-missing-or-stale
+args: godot compile
+exec: bin/godot
+env: PATH=<root>/bin:/usr/bin:/bin
+-- bin/godot --
+#!/bin/sh
+# Fake godot: logs each call to calls.log; --import marks the project
+# imported; a check prints the project's out.txt (stale.txt until imported).
+project=.
+import=no
+last=
+prev=
+for a in "$@"; do
+  [ "$prev" = "--path" ] && project=$a
+  [ "$a" = "--import" ] && import=yes
+  prev=$a
+  last=$a
+done
+if [ "$import" = yes ]; then
+  echo "import $project" >> calls.log
+  mkdir -p "$project/.godot" && touch "$project/.godot/imported" "$project/.godot/global_script_class_cache.cfg"
+  echo 'ERROR: Parameter "singleton" is null.' >&2
+  exit 1
+fi
+echo "check $project" >> calls.log
+sed 's/^/  /' "$last" >> calls.log
+if [ -f "$project/stale.txt" ] && [ ! -f "$project/.godot/imported" ]; then
+  cat "$project/stale.txt" >&2
+else
+  cat "$project/out.txt" >&2
+fi
+-- project.godot --
+config_version=5
+-- src/bad.gd --
+extends Node
+-- out.txt --
+SCRIPT ERROR: Parse Error: Cannot assign a value of type "String" as "int".
+          at: GDScript::reload (res://src/bad.gd:5)
+-- @stdout --
+src/bad.gd:5: Cannot assign a value of type "String" as "int".
+-- @file calls.log --
+import <root>
+check <root>
+  res://src/bad.gd

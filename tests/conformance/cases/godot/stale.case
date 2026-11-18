@@ -19,7 +19,7 @@ for a in "$@"; do
 done
 if [ "$import" = yes ]; then
   echo "import $project" >> calls.log
-  mkdir -p "$project/.godot" && touch "$project/.godot/imported"
+  mkdir -p "$project/.godot" && touch "$project/.godot/imported" "$project/.godot/global_script_class_cache.cfg"
   exit 0
 fi
 echo "check $project" >> calls.log

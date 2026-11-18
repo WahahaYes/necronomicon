@@ -676,11 +676,11 @@ A bug fix adds a case to the behavior it broke. If no entry fits, add the entry 
 
 ### `godot-imports-when-the-cache-is-missing-or-stale`
 
-**Scenario:** Given a project with no class cache, or an error that reads as a stale one, when `godot` runs, then it imports the project once and checks again.
+**Scenario:** Given a project with no class cache, or an error that reads as a stale one, when `godot` runs, then it imports the project once and checks again; an import counts as done when it leaves the class cache, whatever its exit code.
 
 **Spec:** [Finders](../spec/v0.md#finders)
 
-**Proved by:** `godot/import.case`, `godot/stale.case`
+**Proved by:** `godot/import-exit.case`, `godot/import.case`, `godot/stale.case`
 
 ### `missing-godot-says-what-to-do`
 
