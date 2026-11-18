@@ -11,6 +11,7 @@ mod clippy;
 mod gdscan;
 mod gdscript;
 mod gdtoolkit;
+mod godot;
 mod grep;
 mod header;
 mod manifest;
@@ -76,6 +77,12 @@ pub const FINDER_REGISTRY: &[FinderCapability] = &[
         run: gdtoolkit::run,
         narrowable: true,
         fix: Fix::WithCheck(&["format"]),
+    },
+    FinderCapability {
+        name: "godot",
+        run: godot::run,
+        narrowable: true,
+        fix: Fix::No,
     },
     FinderCapability {
         name: "grep",

@@ -1,0 +1,49 @@
+# an error that reads as a stale class cache imports once and checks again; what remains after is reported
+behavior: godot-imports-when-the-cache-is-missing-or-stale
+args: godot compile
+exec: bin/godot
+env: PATH=<root>/bin:/usr/bin:/bin
+-- bin/godot --
+#!/bin/sh
+# Fake godot: logs each call to calls.log; --import marks the project
+# imported; a check prints the project's out.txt (stale.txt until imported).
+project=.
+import=no
+last=
+prev=
+for a in "$@"; do
+  [ "$prev" = "--path" ] && project=$a
+  [ "$a" = "--import" ] && import=yes
+  prev=$a
+  last=$a
+done
+if [ "$import" = yes ]; then
+  echo "import $project" >> calls.log
+  mkdir -p "$project/.godot" && touch "$project/.godot/imported"
+  exit 0
+fi
+echo "check $project" >> calls.log
+sed 's/^/  /' "$last" >> calls.log
+if [ -f "$project/stale.txt" ] && [ ! -f "$project/.godot/imported" ]; then
+  cat "$project/stale.txt" >&2
+else
+  cat "$project/out.txt" >&2
+fi
+-- project.godot --
+config_version=5
+-- .godot/global_script_class_cache.cfg --
+list=[]
+-- src/bank.gd --
+extends Node
+-- stale.txt --
+SCRIPT ERROR: Parse Error: Could not find base class "Action".
+          at: GDScript::reload (res://src/bank.gd:2)
+-- out.txt --
+Godot Engine v4.7.2.stable.official - https://godotengine.org
+-- @stdout --
+-- @file calls.log --
+check <root>
+  res://src/bank.gd
+import <root>
+check <root>
+  res://src/bank.gd

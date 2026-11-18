@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **`necro:gdscript` runs Godot's analyzer.** `gdscript/compile` reports scripts Godot can't load (type errors, unknown identifiers, a failing dependency) and `gdscript/warnings` the GDScript warnings `project.godot` turns on, which gdtoolkit never saw. Both load the scripts in one headless Godot through the new `necro godot` finder, using the repo's own `godot` on `PATH`; a commit-hook run loads only the changed scripts, and a project without its class cache is imported first. **A repo using `necro:gdscript` now needs `godot` on `PATH` wherever necro runs**, or `disable: [gdscript/compile, gdscript/warnings]`; existing warnings go in the baseline.
+
 ## 0.5.4 - 2026-11-15
 
 - **`rust-style/module-doc` reads past a license header.** Plain `//` comments before the `//!` doc, where `necro header` writes its lines, no longer count as the file's first line, so the header no longer fails `module-doc` or the `pub mod` exemption of `doc-missing`.
