@@ -648,6 +648,56 @@ A bug fix adds a case to the behavior it broke. If no entry fits, add the entry 
 
 **Proved by:** `gdtoolkit/write.case`
 
+## `necro ruff`
+
+### `ruff-check-reports-given-codes`
+
+**Scenario:** Given `.py` files and the repo's ruff configuration, when `ruff check <code>…` runs, then each diagnostic for those codes is a hit at its span with the code in parentheses; the repo's `ignore` doesn't drop them, `per-file-ignores` and `noqa` do, and a code under a prefix of the set reports only that code.
+
+**Spec:** [Finders](../spec/v0.md#finders)
+
+**Proved by:** `ruff/check.case`, `ruff/prefix.case`
+
+### `ruff-others-reports-other-diagnostics`
+
+**Scenario:** Given `.py` files, when `ruff check --others` runs, then every diagnostic outside necro's fixed set and `--except` is a hit, from ruff's defaults or the repo's selection, a `noqa` for a set code isn't reported unused, and a file ruff can't parse is an `invalid-syntax` hit.
+
+**Spec:** [Finders](../spec/v0.md#finders)
+
+**Proved by:** `ruff/others.case`
+
+### `ruff-rejects-bad-code-arguments`
+
+**Scenario:** Given a code outside necro ruff's set, or codes with `--others`, when `ruff check` runs, then it exits 2 with a usage error.
+
+**Spec:** [Finders](../spec/v0.md#finders)
+
+**Proved by:** `ruff/others-usage.case`, `ruff/unknown-code.case`
+
+### `ruff-format-flags-files-it-would-change`
+
+**Scenario:** Given `.py` files `ruff format` would change, when `ruff format` runs, then each is a whole-file hit, skipping files the repo's configuration excludes and files ruff can't parse.
+
+**Spec:** [Finders](../spec/v0.md#finders)
+
+**Proved by:** `ruff/format.case`
+
+### `ruff-write-reformats-files`
+
+**Scenario:** Given files `ruff format` would change, when `ruff --write --only-at <file> format` runs, then it reformats the files named there and names each.
+
+**Spec:** [Finders](../spec/v0.md#finders), [Fixes](../spec/v0.md#fixes)
+
+**Proved by:** `ruff/write.case`
+
+### `missing-ruff-names-the-extra`
+
+**Scenario:** Given no `ruff` on `PATH`, when `ruff check` runs, then it exits 2 naming the extra that installs ruff beside necro.
+
+**Spec:** [Finders](../spec/v0.md#finders), [Packs](../spec/v0.md#packs)
+
+**Proved by:** `ruff/missing.case`
+
 ## `necro header`
 
 ### `header-similar-range`

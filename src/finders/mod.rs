@@ -14,6 +14,7 @@ mod gdtoolkit;
 mod grep;
 mod header;
 mod manifest;
+mod ruff;
 mod rust_docs;
 mod rustfmt;
 
@@ -88,6 +89,12 @@ pub const FINDER_REGISTRY: &[FinderCapability] = &[
         run: header::run,
         narrowable: true,
         fix: Fix::Always,
+    },
+    FinderCapability {
+        name: "ruff",
+        run: ruff::run,
+        narrowable: true,
+        fix: Fix::WithCheck(&["format"]),
     },
     FinderCapability {
         name: "rust-docs",

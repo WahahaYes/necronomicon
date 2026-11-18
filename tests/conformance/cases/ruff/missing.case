@@ -1,0 +1,9 @@
+# without ruff on PATH, the finder names the extra that installs it
+behavior: missing-ruff-names-the-extra
+args: ruff check B904
+env: PATH=/usr/bin:/bin
+exit: 2
+-- src/a.py --
+x = 1
+-- @stderr --
+necro: ruff: ruff isn't on PATH; install necronomicon[python], which pins ruff beside necro
