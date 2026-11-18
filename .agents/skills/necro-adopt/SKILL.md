@@ -7,11 +7,11 @@ description: Set up necro (necronomicon) in a repo, house rules run as pre-commi
 
 ## 1. Install
 
-`uv tool install necronomicon` or `pip install necronomicon` (a wheel around the binary), or `cargo install necronomicon`. For Godot, install `necronomicon[gdscript]` instead, which pins gdtoolkit beside the binary. Check with `necro --version`.
+`uv tool install necronomicon` or `pip install necronomicon` (a wheel around the binary), or `cargo install necronomicon`. For Godot, install `necronomicon[gdscript]` instead, which pins gdtoolkit beside the binary; for Python, `necronomicon[python]`, which pins ruff. Check with `necro --version`.
 
 ## 2. necro.yaml
 
-At the repo top: `version: 0`, then `include:` the packs for what the repo holds: `necro:rust` (and the opt-in `necro:rust-style`) for Rust, `necro:gdscript` (and the opt-in `necro:gdscript-style`) for Godot, `necro:agent-files` when it has `AGENTS.md` or skills. If its main language has no pack, tell the user; they can ask for one with the [pack suggestion form](https://github.com/WahahaYes/necronomicon/issues/new?template=pack-suggestion.yml). A top-level `exclude:` leaves out vendored code and fixtures.
+At the repo top: `version: 0`, then `include:` the packs for what the repo holds: `necro:rust` (and the opt-in `necro:rust-style`) for Rust, `necro:gdscript` (and the opt-in `necro:gdscript-style`) for Godot, `necro:python` for Python (it replaces ruff's own hooks), `necro:agent-files` when it has `AGENTS.md` or skills. If its main language has no pack, tell the user; they can ask for one with the [pack suggestion form](https://github.com/WahahaYes/necronomicon/issues/new?template=pack-suggestion.yml). A top-level `exclude:` leaves out vendored code and fixtures.
 
 ## 3. Rules from what's there
 

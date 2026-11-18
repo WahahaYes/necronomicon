@@ -192,6 +192,14 @@ A bug fix adds a case to the behavior it broke. If no entry fits, add the entry 
 
 **Proved by:** `packs/rust-clippy.case`
 
+### `python-pack`
+
+**Scenario:** Given `include: [necro:python]`, when necro runs, then it runs ruff's diagnostics and formatter with the repo's configuration, and the codes ruff's defaults leave off: exceptions raised without `from`, `==` against None or a type, star imports, blanket suppressions, f-strings in logging calls, and missing annotations outside tests.
+
+**Spec:** [Packs](../spec/v0.md#necropython)
+
+**Proved by:** `packs/python.case`
+
 ### `gdscript-pack`
 
 **Scenario:** Given `include: [necro:gdscript]`, when necro runs, then it runs gdtoolkit's formatter, linter and parser, and its own guards for inline lambdas, tracked `.uid` files, Godot 3 legacy API, physics context, literal loads, class-name preloads, signal-name prefixes, and legacy TileMap.
