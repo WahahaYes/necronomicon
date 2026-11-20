@@ -1,0 +1,6 @@
+# a code outside necro ruff's set is a usage error
+behavior: ruff-rejects-bad-code-arguments
+args: ruff check B904 E501
+exit: 2
+-- @stderr --
+necro: ruff: E501 isn't one of necro ruff's codes: ANN001, ANN201, B904, C901, D100, D101, D102, D103, E711, E721, F403, F405, G004, PGH003, PGH004, PTH

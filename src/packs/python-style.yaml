@@ -1,0 +1,40 @@
+# The necro:python-style pack (spec: Packs), built into the binary: opt-in
+# house style for Python beside necro:python. Rule names get the
+# `python-style/` prefix. Commands use only `necro ruff`, with the repo's
+# ruff configuration.
+rules:
+  doc-missing:
+    command: necro ruff check D100 D101 D102 D103
+    files: '\.pyi?$|(^|/)(pyproject\.toml|\.?ruff\.toml)$'
+    exclude: '(^|/)(tests?/|test_[^/]*\.py$|[^/]*_test\.py$|conftest\.py$)'
+    message: a public module, class or function with no docstring
+    why: a public name is the surface another reader, often an agent, relies on before changing the code; without a docstring they rebuild its promise from the body.
+    fix: add a one-line docstring saying what it does or guarantees, not how.
+    details: |
+      Modules, and public classes, methods and functions: a name starting
+      with `_` is private and exempt, and so are dunder methods. Tests are
+      excluded by path (`test/`, `tests/`, `test_*.py`, `*_test.py`,
+      `conftest.py`); a repo changes that with `override`.
+    examples:
+      bad: 'def scale(points: list[Point], factor: float) -> list[Point]:'
+      good: |-
+        def scale(points: list[Point], factor: float) -> list[Point]:
+            """Each point moved away from the origin by factor."""
+  pathlib:
+    command: necro ruff check PTH
+    files: '\.pyi?$|(^|/)(pyproject\.toml|\.?ruff\.toml)$'
+    message: an os.path or os call that pathlib covers
+    why: '`Path` keeps a path a path: joining, reading and checking it are methods on one type, so strings and paths don''t mix halfway through a function.'
+    fix: 'use `pathlib.Path`: `root / "a"` for `os.path.join`, `p.read_text()` for `open(p).read()`, `p.exists()` for `os.path.exists(p)`.'
+    examples:
+      bad: 'config = os.path.join(root, "config.toml")'
+      good: 'config = root / "config.toml"'
+  complexity:
+    command: necro ruff check C901
+    files: '\.pyi?$|(^|/)(pyproject\.toml|\.?ruff\.toml)$'
+    message: a function with too many branches to follow
+    why: each branch is a path a reader holds in mind and a test must reach; past a dozen, changes start breaking paths nobody was thinking about.
+    fix: pull the branches apart into named helpers, or replace a chain of conditions with a table or early returns.
+    details: |
+      McCabe complexity over ruff's limit, 10 unless the repo's ruff
+      configuration sets `lint.mccabe.max-complexity`.

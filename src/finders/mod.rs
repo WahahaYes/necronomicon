@@ -14,8 +14,10 @@ mod gdtoolkit;
 mod grep;
 mod header;
 mod manifest;
+mod ruff;
 mod rust_docs;
 mod rustfmt;
+mod ty;
 
 /// A finder: its arguments after the name, to its hits or a usage error.
 type Finder = fn(&[String]) -> Result<Vec<command::Hit>, String>;
@@ -90,6 +92,12 @@ pub const FINDER_REGISTRY: &[FinderCapability] = &[
         fix: Fix::Always,
     },
     FinderCapability {
+        name: "ruff",
+        run: ruff::run,
+        narrowable: true,
+        fix: Fix::WithCheck(&["format"]),
+    },
+    FinderCapability {
         name: "rust-docs",
         run: rust_docs::run,
         narrowable: true,
@@ -100,6 +108,12 @@ pub const FINDER_REGISTRY: &[FinderCapability] = &[
         run: rustfmt::run,
         narrowable: false,
         fix: Fix::Always,
+    },
+    FinderCapability {
+        name: "ty",
+        run: ty::run,
+        narrowable: true,
+        fix: Fix::No,
     },
 ];
 

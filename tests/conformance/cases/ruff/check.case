@@ -1,0 +1,33 @@
+# check <code>…: each diagnostic for the codes at its span, code in parentheses; the repo's ignore doesn't drop a set code, per-file-ignores and noqa do; other codes and parse failures aren't reported
+behavior: ruff-check-reports-given-codes
+args: ruff check B904 E711
+-- pyproject.toml --
+[tool.ruff.lint]
+ignore = ["E711"]
+per-file-ignores = { "src/skip.py" = ["B904"] }
+-- src/a.py --
+import os
+
+
+def f(d):
+    try:
+        return d["k"]
+    except KeyError:
+        raise ValueError("no k")
+
+
+if f == None:
+    pass
+if f == None:  # noqa: E711
+    pass
+-- src/skip.py --
+def f(d):
+    try:
+        return d["k"]
+    except KeyError:
+        raise ValueError("no k")
+-- src/bad.py --
+def f(:
+-- @stdout --
+src/a.py:8:9-32: Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling (B904)
+src/a.py:11:9-12: Comparison to `None` should be `cond is None` (E711)
