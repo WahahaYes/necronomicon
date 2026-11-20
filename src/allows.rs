@@ -28,10 +28,11 @@ pub struct Found {
     pub reason: Option<String>,
 }
 
-/// Every allow in the tracked files under `root`.
+/// Every allow under `root`, in tracked files and untracked ones git
+/// doesn't ignore: the files the file finders read.
 pub fn find(root: &Path) -> Result<Vec<Allow>, String> {
     let out = crate::files::git()
-        .args(["grep", "-l", "-z", "-I", "-F", "-e", ALLOW])
+        .args(["grep", "--untracked", "-l", "-z", "-I", "-F", "-e", ALLOW])
         .current_dir(root)
         .output()
         .map_err(|e| format!("can't run git grep: {e}"))?;

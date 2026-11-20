@@ -1004,7 +1004,7 @@ A bug fix adds a case to the behavior it broke. If no entry fits, add the entry 
 
 **Spec:** [Allows](../spec/v0.md#allows)
 
-**Proved by:** `allows/suppress.case`, `allows/two-on-a-line.case`, `allows/whole-file.case`
+**Proved by:** `allows/suppress.case`, `allows/two-on-a-line.case`, `allows/untracked.case`, `allows/whole-file.case`
 
 ### `allow-needs-a-reason`
 
