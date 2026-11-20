@@ -1,0 +1,71 @@
+# necro:gdscript loads each project's scripts in Godot: compile reports what stops a script loading, warnings what project.godot turns on
+behavior: gdscript-pack
+args: --format terse
+exec: bin/godot
+env: PATH=<root>/bin:/usr/bin:/bin
+exit: 1
+-- necro.yaml --
+version: 0
+include: [necro:gdscript]
+disable: [gdscript/gdformat, gdscript/gdlint, gdscript/parse]
+-- bin/godot --
+#!/bin/sh
+# Fake godot: logs each call to calls.log; --import marks the project
+# imported; a check prints the project's out.txt (stale.txt until imported);
+# --version prints $FAKE_GODOT_VERSION, 4.7.2 by default.
+if [ "$1" = "--version" ]; then
+  echo "${FAKE_GODOT_VERSION:-4.7.2.stable.official.ed1daf0bf}"
+  exit 0
+fi
+project=.
+import=no
+last=
+prev=
+for a in "$@"; do
+  [ "$prev" = "--path" ] && project=$a
+  [ "$a" = "--import" ] && import=yes
+  prev=$a
+  last=$a
+done
+if [ "$import" = yes ]; then
+  echo "import $project" >> calls.log
+  mkdir -p "$project/.godot" && touch "$project/.godot/imported" "$project/.godot/global_script_class_cache.cfg"
+  exit 0
+fi
+echo "check $project" >> calls.log
+sed 's/^/  /' "$last" >> calls.log
+if [ -f "$project/stale.txt" ] && [ ! -f "$project/.godot/imported" ]; then
+  cat "$project/stale.txt" >&2
+else
+  cat "$project/out.txt" >&2
+fi
+-- project.godot --
+config_version=5
+
+[application]
+
+config/features=PackedStringArray("4.7", "Forward Plus")
+-- .godot/global_script_class_cache.cfg --
+list=[]
+-- src/bad.gd --
+extends Node
+
+
+func f() -> void:
+	var count: int = "three"
+	print(count)
+-- src/warns.gd --
+extends Node
+
+
+func h(x) -> void:
+	var unused: int = 1
+	print(x)
+-- out.txt --
+SCRIPT ERROR: Parse Error: Cannot assign a value of type "String" as "int".
+          at: GDScript::reload (res://src/bad.gd:5)
+WARNING: The local variable "unused" is declared but never used in the block. If this is intended, prefix it with an underscore: "_unused".
+     at: GDScript::reload (res://src/warns.gd:5)
+-- @stdout --
+src/bad.gd:5:1: gdscript/compile a script Godot can't load
+src/warns.gd:5:1: gdscript/warnings a GDScript warning Godot reports

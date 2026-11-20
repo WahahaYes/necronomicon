@@ -1,7 +1,8 @@
 # The necro:gdscript pack (spec: Packs), built into the binary: gdtoolkit's
 # formatter, linter and parser, plus guards for what they miss. Rule names
 # get the `gdscript/` prefix when loaded. gdformat and gdlint come from PATH;
-# necronomicon[gdscript] installs the pinned gdtoolkit beside necro.
+# necronomicon[gdscript] installs the pinned gdtoolkit beside necro. compile
+# and warnings run the repo's own godot through `necro godot`.
 rules:
   gdformat:
     command: necro gdtoolkit --line-length {line-length} format -- '*.gd'
@@ -170,3 +171,40 @@ rules:
       good: |
         extends TileMapLayer
         var layer: TileMapLayer = TileMapLayer.new()
+  compile:
+    command: necro godot compile -- '*.gd'
+    files: '\.gd$|(^|/)project\.godot$'
+    message: a script Godot can't load
+    why: Godot's analyzer is the only check that knows the types; a script it can't load fails the moment a scene uses it, and gdtoolkit's parser accepts it.
+    fix: fix the error at the line shown; on a script whose dependency fails, fix that script first. `godot --headless --path . --check-only --script res://<file>` shows the full message.
+    details: |
+      Each project's scripts load in one headless Godot (`$GODOT`, else
+      `godot` on PATH; 4.5 or later, the major.minor `project.godot`
+      names), as a running game would, so autoloads and
+      `class_name`s resolve. Type errors, unknown identifiers and parse
+      errors count. A narrowed run loads only the changed scripts. A
+      project without its `.godot/` class cache is imported first. A
+      repo without Godot where necro runs disables this rule and
+      gdscript/warnings.
+    examples:
+      bad: 'var count: int = "three"'
+      good: 'var count: int = 3'
+  warnings:
+    command: necro godot warnings -- '*.gd'
+    files: '\.gd$|(^|/)project\.godot$'
+    message: a GDScript warning Godot reports
+    why: the warnings project.godot turns on are the editor's own review (shadowed names, unused variables and signals, integer division); outside the editor nobody sees them, so they pile up.
+    fix: change the code as the warning says. Where the code is right, put `@warning_ignore("<warning>")` above the line, named as in project.godot's debug/gdscript/warnings; to drop a warning everywhere, set it to 0 there.
+    details: |
+      The same headless load as gdscript/compile. Which warnings count,
+      and at what level, is `project.godot`'s `debug/gdscript/warnings`
+      settings; Godot leaves vendored addons out by default
+      (`exclude_addons`).
+    examples:
+      bad: |-
+        func roll(sides: int) -> int:
+            var unused: int = 0
+            return randi_range(1, sides)
+      good: |-
+        func roll(sides: int) -> int:
+            return randi_range(1, sides)

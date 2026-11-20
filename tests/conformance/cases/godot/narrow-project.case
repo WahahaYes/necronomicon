@@ -1,0 +1,91 @@
+# a listed project.godot checks every script in its project
+behavior: godot-narrowed-checks-listed-files
+args: godot --files-from list.txt warnings
+exec: bin/godot
+env: PATH=<root>/bin:/usr/bin:/bin
+-- list.txt --
+game/project.godot
+-- bin/godot --
+#!/bin/sh
+# Fake godot: logs each call to calls.log; --import marks the project
+# imported; a check prints the project's out.txt (stale.txt until imported);
+# --version prints $FAKE_GODOT_VERSION, 4.7.2 by default.
+if [ "$1" = "--version" ]; then
+  echo "${FAKE_GODOT_VERSION:-4.7.2.stable.official.ed1daf0bf}"
+  exit 0
+fi
+project=.
+import=no
+last=
+prev=
+for a in "$@"; do
+  [ "$prev" = "--path" ] && project=$a
+  [ "$a" = "--import" ] && import=yes
+  prev=$a
+  last=$a
+done
+if [ "$import" = yes ]; then
+  echo "import $project" >> calls.log
+  mkdir -p "$project/.godot" && touch "$project/.godot/imported" "$project/.godot/global_script_class_cache.cfg"
+  exit 0
+fi
+echo "check $project" >> calls.log
+sed 's/^/  /' "$last" >> calls.log
+if [ -f "$project/stale.txt" ] && [ ! -f "$project/.godot/imported" ]; then
+  cat "$project/stale.txt" >&2
+else
+  cat "$project/out.txt" >&2
+fi
+-- game/project.godot --
+config_version=5
+
+[application]
+
+config/features=PackedStringArray("4.7", "Forward Plus")
+-- game/.godot/global_script_class_cache.cfg --
+list=[]
+-- game/.godot/imported --
+yes
+-- game/src/bad.gd --
+extends Node
+-- game/src/uses_bad.gd --
+extends Node
+-- game/src/warns.gd --
+extends Node
+-- game/src/ok.gd --
+extends Node
+-- game/.hidden/skip.gd --
+extends Node
+-- game/raw/.gdignore --
+Godot skips this folder.
+-- game/raw/skip.gd --
+extends Node
+-- game/out.txt --
+Godot Engine v4.7.2.stable.official - https://godotengine.org
+
+GdPlanningAI: log level set to 2
+SCRIPT ERROR: Parse Error: Cannot assign a value of type "String" as "int".
+          at: GDScript::reload (res://src/bad.gd:5)
+          GDScript backtrace (most recent call first):
+              [0] _initialize (/tmp/x/necro-godot-check.gd:9)
+SCRIPT ERROR: Parse Error: Cannot assign a value of type String to variable "count" with specified type int.
+          at: GDScript::reload (res://src/bad.gd:5)
+ERROR: Failed to load script "res://src/bad.gd" with error "Parse error".
+   at: load (modules/gdscript/gdscript_resource_format.cpp:46)
+SCRIPT ERROR: Compile Error: Failed to compile depended scripts.
+          at: GDScript::reload (res://src/uses_bad.gd:0)
+WARNING: The local variable "unused" is declared but never used in the block. If this is intended, prefix it with an underscore: "_unused".
+     at: GDScript::reload (res://src/warns.gd:5)
+WARNING: Parameter "x" has no static type.
+     at: GDScript::reload (res://src/warns.gd:4)
+WARNING: 182 ObjectDB instances were leaked at exit (run with `--verbose` for details).
+   at: ~PagedAllocator (./core/templates/paged_allocator.h:170)
+-- @stdout --
+game/src/warns.gd:4: Parameter "x" has no static type.
+game/src/warns.gd:5: The local variable "unused" is declared but never used in the block. If this is intended, prefix it with an underscore: "_unused".
+-- @file calls.log --
+check <root>/game
+  res://src/bad.gd
+  res://src/ok.gd
+  res://src/uses_bad.gd
+  res://src/warns.gd

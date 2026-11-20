@@ -9,7 +9,7 @@ description: Set up necro (necronomicon) in a repo, house rules run as pre-commi
 
 ## 1. Install
 
-`uv tool install necronomicon` or `pip install necronomicon` (a wheel around the binary), or `cargo install necronomicon`. For Godot, install `necronomicon[gdscript]` instead, which pins gdtoolkit beside the binary; for Python, `necronomicon[python]`, which pins ruff and ty. Check with `necro --version`.
+`uv tool install necronomicon` or `pip install necronomicon` (a wheel around the binary), or `cargo install necronomicon`. For Godot, install `necronomicon[gdscript]` instead, which pins gdtoolkit beside the binary; `necro:gdscript` also runs the project's own Godot, the version `project.godot` names, as `godot` on `PATH` or `$GODOT`; for Python, `necronomicon[python]`, which pins ruff and ty. Check with `necro --version`.
 
 ## 2. necro.yaml
 

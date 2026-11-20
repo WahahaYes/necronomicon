@@ -210,11 +210,11 @@ A bug fix adds a case to the behavior it broke. If no entry fits, add the entry 
 
 ### `gdscript-pack`
 
-**Scenario:** Given `include: [necro:gdscript]`, when necro runs, then it runs gdtoolkit's formatter, linter and parser, and its own guards for inline lambdas, tracked `.uid` files, Godot 3 legacy API, physics context, literal loads, class-name preloads, signal-name prefixes, and legacy TileMap.
+**Scenario:** Given `include: [necro:gdscript]`, when necro runs, then it runs gdtoolkit's formatter, linter and parser, and its own guards for inline lambdas, tracked `.uid` files, Godot 3 legacy API, physics context, literal loads, class-name preloads, signal-name prefixes, and legacy TileMap, and loads each Godot project's scripts in the repo's own Godot for its compile errors and warnings.
 
 **Spec:** [Packs](../spec/v0.md#necrogdscript)
 
-**Proved by:** `packs/gdscript.case`, `packs/gdscript-class-by-name.case`, `packs/gdscript-legacy-3x.case`, `packs/gdscript-literal-load.case`, `packs/gdscript-physics-context.case`, `packs/gdscript-signal-name.case`, `packs/gdscript-tilemap-legacy.case`
+**Proved by:** `packs/gdscript.case`, `packs/gdscript-class-by-name.case`, `packs/gdscript-godot.case`, `packs/gdscript-legacy-3x.case`, `packs/gdscript-literal-load.case`, `packs/gdscript-physics-context.case`, `packs/gdscript-signal-name.case`, `packs/gdscript-tilemap-legacy.case`
 
 ### `gdscript-style-pack`
 
@@ -663,6 +663,56 @@ A bug fix adds a case to the behavior it broke. If no entry fits, add the entry 
 **Spec:** [Finders](../spec/v0.md#finders), [Fixes](../spec/v0.md#fixes)
 
 **Proved by:** `gdtoolkit/write.case`
+
+## `necro godot`
+
+### `godot-compile-reports-load-errors`
+
+**Scenario:** Given a Godot project whose scripts Godot can't load, when `godot compile` runs, then each error is a hit at its line under the project's folder, two on one line are one, a script whose dependency fails is a whole-file hit, and folders Godot ignores aren't loaded.
+
+**Spec:** [Finders](../spec/v0.md#finders)
+
+**Proved by:** `godot/compile.case`
+
+### `godot-warnings-reports-warnings`
+
+**Scenario:** Given scripts Godot warns about while loading, when `godot warnings` runs, then each warning is a hit at its line, and engine warnings that name no script are ignored.
+
+**Spec:** [Finders](../spec/v0.md#finders)
+
+**Proved by:** `godot/warnings.case`
+
+### `godot-narrowed-checks-listed-files`
+
+**Scenario:** Given `--files-from`, when `godot` runs, then it loads only the listed scripts and keeps only their hits, and a listed `project.godot` checks its whole project.
+
+**Spec:** [Finders](../spec/v0.md#finders), [Narrowed runs](../spec/v0.md#narrowed-runs)
+
+**Proved by:** `godot/narrow.case`, `godot/narrow-project.case`
+
+### `godot-imports-when-the-cache-is-missing-or-stale`
+
+**Scenario:** Given a project with no class cache, or an error that reads as a stale one, when `godot` runs, then it imports the project once and checks again; an import counts as done when it leaves the class cache, whatever its exit code.
+
+**Spec:** [Finders](../spec/v0.md#finders)
+
+**Proved by:** `godot/import-exit.case`, `godot/import.case`, `godot/stale.case`
+
+### `godot-runs-the-version-the-project-names`
+
+**Scenario:** Given a Godot project, when `godot` runs, then it uses `$GODOT` or `godot` on `PATH`, and stops with an error naming both versions when that Godot's major.minor differs from the version `project.godot` names, when `project.godot` names none, or when the Godot is older than 4.5.
+
+**Spec:** [Finders](../spec/v0.md#finders)
+
+**Proved by:** `godot/godot-env.case`, `godot/version-floor.case`, `godot/version-mismatch.case`, `godot/version-unnamed.case`
+
+### `missing-godot-says-what-to-do`
+
+**Scenario:** Given no `godot` on `PATH`, when `godot` runs, then it exits 2 saying to install Godot or disable the two rules.
+
+**Spec:** [Finders](../spec/v0.md#finders)
+
+**Proved by:** `godot/missing.case`
 
 ## `necro ruff`
 
