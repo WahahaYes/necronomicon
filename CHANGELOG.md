@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.6.0 - 2026-11-19
+
 - **`necro ruff`** turns ruff's diagnostics into hits over `.py` and `.pyi` files, reading the repo's own ruff configuration: `check <code>…` for the codes necro's packs use, `check --others` for everything else ruff reports, and `format` (fixable) for files `ruff format` would change. **`necro ty`** does the same for ty's type checking, with the repo's ty configuration and environment. Both come with the wheel's new extra, `necronomicon[python]`.
 - **`necro:python`**, a pack for Python run through `necro ruff` with the repo's ruff configuration: `ruff` (every diagnostic ruff's defaults or the repo's selection give; `skip` drops codes), `ruff-format` (fixable), and what ruff's defaults leave off: `raise-from`, `is-compare` (`== None`, `type(x) ==`), `star-import`, `blanket-ignore` (a `noqa` or `type: ignore` naming no code), `logging-fstring` `annotations` (function arguments and public returns, tests excluded), and `types` (ty's type errors, such as a `re.match` result used without a None check). It replaces ruff's own pre-commit hooks.
 - **`necro:python-style`**, the opt-in companion: `doc-missing` (a docstring on every module and public class, method and function outside tests), `pathlib` (`os.path` and `open` calls pathlib covers) and `complexity` (ruff's McCabe limit).
