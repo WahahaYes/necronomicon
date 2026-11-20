@@ -1,0 +1,16 @@
+# format: each file ruff format would change is a whole-file hit; a file the repo's config excludes, and one ruff can't parse, aren't
+behavior: ruff-format-flags-files-it-would-change
+args: ruff format
+-- pyproject.toml --
+[tool.ruff]
+extend-exclude = ["gen"]
+-- src/fmt.py --
+x = {  "a":1 }
+-- src/ok.py --
+x = {"a": 1}
+-- src/bad.py --
+def f(:
+-- gen/g.py --
+x = {  "a":1 }
+-- @stdout --
+src/fmt.py: needs reformatting

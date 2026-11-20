@@ -1,0 +1,11 @@
+# a code under one of the set's prefixes is accepted and reports only that code
+behavior: ruff-check-reports-given-codes
+args: ruff check PTH123
+-- src/a.py --
+import os.path
+
+p = os.path.join("a", "b")
+with open(p) as f:
+    pass
+-- @stdout --
+src/a.py:4:6-9: `open()` should be replaced by `Path.open()` (PTH123)

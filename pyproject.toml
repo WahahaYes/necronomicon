@@ -24,6 +24,7 @@ classifiers = [
 # `necronomicon[gdscript]` installs them beside necro (spec: Packs).
 [project.optional-dependencies]
 gdscript = ["gdtoolkit==4.5.0"]
+python = ["ruff==0.17.5", "ty==0.0.106"]
 
 [project.urls]
 Repository = "https://github.com/WahahaYes/necronomicon"

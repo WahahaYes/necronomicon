@@ -1,0 +1,6 @@
+# --others takes no codes of its own
+behavior: ruff-rejects-bad-code-arguments
+args: ruff check --others B904
+exit: 2
+-- @stderr --
+necro: ruff: --others takes no codes: necro ruff [--files-from <file>] [--write [--only-at <file>]] (check (<code>… | --others [--except=<code>,…]) | format) [-- <pathspec>…]

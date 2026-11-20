@@ -9,6 +9,8 @@ const PACKS: &[(&str, &str)] = &[
     ("gdscript", include_str!("gdscript.yaml")),
     ("gdscript-style", include_str!("gdscript-style.yaml")),
     ("godot-arch", include_str!("godot-arch.yaml")),
+    ("python", include_str!("python.yaml")),
+    ("python-style", include_str!("python-style.yaml")),
 ];
 
 /// The pack named `name`, as (name, YAML).

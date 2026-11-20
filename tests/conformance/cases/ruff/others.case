@@ -1,0 +1,27 @@
+# --others: ruff's defaults and the repo's selection, minus the fixed set and --except; a noqa for a set code isn't unused; a file ruff can't parse is a hit here
+behavior: ruff-others-reports-other-diagnostics
+args: ruff check --others --except=I
+-- pyproject.toml --
+[tool.ruff.lint]
+extend-select = ["T201"]
+-- src/a.py --
+import sys
+import os
+
+
+def f(d):
+    try:
+        return d["k"]
+    except KeyError:
+        raise ValueError("no k")  # noqa: B904
+
+
+print(f == None)
+-- src/bad.py --
+def f(:
+-- @stdout --
+src/a.py:1:8-10: `sys` imported but unused (F401)
+src/a.py:2:8-9: `os` imported but unused (F401)
+src/a.py:12:1-5: `print` found (T201)
+src/bad.py:1:7: Expected a parameter or the end of the parameter list (invalid-syntax)
+src/bad.py:2:1: unexpected EOF while parsing (invalid-syntax)
