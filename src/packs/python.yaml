@@ -1,0 +1,122 @@
+# The necro:python pack (spec: Packs), built into the binary. Rule names get
+# the `python/` prefix when loaded. Commands use only `necro ruff`, which
+# reads the repo's own ruff configuration; every check run selects the same
+# fixed codes, so a noqa for any of them is never reported unused. Each
+# rule's files: lets a narrowed run skip it when no Python file changed.
+rules:
+  ruff:
+    command: necro ruff check --others --except={skip}
+    files: '\.pyi?$|(^|/)(pyproject\.toml|\.?ruff\.toml)$'
+    params: { skip: [] }
+    message: a ruff diagnostic
+    why: ruff's default rules catch real bugs (a closure capturing a loop variable, a bare except, an unused import hiding a typo), and one left in the tree hides the next behind it.
+    fix: change the code as the diagnostic says; `ruff rule <code>` explains it in full. To drop a code everywhere, list it in this rule's `skip`, or in the repo's ruff `ignore`.
+    details: |
+      Every diagnostic ruff gives with the repo's configuration, its
+      defaults when there is none, except the codes the other python/
+      rules report. A file ruff can't parse is a hit here
+      (invalid-syntax). `noqa` comments and `per-file-ignores` apply.
+      It replaces a `ruff check` hook.
+    examples:
+      bad: 'except: pass'
+      good: |-
+        except FileNotFoundError:
+            return None
+  ruff-format:
+    command: necro ruff format
+    files: '\.pyi?$|(^|/)(pyproject\.toml|\.?ruff\.toml)$'
+    message: a Python file ruff format would change
+    why: one layout, applied by a tool, keeps diffs to what changed and ends review comments about spacing.
+    fix: run `necro --fix`, which runs ruff format on the file.
+    details: |
+      The repo's ruff configuration applies (line length, quote style,
+      exclude). A repo that formats another way turns it off with
+      `disable: [python/ruff-format]`. It replaces a `ruff format` hook.
+  raise-from:
+    command: necro ruff check B904
+    files: '\.pyi?$|(^|/)(pyproject\.toml|\.?ruff\.toml)$'
+    message: an exception raised in an except block without from
+    why: without `from`, the traceback reads as a second failure while handling the first, and the cause is easy to miss.
+    fix: 'chain it: `raise NewError(...) from err`, naming the caught exception; when the original is noise for the caller, `from None` says so.'
+    examples:
+      bad: |-
+        except KeyError:
+            raise ConfigError(f"no {key} in config")
+      good: |-
+        except KeyError as err:
+            raise ConfigError(f"no {key} in config") from err
+  is-compare:
+    command: necro ruff check E711 E721
+    files: '\.pyi?$|(^|/)(pyproject\.toml|\.?ruff\.toml)$'
+    message: a comparison to None or a type with ==
+    why: '`==` calls `__eq__`, which a class can override, so `x == None` can be true for a value that isn''t None; `type(x) == T` refuses subclasses.'
+    fix: write `x is None` (or `is not`), and `isinstance(x, T)` for a type, or `type(x) is T` when subclasses must not match.
+    examples:
+      bad: 'if value == None:'
+      good: 'if value is None:'
+  star-import:
+    command: necro ruff check F403 F405
+    files: '\.pyi?$|(^|/)(pyproject\.toml|\.?ruff\.toml)$'
+    message: a star import, or a name that may come from one
+    why: '`from m import *` hides where every name comes from, from the reader and from the checker, so an unused or shadowed import can''t be found.'
+    fix: import the names the module uses, `from m import a, b`, or the module itself.
+    examples:
+      bad: 'from os.path import *'
+      good: 'from os.path import exists, join'
+  blanket-ignore:
+    command: necro ruff check PGH003 PGH004
+    files: '\.pyi?$|(^|/)(pyproject\.toml|\.?ruff\.toml)$'
+    message: a type ignore or noqa that names no code
+    why: a blanket suppression silences every error on the line, including the next one, and says nothing about which it meant.
+    fix: 'name the code: `# noqa: E402`, `# type: ignore[attr-defined]`. Better, fix what it silenced.'
+    examples:
+      bad: 'import bpy  # noqa'
+      good: 'import bpy  # noqa: E402'
+  logging-fstring:
+    command: necro ruff check G004
+    files: '\.pyi?$|(^|/)(pyproject\.toml|\.?ruff\.toml)$'
+    message: an f-string in a logging call
+    why: the f-string is built even when the level is off, and log aggregation can't group messages whose text differs on every call.
+    fix: 'pass the values as arguments: `log.info("loaded %s rows", n)`.'
+    examples:
+      bad: 'log.info(f"loaded {n} rows")'
+      good: 'log.info("loaded %s rows", n)'
+  annotations:
+    command: necro ruff check ANN001 ANN201
+    files: '\.pyi?$|(^|/)(pyproject\.toml|\.?ruff\.toml)$'
+    exclude: '(^|/)(tests?/|test_[^/]*\.py$|[^/]*_test\.py$|conftest\.py$)'
+    message: a function argument or public return with no type
+    why: annotations are the contract a reader, a type checker and an agent work from; without them every caller re-derives the types from the body.
+    fix: annotate each argument, and the return of each public function (`-> None` when it returns nothing).
+    details: |
+      `self` and `cls`, `*args` and `**kwargs`, and the returns of
+      private (`_name`) functions are exempt. Tests are excluded by path
+      (`test/`, `tests/`, `test_*.py`, `*_test.py`, `conftest.py`); a repo
+      changes that with `override`.
+    examples:
+      bad: 'def scale(points, factor):'
+      good: 'def scale(points: list[Point], factor: float) -> list[Point]:'
+  types:
+    command: necro ty --except={skip}
+    files: '\.pyi?$|(^|/)(pyproject\.toml|ty\.toml|uv\.lock)$'
+    params: { skip: [] }
+    message: a type error ty reports
+    why: a value that can be None, or the wrong type, is a crash waiting for the input that triggers it; ty finds it from the code, before a test or a user does.
+    fix: handle the case ty names (check for None, narrow the type, fix the call), as `ty explain rule <rule>` describes. An import ty can't resolve is setup, not code; see details.
+    details: |
+      Every diagnostic ty gives with the repo's `[tool.ty]` configuration
+      and environment (the active virtualenv, else `.venv`); necro never
+      syncs it. For an import ty can't resolve: install the dependency
+      into the environment, list a folder of sibling modules in
+      `environment.extra-paths`, or, for a module only a host program
+      provides (Blender's `bpy`), list it in
+      `analysis.allowed-unresolved-imports`. `ty: ignore[<rule>]` comments
+      apply. `skip` drops ty rules by name everywhere, as does setting them
+      to "ignore" in `[tool.ty.rules]`.
+    examples:
+      bad: 'name = re.match(r"\w+", text).group(0)'
+      good: |-
+        match = re.match(r"\w+", text)
+        if match is None:
+            raise ValueError(f"no word in {text!r}")
+        name = match.group(0)

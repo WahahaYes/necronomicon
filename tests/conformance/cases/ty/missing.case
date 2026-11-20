@@ -1,0 +1,9 @@
+# without ty on PATH, the finder names the extra that installs it
+behavior: missing-ty-names-the-extra
+args: ty
+env: PATH=/usr/bin:/bin
+exit: 2
+-- src/a.py --
+x = 1
+-- @stderr --
+necro: ty: ty isn't on PATH; install necronomicon[python], which pins ty beside necro

@@ -1,0 +1,14 @@
+# --except drops the diagnostics of the rules it names
+behavior: ty-reports-diagnostics
+args: ty --except=import-not-found,invalid-assignment
+-- src/a.py --
+import re
+import nosuchmodule
+
+y: int = "a"
+
+
+def first(text: str) -> str:
+    return re.match(r"\w+", text).group(0)
+-- @stdout --
+src/a.py:8:12-39: Attribute `group` is not defined on `None` in union `Match[str] | None` (missing-union-attribute)

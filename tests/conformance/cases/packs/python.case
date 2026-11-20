@@ -1,0 +1,50 @@
+# necro:python runs ruff's defaults and formatter, ty's type checks, and its own selection: raise-from, is-compare, star-import, blanket-ignore, logging-fstring, and annotations outside tests
+behavior: python-pack
+args: --format terse
+exit: 1
+-- necro.yaml --
+version: 0
+include: [necro:python]
+-- src/a.py --
+import logging
+from os.path import *
+
+log = logging.getLogger(__name__)
+
+
+def load(table, key):
+    try:
+        return table[key]
+    except KeyError:
+        raise ValueError(f"no {key}")
+
+
+def report(value) -> None:
+    if value == None:
+        log.info(f"empty {value}")
+    x = join("a", "b")  # type: ignore
+    for i in range(3):
+        print(lambda: i)
+-- src/fmt.py --
+x = {  "a":1 }
+-- src/t.py --
+count: int = "three"
+-- tests/test_a.py --
+def test_load(tmp_path):
+    assert tmp_path
+-- @stdout --
+src/a.py:7:5: python/annotations a function argument or public return with no type
+src/a.py:7:10: python/annotations a function argument or public return with no type
+src/a.py:7:17: python/annotations a function argument or public return with no type
+src/a.py:14:12: python/annotations a function argument or public return with no type
+src/a.py:17:25: python/blanket-ignore a type ignore or noqa that names no code
+src/a.py:15:17: python/is-compare a comparison to None or a type with ==
+src/a.py:16:18: python/logging-fstring an f-string in a logging call
+src/a.py:11:9: python/raise-from an exception raised in an except block without from
+src/a.py:17:5: python/ruff a ruff diagnostic
+src/a.py:19:23: python/ruff a ruff diagnostic
+src/fmt.py: python/ruff-format a Python file ruff format would change
+src/a.py:2:1: python/star-import a star import, or a name that may come from one
+src/a.py:17:9: python/star-import a star import, or a name that may come from one
+src/a.py:17:25: python/types a type error ty reports
+src/t.py:1:14: python/types a type error ty reports

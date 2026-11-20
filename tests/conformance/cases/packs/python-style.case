@@ -1,0 +1,55 @@
+# necro:python-style adds docstrings on public names outside tests, pathlib over os.path, and ruff's complexity limit
+behavior: python-style-pack
+args: --format terse
+exit: 1
+-- necro.yaml --
+version: 0
+include: [necro:python-style]
+-- src/a.py --
+import os.path
+
+
+class Store:
+    def path(self, root: str) -> str:
+        return os.path.join(root, "store")
+
+    def _hidden(self) -> None:
+        pass
+
+
+def _private() -> None:
+    pass
+
+
+def pick(n: int) -> str:
+    """The word for n."""
+    if n == 1:
+        return "one"
+    if n == 2:
+        return "two"
+    if n == 3:
+        return "three"
+    if n == 4:
+        return "four"
+    if n == 5:
+        return "five"
+    if n == 6:
+        return "six"
+    if n == 7:
+        return "seven"
+    if n == 8:
+        return "eight"
+    if n == 9:
+        return "nine"
+    if n == 10:
+        return "ten"
+    return "many"
+-- tests/test_a.py --
+def test_pick() -> None:
+    assert True
+-- @stdout --
+src/a.py:16:5: python-style/complexity a function with too many branches to follow
+src/a.py:1:1: python-style/doc-missing a public module, class or function with no docstring
+src/a.py:4:7: python-style/doc-missing a public module, class or function with no docstring
+src/a.py:5:9: python-style/doc-missing a public module, class or function with no docstring
+src/a.py:6:16: python-style/pathlib an os.path or os call that pathlib covers

@@ -1,0 +1,15 @@
+# format --write reformats the files ruff format would change, limited to --only-at's files, and names each
+behavior: ruff-write-reformats-files
+args: ruff --write --only-at at.txt format
+-- at.txt --
+src/fmt.py
+-- src/fmt.py --
+x = {  "a":1 }
+-- src/other.py --
+y = {  "b":2 }
+-- @stdout --
+src/fmt.py: reformatted
+-- @file src/fmt.py --
+x = {"a": 1}
+-- @file src/other.py --
+y = {  "b":2 }
