@@ -3,4 +3,4 @@ behavior: no-config-is-a-setup-error
 args: -C /
 exit: 2
 -- @stderr --
-necro: no necro.yaml in / or any folder above it
+necro: no necro.yaml in / or any folder above it; run necro init to get started

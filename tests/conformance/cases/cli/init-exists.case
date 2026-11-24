@@ -1,0 +1,8 @@
+# necro init refuses when necro.yaml already exists
+behavior: cli-init-refuses-existing
+args: init
+exit: 2
+-- necro.yaml --
+version: 0
+-- @stderr --
+necro: necro.yaml already exists in <root>; nothing to do

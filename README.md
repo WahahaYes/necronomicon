@@ -120,6 +120,15 @@ As skill-only plugins (discovery and easy install; the binary above still runs t
 - Codex: `codex plugin marketplace add WahahaYes/necronomicon`, then install the `necronomicon` plugin (listing: `.agents/plugins/marketplace.json`).
 - OpenCode: no plugin file needed, `.agents/skills` is already a read path: `npx skills add WahahaYes/necronomicon --skill necro-adopt -a opencode`.
 
+## Quickstart
+
+```sh
+necro init       # writes a starter necro.yaml for your repo's language
+necro            # checks your code — see it catch something
+```
+
+Edit `necro.yaml` to change the starter rule or write your own ([docs/writing-rules.md](https://github.com/WahahaYes/necronomicon/blob/main/docs/writing-rules.md)), then set up the pre-commit hook above to block commits.
+
 ## Skills for agents
 
 `npx skills add WahahaYes/necronomicon --skill necro-adopt` gives a coding agent a skill for setting necro up in a repo. Its last step, `necro skills install`, adds two skills versioned with your necro: `necro`, for working with its hits, and `necro-rules`, for writing rules and keeping `AGENTS.md` in step. They go in `.agents/skills`, linked from `.claude/skills`; after an upgrade, `necro --fix` rewrites them. Pass `-a <harness>` (e.g. `-a opencode`) to write to one harness's skill dir explicitly; without it the tool detects the harness.
