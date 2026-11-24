@@ -47,6 +47,9 @@ coverage: ## Run the tests instrumented: summary, HTML and LCOV in target/llvm-c
 
 ##@ Linting
 
+.PHONY: lint
+lint: necro ## Check every file against necro.yaml (alias for necro)
+
 .PHONY: necro
 necro: ## Check every file against necro.yaml with the current build: house rules, rustfmt, clippy's warnings and the rust packs (CI)
 	@cargo run -q --
