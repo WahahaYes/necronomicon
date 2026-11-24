@@ -24,6 +24,11 @@ repos:
     hooks:
       - id: gitleaks
         args: ['--config', '.gitleaks.toml']
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.11.0.1-1
+    hooks:
+      - id: shellcheck
+        args: ['--severity=warning']
   # necro, built from this checkout, runs the house rules and the rust packs:
   # rustfmt (applied by --fix: the commit fails until the fixed files are
   # re-staged), clippy's warnings and the rest.
