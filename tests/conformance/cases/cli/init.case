@@ -1,0 +1,26 @@
+# necro init writes a starter necro.yaml when none exists
+behavior: cli-init-writes-starter-config
+args: init
+-- necro.yaml --
+-- src/main.py --
+print("hello")
+-- @stdout --
+necro: wrote necro.yaml (detected python)
+
+Next steps:
+  1. Run necro to see it check your code
+  2. Edit necro.yaml: change the starter rule or write your own
+  3. Set up the pre-commit hook (see the README)
+
+Docs: https://github.com/WahahaYes/necronomicon/blob/main/docs/writing-rules.md
+-- @file necro.yaml --
+…
+version: 0
+# Uncomment to add built-in rules for your language:
+# include: [necro:python]
+rules:
+  no-print:
+    command: necro grep --skip-comments '#' '\bprint\(' -- '*.py'
+    message: print call in library code
+    why: Library code reports through logging, so the caller decides where output goes.
+    fix: Log with logging.getLogger(__name__) at the right level.

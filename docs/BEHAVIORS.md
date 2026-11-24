@@ -1360,6 +1360,30 @@ A bug fix adds a case to the behavior it broke. If no entry fits, add the entry 
 
 **Proved by:** `cli/version.case`
 
+### `cli-init-writes-starter-config`
+
+**Scenario:** Given a folder without `necro.yaml`, when `necro init` runs, then it writes a starter `necro.yaml` with a rule detected from tracked or untracked files and prints next steps.
+
+**Spec:** [CLI](../spec/v0.md#cli)
+
+**Proved by:** `cli/init.case`
+
+### `cli-init-refuses-existing`
+
+**Scenario:** Given an existing `necro.yaml`, when `necro init` runs, then it refuses and exits 2.
+
+**Spec:** [CLI](../spec/v0.md#cli)
+
+**Proved by:** `cli/init-exists.case`
+
+### `cli-init-takes-no-arguments`
+
+**Scenario:** Given extra arguments to `necro init`, when necro runs, then it exits with a usage error.
+
+**Spec:** [CLI](../spec/v0.md#cli)
+
+**Proved by:** `cli/init-args.case`
+
 ## Explain
 
 ### `explain-rule-details`

@@ -1,0 +1,6 @@
+# necro init takes no arguments
+behavior: cli-init-takes-no-arguments
+args: init extra
+exit: 2
+-- @stderr --
+necro: init takes no arguments

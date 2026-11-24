@@ -124,11 +124,14 @@ usage: necro [-C <dir>] [--format full|terse] [--rule <name>] [--fix] [<file>…
        necro [-C <dir>] --list
        necro [-C <dir>] [--rule <name>] --write-baseline
        necro [-C <dir>] --clean-cache
+       necro init
        necro grep [--skip-comments <marker>]… [--glob <glob>]… [--files-from <file>]
                   <regex> [-- <pathspec>…]
        necro clippy [--tests] [--match <regex>] [--skip <regex>] <lint>…
        necro cargo-manifest
        necro --version
+
+necro init writes a starter necro.yaml with one rule for the repo's language.
 
 Each rule's command chooses its own files; exclude: drops its hits in the
 files it names. Given files, necro skips the rules whose files: and exclude:

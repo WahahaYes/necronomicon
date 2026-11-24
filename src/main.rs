@@ -8,6 +8,7 @@ mod command;
 mod config;
 mod files;
 mod finders;
+mod init;
 mod packs;
 mod render;
 mod run;
@@ -101,6 +102,23 @@ fn main() -> ExitCode {
             }
         };
     }
+    if argv.first().is_some_and(|a| a == "init") {
+        if argv.len() > 1 {
+            render::usage("init takes no arguments");
+            return ExitCode::from(2);
+        }
+        let dir = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+        return match init::run(&dir) {
+            Ok(message) => {
+                render::line(&message);
+                ExitCode::SUCCESS
+            }
+            Err(message) => {
+                render::usage(&message);
+                ExitCode::from(2)
+            }
+        };
+    }
     if argv.iter().any(|a| a == "--version") {
         render::line(&format!("necro {}", env!("CARGO_PKG_VERSION")));
         return ExitCode::SUCCESS;
@@ -125,7 +143,7 @@ fn main_with(args: Args) -> Result<u8, String> {
         None => cwd.clone(),
     };
     let root = files::find_root(&start).ok_or(format!(
-        "no necro.yaml in {} or any folder above it",
+        "no necro.yaml in {} or any folder above it; run necro init to get started",
         start.display()
     ))?;
     if !files::in_git(&root) {

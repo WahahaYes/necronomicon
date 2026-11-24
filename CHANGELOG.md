@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **`necro init`** writes a starter `necro.yaml` with one rule for the repo's main language (Python, Rust, GDScript, Go or JS/TS, detected from tracked file extensions), a commented pack suggestion where one exists, and a pointer to the docs. It refuses when `necro.yaml` already exists. Running `necro` with no config now suggests it.
+
 ## 0.6.0 - 2026-11-19
 
 - **`necro ruff`** turns ruff's diagnostics into hits over `.py` and `.pyi` files, reading the repo's own ruff configuration: `check <code>…` for the codes necro's packs use, `check --others` for everything else ruff reports, and `format` (fixable) for files `ruff format` would change. **`necro ty`** does the same for ty's type checking, with the repo's ty configuration and environment. Both come with the wheel's new extra, `necronomicon[python]`.
